@@ -1,0 +1,87 @@
+{
+  "date": "2026-11-08T21:45:24.839888+00:00",
+  "provider": "kick",
+  "channel": "minerva",
+  "environment": "Ubuntu Linux; n\u00e3o webOS",
+  "streamlink_version": "8.6.3",
+  "plugin_sha256": "28c721af9469fd5fd1892137442b08ebf5cb2fe737a05f42e0d679abe2a44195",
+  "tv_tested": false,
+  "challenge_browser_used": false,
+  "cookies_used": false,
+  "online": true,
+  "qualities": [
+    {
+      "label": "1080p",
+      "width": 1920,
+      "height": 1080,
+      "bitrate": 8700000,
+      "fps": 60.0,
+      "selectable": true
+    },
+    {
+      "label": "720p",
+      "width": 1280,
+      "height": 720,
+      "bitrate": 3400000,
+      "fps": 60.0,
+      "selectable": true
+    },
+    {
+      "label": "480p",
+      "width": 852,
+      "height": 480,
+      "bitrate": 1400000,
+      "fps": 30.0,
+      "selectable": true
+    },
+    {
+      "label": "360p",
+      "width": 640,
+      "height": 360,
+      "bitrate": 630000,
+      "fps": 30.0,
+      "selectable": true
+    },
+    {
+      "label": "160p",
+      "width": 284,
+      "height": 160,
+      "bitrate": 230000,
+      "fps": 30.0,
+      "selectable": true
+    }
+  ],
+  "ffprobe_exit": 0,
+  "streams": [
+    {
+      "codec_name": "aac",
+      "codec_type": "audio",
+      "r_frame_rate": "0/0"
+    },
+    {
+      "codec_name": "h264",
+      "codec_type": "video",
+      "width": 1920,
+      "height": 1080,
+      "r_frame_rate": "60/1"
+    },
+    {
+      "codec_name": "timed_id3",
+      "codec_type": "data",
+      "r_frame_rate": "0/0"
+    }
+  ],
+  "ffmpeg_decode_exit": 0,
+  "browser": {
+    "environment": "Playwright Chromium Linux, n\u00e3o webOS",
+    "backend_http_transport": "simulado com metadados reais da descoberta",
+    "hls_network": "CDN real; sem proxy",
+    "can_play_hls": "maybe",
+    "first_time": null,
+    "later_time": null,
+    "time_advanced": false,
+    "snapshot": null,
+    "error_message": "HLS indispon\u00edvel ou n\u00e3o suportado por este dispositivo.",
+    "media_released": true
+  }
+}

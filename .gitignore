@@ -33,3 +33,8 @@ secrets*.json
 id_rsa*
 id_ed25519*
 .netrc
+.venv/
+venv/
+.pytest_cache/
+*.local.json
+*.local.env

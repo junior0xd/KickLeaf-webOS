@@ -1,0 +1,245 @@
+{
+  "date": "2026-11-08T21:44:24.578465+00:00",
+  "provider": "public-test",
+  "channel": "hls-test",
+  "environment": "Ubuntu Linux; n\u00e3o webOS",
+  "streamlink_version": "8.6.3",
+  "plugin_sha256": "28c721af9469fd5fd1892137442b08ebf5cb2fe737a05f42e0d679abe2a44195",
+  "tv_tested": false,
+  "challenge_browser_used": false,
+  "cookies_used": false,
+  "online": true,
+  "qualities": [
+    {
+      "label": "540p",
+      "width": 960,
+      "height": 540,
+      "bitrate": 2200000,
+      "fps": 60.0,
+      "selectable": false
+    },
+    {
+      "label": "1080p",
+      "width": 1920,
+      "height": 1080,
+      "bitrate": 8200000,
+      "fps": 60.0,
+      "selectable": false
+    },
+    {
+      "label": "1080p",
+      "width": 1920,
+      "height": 1080,
+      "bitrate": 6500000,
+      "fps": 60.0,
+      "selectable": false
+    },
+    {
+      "label": "1080p",
+      "width": 1920,
+      "height": 1080,
+      "bitrate": 5100000,
+      "fps": 60.0,
+      "selectable": false
+    },
+    {
+      "label": "720p",
+      "width": 1280,
+      "height": 720,
+      "bitrate": 3300000,
+      "fps": 60.0,
+      "selectable": false
+    },
+    {
+      "label": "432p",
+      "width": 768,
+      "height": 432,
+      "bitrate": 1300000,
+      "fps": 30.0,
+      "selectable": false
+    },
+    {
+      "label": "360p",
+      "width": 640,
+      "height": 360,
+      "bitrate": 920000,
+      "fps": 30.0,
+      "selectable": false
+    },
+    {
+      "label": "270p",
+      "width": 480,
+      "height": 270,
+      "bitrate": 550000,
+      "fps": 30.0,
+      "selectable": false
+    },
+    {
+      "label": "540p",
+      "width": 960,
+      "height": 540,
+      "bitrate": 2400000,
+      "fps": 60.0,
+      "selectable": false
+    },
+    {
+      "label": "1080p",
+      "width": 1920,
+      "height": 1080,
+      "bitrate": 8400000,
+      "fps": 60.0,
+      "selectable": false
+    },
+    {
+      "label": "1080p",
+      "width": 1920,
+      "height": 1080,
+      "bitrate": 6700000,
+      "fps": 60.0,
+      "selectable": false
+    },
+    {
+      "label": "1080p",
+      "width": 1920,
+      "height": 1080,
+      "bitrate": 5300000,
+      "fps": 60.0,
+      "selectable": false
+    },
+    {
+      "label": "720p",
+      "width": 1280,
+      "height": 720,
+      "bitrate": 3500000,
+      "fps": 60.0,
+      "selectable": false
+    },
+    {
+      "label": "432p",
+      "width": 768,
+      "height": 432,
+      "bitrate": 1500000,
+      "fps": 30.0,
+      "selectable": false
+    },
+    {
+      "label": "360p",
+      "width": 640,
+      "height": 360,
+      "bitrate": 1100000,
+      "fps": 30.0,
+      "selectable": false
+    },
+    {
+      "label": "270p",
+      "width": 480,
+      "height": 270,
+      "bitrate": 770000,
+      "fps": 30.0,
+      "selectable": false
+    },
+    {
+      "label": "540p",
+      "width": 960,
+      "height": 540,
+      "bitrate": 2300000,
+      "fps": 60.0,
+      "selectable": false
+    },
+    {
+      "label": "1080p",
+      "width": 1920,
+      "height": 1080,
+      "bitrate": 8200000,
+      "fps": 60.0,
+      "selectable": false
+    },
+    {
+      "label": "1080p",
+      "width": 1920,
+      "height": 1080,
+      "bitrate": 6500000,
+      "fps": 60.0,
+      "selectable": false
+    },
+    {
+      "label": "1080p",
+      "width": 1920,
+      "height": 1080,
+      "bitrate": 5100000,
+      "fps": 60.0,
+      "selectable": false
+    },
+    {
+      "label": "720p",
+      "width": 1280,
+      "height": 720,
+      "bitrate": 3300000,
+      "fps": 60.0,
+      "selectable": false
+    },
+    {
+      "label": "432p",
+      "width": 768,
+      "height": 432,
+      "bitrate": 1300000,
+      "fps": 30.0,
+      "selectable": false
+    },
+    {
+      "label": "360p",
+      "width": 640,
+      "height": 360,
+      "bitrate": 950000,
+      "fps": 30.0,
+      "selectable": false
+    },
+    {
+      "label": "270p",
+      "width": 480,
+      "height": 270,
+      "bitrate": 580000,
+      "fps": 30.0,
+      "selectable": false
+    }
+  ],
+  "ffprobe_exit": 0,
+  "streams": [
+    {
+      "codec_name": "aac",
+      "codec_type": "audio",
+      "r_frame_rate": "0/0"
+    },
+    {
+      "codec_name": "h264",
+      "codec_type": "video",
+      "width": 960,
+      "height": 540,
+      "r_frame_rate": "60/1"
+    }
+  ],
+  "ffmpeg_decode_exit": 0,
+  "browser": {
+    "environment": "Playwright Chromium Linux, n\u00e3o webOS",
+    "backend_http_transport": "simulado com metadados reais da descoberta",
+    "hls_network": "CDN real; sem proxy",
+    "can_play_hls": "maybe",
+    "first_time": 3.021209,
+    "later_time": 6.026167,
+    "time_advanced": true,
+    "snapshot": {
+      "width": 1920,
+      "height": 1080,
+      "quality": "auto",
+      "nominal_bitrate": null,
+      "buffered_ahead_seconds": 5.873833,
+      "observed_presented_fps": 28.990899647221124,
+      "dropped_frames": 1,
+      "live_edge_gap_seconds": null,
+      "paused": false,
+      "ready_state": 4
+    },
+    "error_message": "",
+    "media_released": true
+  }
+}

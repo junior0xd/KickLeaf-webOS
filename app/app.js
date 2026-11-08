@@ -3,6 +3,11 @@
   var params = {};
   try { params = JSON.parse((window.PalmSystem && window.PalmSystem.launchParams) || '{}'); }
   catch (error) { console.warn('[KickTV] Parâmetros de abertura inválidos.'); }
+  var query = new URLSearchParams(window.location.search);
+  if (params.mode === 'native-hls' && !query.has('iframe')) {
+    window.location.replace('native-hls.html');
+    return;
+  }
   if (params.mode === 'hls-test' && window.location.search !== '?home') {
     window.location.replace('hls-test.html');
     return;
@@ -11,6 +16,9 @@
   var home = document.getElementById('home');
   var form = document.getElementById('channel-form');
   var input = document.getElementById('channel');
+  if (query.has('iframe') && query.has('channel')) {
+    try { input.value = window.KickChannel.normalizeChannel(query.get('channel')); } catch (error) { /* Mantém a entrada vazia se inválida. */ }
+  }
   var watch = document.getElementById('watch');
   var message = document.getElementById('message');
   var player = window.createKickPlayer(showHome);

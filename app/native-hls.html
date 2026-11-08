@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KickTV — HLS experimental</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body tabindex="-1">
+  <main id="home" class="home">
+    <form id="native-form" novalidate>
+      <input id="channel" type="text" placeholder="Nome do canal da Kick" aria-label="Nome do canal da Kick" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="256">
+      <button id="watch" type="submit">Assistir</button>
+      <button id="official-home" type="button">Usar player oficial</button>
+      <p id="message" role="status" aria-live="polite"></p>
+    </form>
+  </main>
+  <div id="native-video-host"></div>
+  <p id="notice" class="notice" role="status" hidden></p>
+  <section id="native-controls" class="player-controls" tabindex="-1" aria-label="Controles HLS" hidden>
+    <button id="native-quality" type="button">Qualidade: Auto</button>
+    <button id="native-reload" type="button">Recarregar transmissão</button>
+    <button id="official-player" type="button">Usar player oficial</button>
+  </section>
+  <section id="native-quality-menu" class="quality-menu" role="dialog" aria-modal="true" aria-label="Qualidades disponíveis" hidden></section>
+  <script src="channel.js"></script>
+  <script src="native-api.js"></script>
+  <script src="native-hls.js"></script>
+</body>
+</html>

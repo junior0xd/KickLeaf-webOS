@@ -1,0 +1,51 @@
+{
+  "branch": "feat/native-hls-backend",
+  "main_base": "cf9156025cd542f0aa0e27c29b64459d35ff6815",
+  "tests": {
+    "python_passed": 22,
+    "javascript_unit_passed": 10,
+    "browser_passed": 27,
+    "real_tv_performed": false
+  },
+  "package": {
+    "name": "com.kicktv.poc_0.2.0_all.ipk",
+    "bytes": 17136,
+    "sha256": "0cf8a86b85c8e8eb948648b8cbdbdad805b663590f5fb30bd19972676a3d3936",
+    "runtime_files": [
+      "appinfo.json",
+      "index.html",
+      "app.js",
+      "embed-player.js",
+      "channel.js",
+      "style.css",
+      "icon.png",
+      "largeIcon.png",
+      "hls-test.html",
+      "native-player.js",
+      "native-hls.html",
+      "native-api.js",
+      "native-hls.js"
+    ],
+    "source_bytes_verified": true
+  },
+  "experiments": {
+    "public_hls_browser_playback": true,
+    "kick_discovery_plain_http": [
+      "yoda",
+      "minerva"
+    ],
+    "kick_ffmpeg_decode": [
+      "yoda",
+      "minerva"
+    ],
+    "kick_native_browser_playback": false,
+    "kick_native_browser_error": 4,
+    "real_http_api_smoke_test": true,
+    "browser_api_transport": "mocked with real discovery metadata",
+    "browser_media_transport": "real CDN, no proxy",
+    "tv_lan_tls_tested": false
+  },
+  "remote_pushed": false,
+  "tags_created": false,
+  "releases_created": false
+}

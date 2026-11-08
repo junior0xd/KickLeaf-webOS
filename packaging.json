@@ -9,6 +9,9 @@
     "icon.png",
     "largeIcon.png",
     "hls-test.html",
-    "native-player.js"
+    "native-player.js",
+    "native-hls.html",
+    "native-api.js",
+    "native-hls.js"
   ]
 }

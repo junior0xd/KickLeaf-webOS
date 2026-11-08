@@ -20,3 +20,6 @@ iframe.screen { pointer-events: none; }
 .player-controls button:focus, .quality-menu button:focus { outline: 3px solid #aaa; outline-offset: 4px; }
 .quality-menu { position: fixed; z-index: 4; top: 25%; left: 20%; width: 60%; padding: 36px; background: #161616; color: #bbb; text-align: center; }
 .quality-menu h2 { font-size: 32px; font-weight: normal; }
+#native-quality-menu { max-height: 60%; overflow-y: auto; }
+#native-quality-menu button { display: block; width: 95%; margin: 12px auto; }
+#native-quality-menu button:disabled { opacity: .55; }

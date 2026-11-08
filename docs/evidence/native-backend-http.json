@@ -1,0 +1,8 @@
+{
+  "real_http_backend": true,
+  "status": 200,
+  "source": "public-test",
+  "qualities": 24,
+  "cors_origin": "null",
+  "cache_control": "no-store"
+}
