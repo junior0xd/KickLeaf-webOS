@@ -1,6 +1,27 @@
 # Etapa E — testes e limites da validação
 
-Execução em 08/11/2026, Ubuntu Linux, Node 22.22.3, CLI oficial `@webos-tools/cli` 3.2.6 e Playwright 1.65.0. **Nenhuma TV foi conectada.** Não foram fornecidos IP, pareamento ou acesso de rede à C3. O firmware informado pelo usuário não foi inspecionado.
+**Resultado: prova de conceito bem-sucedida na LG OLED C3, conforme validação realizada e relatada pelo usuário.** A instalação, o teclado, a reprodução de canais online em tela cheia, a indicação de offline e o retorno à entrada funcionaram. Não foram identificados erros durante o uso relatado.
+
+Os testes locais foram executados em 08/11/2026, Ubuntu Linux, Node 22.22.3, CLI oficial `@webos-tools/cli` 3.2.6 e Playwright 1.65.0. Nessa execução, o agente não conectou uma TV. A validação no dispositivo foi feita posteriormente pelo usuário; não foi uma execução remota pelo agente. O ambiente de destino informado é LG OLED55C3PSA, webOS 25, versão 10.3.1-3006; o agente não inspecionou o firmware.
+
+## Validação na TV relatada pelo usuário
+
+| Verificação | Resultado relatado |
+| --- | --- |
+| Instalação na LG OLED C3 | Bem-sucedida |
+| Teclado para digitar o canal | Funcionando |
+| Canais utilizados | `yoda`, `xqc` e `minerva`; não foi especificado o estado individual de cada canal |
+| Canal online | O player abre e reproduz a transmissão |
+| Canal offline | O banner do canal e a informação de transmissão offline aparecem |
+| Canal inexistente `lgiptv` | O player apresenta a mensagem "This embed seems to be misconfigured" |
+| Tela cheia | Vídeo reproduzido em tela cheia como previsto |
+| Botão de retorno | Retorna à tela de entrada como previsto |
+| Erros durante o uso | Nenhum identificado; a mensagem esperada para o canal inexistente foi registrada acima |
+| Entrada por URL completa | Não testada; considerada desnecessária pelo usuário para o aceite da PoC |
+
+O usuário declarou a prova de conceito bem-sucedida e solicitou somente a atualização da documentação, sem modificações na aplicação. A data e a duração da sessão de teste na TV não foram informadas. O diagnóstico HLS Apple, a perda de conectividade, a saída pelo Home e a verificação isolada de áudio não foram relatados; não são registrados como testes executados.
+
+Online/offline e a mensagem de canal inexistente são apresentados pelo embed oficial. A validação confirma esse comportamento na TV testada; não significa que o app passou a consultar a API ou a inspecionar o estado interno do iframe.
 
 ## Resultados locais
 
@@ -16,7 +37,7 @@ Execução em 08/11/2026, Ubuntu Linux, Node 22.22.3, CLI oficial `@webos-tools/
 | Teste real do embed `roshtein` | Texto compatível com offline; nenhum `<video>` observado | Resultado pontual; não é consulta autenticada de status |
 | Teste real do embed `sxb` | Vídeo presente, `paused=false`, `readyState=4`, sem erro de mídia, tempo de reprodução positivo | Reprodução real da Kick observada em Chromium Linux a partir de página local |
 | Empacotamento | `.ipk` gerado; manifesto e arquivo `data.tar.gz` inspecionados | Estrutura produzida pela CLI oficial, sem dependências de desenvolvimento no pacote |
-| Instalação/reprodução na C3 | Não executadas | Pendente de acesso real ao dispositivo |
+| Instalação/reprodução na C3 pelo agente | Não executadas nessa sessão local | A validação posterior pelo usuário está registrada acima |
 
 A amostra HLS foi verificada antes da integração do embed. A captura inicial foi revisada visualmente. O formulário tem fundo preto, campo e botão centralizados. [Captura](evidence/tela-inicial.png).
 
@@ -32,21 +53,23 @@ Evidências: [API](evidence/kick-api-summary.json), [H.264](evidence/apple-ffpro
 
 | Critério | Estado |
 | --- | --- |
-| Instalável na OLED C3 | Pacote pronto; instalação real pendente |
-| Campo de canal | Implementado e testado em desktop; teclado LG pendente |
-| Identificar online/offline | Não implementado no app; embed apresenta seu próprio estado; API precisaria de token |
-| Reproduzir live Kick | Observado por embed em Linux; ainda não observado na C3 |
-| Vídeo em tela cheia | Iframe em toda a janela validado no desktop; renderização LG pendente |
-| Voltar retorna à entrada | Código e tecla 461 sintética testados; controle físico LG pendente |
-| Erros sem travamento | Erros locais e HLS tratados; falhas internas cross-origin não são observáveis pelo app |
+| Instalável na OLED C3 | Confirmado pelo usuário na TV |
+| Campo de canal | Digitação pelo teclado confirmada pelo usuário na TV |
+| Identificar online/offline | Exibição do estado pelo embed confirmada na TV; não há consulta própria à API |
+| Reproduzir live Kick | Reprodução de canal online confirmada pelo usuário na C3 |
+| Vídeo em tela cheia | Confirmado pelo usuário na TV |
+| Voltar retorna à entrada | Confirmado pelo usuário na TV |
+| Erros sem travamento | Nenhum erro de uso identificado; canal inexistente apresenta mensagem do embed; falhas internas cross-origin continuam sem observação própria pelo app |
 
-**A prova de conceito não pode ser declarada bem-sucedida na televisão neste estado.** Há uma alternativa oficial funcionando no desktop, pronta para ser submetida ao teste decisivo no hardware.
+**Aceite da PoC concluído pelo usuário no hardware de destino, com a reprodução via embed oficial.** O resultado não valida obtenção direta de HLS da Kick nem altera as limitações de observação do iframe. Não foram necessárias alterações na aplicação após esse relato.
 
-## Roteiro de aceite na TV
+## Roteiro de referência para repetição e verificações complementares
+
+O aceite acima já foi concluído. O roteiro abaixo permanece como referência para repetir a validação ou investigar problemas futuros; não representa uma lista de testes integralmente executados. A entrada por URL completa é opcional e foi dispensada pelo usuário no aceite.
 
 1. Instalar o `.ipk` seguindo o README. Registrar modelo, versão webOS, firmware e resultado da instalação.
 2. Abrir com `mode=hls-test`, confirmar com OK e verificar imagem **e som**. Deixar tocar por alguns minutos. Voltar deve parar a mídia e permitir repetir. Registrar erros do Console e Network se houver.
-3. Fechar e abrir normalmente. Digitar um canal, conferir teclado virtual e navegação com setas e OK. Verificar também uma URL completa.
+3. Fechar e abrir normalmente. Digitar um canal, conferir teclado virtual e navegação com setas e OK. Opcionalmente, verificar uma URL completa.
 4. Usar um canal confirmado ao vivo no momento do teste. `xqc` é apenas exemplo e pode estar offline; `sxb` estava reproduzindo durante a observação de desenvolvimento, sem garantia futura.
 5. Confirmar imagem, áudio, autoplay, ocupação da tela e estabilidade por pelo menos dez minutos. Não considerar `iframe_load` como sucesso.
 6. Pressionar Voltar no controle físico. Confirmar que a tela inicial retorna e o áudio cessa. Abrir outro canal e repetir.

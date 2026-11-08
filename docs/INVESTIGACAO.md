@@ -2,6 +2,8 @@
 
 Data: 08/11/2026. Prioridade: obter reprodução autorizada diretamente no aplicativo da TV.
 
+**Resultado da validação posterior:** o usuário instalou e testou o aplicativo na LG OLED C3 e declarou a prova de conceito bem-sucedida. Foram confirmados teclado, reprodução de canal online em tela cheia, exibição de offline e retorno à entrada. O [relato de validação](TESTES.md) registra os canais utilizados e o comportamento de um canal inexistente. Esta atualização é somente documental; a aplicação permanece inalterada.
+
 ## Kick: metadados e acesso à mídia são interfaces diferentes
 
 A [API de canais](https://docs.kick.com/apis/channels) documenta `GET https://api.kick.com/public/v1/channels?slug=xqc` e `stream.is_live`. Aceita App Access Token ou User Access Token com `channel:read`. Portanto, é possível consultar status oficialmente, **com autenticação**. O app entregue não faz essa consulta: não há credenciais fornecidas, e embutir um segredo no `.ipk` o exporia.
@@ -18,7 +20,7 @@ A [central oficial da Kick](https://help.kick.com/en/articles/8010826-how-to-emb
 
 Não exige fornecer token ao iframe na integração documentada. Isso não significa ausência de tokens ou cookies dentro do player: sua gestão pertence à Kick. Não há, nessa página, SDK documentado para o pai consultar online/offline, observar falhas, controlar o vídeo ou desativar a interface interna. Nenhum protocolo `postMessage` foi inventado.
 
-O iframe preenche a janela do aplicativo por CSS, sem chamar a Fullscreen API. Isso evita exigir outro gesto para tela cheia, mas não controla como o player remoto apresenta proporções, avisos ou controles. O foco é mantido no pai; a hipótese operacional é autoplay sem intervenção. Login, desafios e consentimentos interativos são limites conhecidos.
+O iframe preenche a janela do aplicativo por CSS, sem chamar a Fullscreen API. Isso evita exigir outro gesto para tela cheia, mas não controla como o player remoto apresenta proporções, avisos ou controles. O foco é mantido no pai. O usuário confirmou que o player abre e reproduz canais online em tela cheia e que o retorno à entrada funciona na C3. Login, desafios e consentimentos interativos continuam sendo limites da integração.
 
 Alternativas se esse caminho falhar na TV: solicitar à Kick uma integração de reprodução autorizada/documentada para smart TVs; avaliar com a Kick um contexto HTTPS hospedado se o bloqueio for especificamente o esquema local. Essa segunda alternativa exige hospedagem e não foi implementada. Introduzir um backend apenas para status não fornece HLS. Ferramentas de scraping e proxies de terceiros não demonstram autorização e não foram usadas.
 
@@ -34,18 +36,18 @@ A [LG documenta HLS nativo, HTTP/HTTPS e HLS versão 7](https://webostv.develope
 
 A [tabela AV do webOS 25](https://webostv.developer.lge.com/develop/specifications/video-audio-250) inclui H.264, HEVC, AAC e MPEG-TS; para Full HD lista H.264 até 1080p60, Level 4.2, 40 Mbps. A opção conservadora para uma futura URL autorizada seria H.264/AAC em HLS compatível. Não se confirmou o formato efetivo de uma live Kick.
 
-O [motor web do webOS 25 é Chromium 120](https://webostv.developer.lge.com/develop/specifications/web-api-and-web-engine). A mesma fonte alerta que apps empacotados com esquema local não suportam cookies como apps hospedados; o efeito sobre dependências do embed precisa ser observado na TV. O teste em Chromium Linux não reproduz a pilha multimídia da LG.
+O [motor web do webOS 25 é Chromium 120](https://webostv.developer.lge.com/develop/specifications/web-api-and-web-engine). A mesma fonte alerta que apps empacotados com esquema local não suportam cookies como apps hospedados. No uso relatado pelo usuário na C3, a reprodução pelo embed funcionou sem erros identificados; isso não demonstra suporte geral a cookies nem acesso a fluxos que exijam autenticação. O teste em Chromium Linux não reproduz a pilha multimídia da LG; a validação posterior na TV está registrada separadamente.
 
 A [LG lista TLS 1.2 e 1.3 para webOS 25](https://webostv.developer.lge.com/develop/specifications/tls). Certificados precisam ser confiáveis na TV. Foram usadas fontes HTTPS com verificação de certificados; não se desativou TLS nem se habilitou conteúdo inseguro. Uma tentativa com a antiga URL `devimages.apple.com` falhou por incompatibilidade de certificado, e não foi adotada.
 
-O [botão Voltar usa código 461 e permite tratamento explícito com `disableBackHistoryAPI`](https://webostv.developer.lge.com/develop/guides/back-button). O app remove o player ao voltar. A [documentação do teclado virtual](https://webostv.developer.lge.com/develop/guides/virtual-keyboard) diz que o foco no campo abre o teclado; por isso, não se capturam suas setas enquanto estiver visível. A interação real com o controle e o firmware informado permanece pendente.
+O [botão Voltar usa código 461 e permite tratamento explícito com `disableBackHistoryAPI`](https://webostv.developer.lge.com/develop/guides/back-button). O app remove o player ao voltar. A [documentação do teclado virtual](https://webostv.developer.lge.com/develop/guides/virtual-keyboard) diz que o foco no campo abre o teclado; por isso, não se capturam suas setas enquanto estiver visível. O usuário confirmou o funcionamento do teclado para digitação e do botão de retorno à entrada na LG C3. O agente não inspecionou diretamente o firmware.
 
 ## Decisão por etapa
 
 | Etapa | Resultado |
 | --- | --- |
-| A — investigação | HLS Kick direto bloqueado por falta de contrato público de reprodução; embed oficial disponível para tentativa |
+| A — investigação | HLS Kick direto bloqueado por falta de contrato público de reprodução; embed oficial adotado e validado pelo usuário na C3 |
 | B — player | Diagnóstico HLS nativo e integração mínima por embed, sem extrair mídia |
 | C — webOS | App empacotado com HTML/CSS/JS, manifesto e ícones |
 | D — pacote | `.ipk` gerado pela CLI oficial; conteúdo inspecionado |
-| E — validação | Testes locais executados; aceite na C3 e live real ainda pendentes |
+| E — validação | Testes locais executados; instalação, reprodução e fluxo de uso na C3 confirmados pelo usuário; PoC aceita como bem-sucedida |
