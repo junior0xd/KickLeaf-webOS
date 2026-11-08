@@ -2,8 +2,8 @@
   "date": "2026-11-08",
   "cli": "@webos-tools/cli 3.2.6",
   "package": "com.kicktv.poc_0.1.0_all.ipk",
-  "bytes": 6152,
-  "sha256": "ade30214c49979b14359fb44cc7c059026f7f1c39b626674d3278cf07620f9e2",
+  "bytes": 10488,
+  "sha256": "567f2f33aefa90ac11a07324b2c416ded47a30713bfd0be2c642760823a4514e",
   "source_matches_package": true,
   "app_files": [
     "app.js",

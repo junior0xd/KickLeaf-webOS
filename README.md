@@ -9,6 +9,7 @@ Alvo informado: LG OLED55C3PSA, webOS 25, versão 10.3.1-3006. Investigação em
 ## Arquivos e funcionamento
 
 - `app/`: HTML, CSS, JavaScript puro, manifesto e ícones. Sem dependências de execução.
+- `assets/kick-512.png`: ícone original enviado em 512×512; `app/icon.png` e `app/largeIcon.png` são versões em 80×80 e 130×130 para o webOS.
 - `dist/com.kicktv.poc_0.1.0_all.ipk`: pacote gerado pela CLI oficial.
 - [Investigação](docs/INVESTIGACAO.md): fontes, bloqueios e alternativas.
 - [Testes e validação na TV](docs/TESTES.md): evidências e roteiro pendente.
