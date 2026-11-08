@@ -4,7 +4,7 @@
   try { params = JSON.parse((window.PalmSystem && window.PalmSystem.launchParams) || '{}'); }
   catch (error) { console.warn('[KickTV] Parâmetros de abertura inválidos.'); }
   var query = new URLSearchParams(window.location.search);
-  if (params.mode === 'native-hls' && !query.has('iframe')) {
+  if ((params.mode === 'native-hls' || params.mode === 'direct-hls') && !query.has('iframe')) {
     window.location.replace('native-hls.html');
     return;
   }

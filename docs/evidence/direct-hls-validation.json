@@ -1,0 +1,58 @@
+{
+  "date": "2026-11-08T23:49:25.327627+00:00",
+  "branch": "feat/direct-hls-webos",
+  "base_commit": "c9f49e8",
+  "main_unchanged": "cf9156025cd542f0aa0e27c29b64459d35ff6815",
+  "tests": {
+    "javascript_unit": {
+      "passed": 15
+    },
+    "browser_mocked": {
+      "passed": 51,
+      "direct_hls": 24,
+      "existing_iframe_native_and_diagnostic": 27
+    },
+    "python_backend": {
+      "passed": 22,
+      "warnings": [
+        "Starlette/AnyIO BlockingPortal deprecation"
+      ]
+    },
+    "metadata_and_javascript_syntax": "passed",
+    "git_diff_check": "passed"
+  },
+  "package": {
+    "path": "dist/releases/com.kicktv.poc_0.2.0_all.ipk",
+    "official_cli": "@webos-tools/cli 3.2.6",
+    "profile": "tv",
+    "runtime_files": 15,
+    "sha256": "215e0b0f4791ba01db6919fa0ecb9aef486204a0f2ec05f85752a105b2d1aa7a",
+    "bytes": 20610,
+    "content_audit": "passed"
+  },
+  "real_network": {
+    "desktop_chromium": "158.0.8127.18",
+    "channels": [
+      "yoda",
+      "minerva",
+      "xqc"
+    ],
+    "api_json_readable": true,
+    "channels_without_stream_in_observed_responses": true,
+    "origins_tested": [
+      "http://127.0.0.1 (ephemeral port)",
+      "file:// (HTTP Origin null)"
+    ],
+    "playback_tested": false,
+    "separate_python_http_probe": "403 without ACAO; no circumvention"
+  },
+  "physical_tv": {
+    "direct_hls": "pending",
+    "native_hls_reference": "image and audio confirmed by user on LG OLED55C3PSA webOS 25 10.3.1-3006 via HTTPS backend/Caddy"
+  },
+  "limits": [
+    "Desktop network results do not prove LG C3 direct discovery or playback.",
+    "Mocked media events do not test codecs, CDN media download, audio or prolonged playback.",
+    "No live channel/playback URL was available in these direct desktop observations."
+  ]
+}

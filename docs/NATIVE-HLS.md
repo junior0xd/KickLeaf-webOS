@@ -4,7 +4,11 @@
 
 Desenvolvimento na branch `feat/native-hls-backend`, a partir de `cf91560`. A branch `main` e o player por iframe são preservados. O lançamento normal continua usando o embed; o novo modo exige `mode=native-hls`. Não há publicação, tag, Release, serviço systemd, proxy de segmentos nem alteração de Caddy, Docker, UFW ou outros serviços existentes.
 
-**Resultado experimental:** a descoberta simples retornou playlists para `yoda` e `minerva`; o FFmpeg consumiu mídia H.264/AAC da CDN. O `<video>` desta PoC reproduziu a amostra pública Apple em Chromium Linux, mas recusou os fluxos Kick com erro de mídia 4. Portanto, a descoberta e o acesso à mídia funcionaram no servidor testado; **a reprodução Kick no player próprio, especialmente na C3, ainda não foi demonstrada**. O iframe permanece a alternativa funcional.
+**Validação física confirmada pelo usuário:** Native HLS reproduziu imagem e áudio da amostra Apple (`hls-test`) e de transmissões reais Kick na LG OLED55C3PSA, webOS 25 10.3.1-3006, com o backend acessado por HTTPS através do Caddy. O backend apenas descobre e analisa o manifesto; a TV recebe vídeo diretamente da CDN. A descoberta funcionou sem cookies, Chromium ou desafios JavaScript. Este é um relato de execução física do usuário, não um teste de TV executado pelo agente.
+
+**Evidência local anterior preservada:** descoberta e FFmpeg funcionaram para `yoda`/`minerva`, mas o Chromium Linux recebeu erro de mídia 4 nos fluxos Kick. Esse resultado não representa o pipeline da LG e não invalida o teste físico posterior. Os arquivos de evidência antigos continuam históricos.
+
+A evolução [Direct HLS](DIRECT-HLS.md), na branch `feat/direct-hls-webos`, reutiliza este player e preserva este backend. Sua descoberta diretamente no documento webOS ainda não foi validada na TV.
 
 ## Arquitetura
 
@@ -133,7 +137,7 @@ npx ares-launch --device lgc3 --close com.kicktv.poc
 npx ares-launch --device lgc3 com.kicktv.poc
 ```
 
-Este IPK contém ambos os modos com o mesmo ID/versão do app da branch base; instalá-lo substitui o pacote instalado, mas mantém o iframe como padrão. O pacote original permanece disponível a partir de `main`. Não é necessário instalar o experimental para continuar usando a versão funcional.
+O IPK original desta branch contém ambos os modos com o mesmo ID/versão do app da branch base; instalá-lo substitui o pacote instalado, mas mantém o iframe como padrão. O pacote original permanece disponível a partir de `main`. Não é necessário instalar o experimental para continuar usando a versão funcional.
 
 ## Métricas e compatibilidade
 
@@ -167,7 +171,7 @@ Resultado local: **22 testes Python, 10 testes unitários JavaScript e 27 testes
 | Item | Iframe preservado | HLS independente experimental |
 | --- | --- | --- |
 | Descoberta | Interna ao player oficial | Backend local; endpoint interno sem garantia pública |
-| Reprodução Kick na C3 | Validada pelo usuário na PoC | Pendente |
+| Reprodução Kick na C3 | Validada pelo usuário na PoC | Imagem e áudio confirmados pelo usuário via backend HTTPS/Caddy |
 | Qualidade | Gerenciada pela Kick, sem API documentada | Variantes reais do manifesto; variantes com áudio externo exigem Auto |
 | Eventos e métricas | Não acessíveis ao documento pai | Eventos HTML5 e métricas suportadas pelo dispositivo |
 | Credenciais/expiração | Administradas pelo embed | URLs efêmeras em memória; acesso local autenticado |
@@ -178,7 +182,7 @@ As evidências estão em [amostra pública](evidence/native-hls-public-test.json
 
 Na investigação adicional de `yoda`, o navegador observou respostas HTTP 200, MIME HLS nos manifestos e ausência de mensagem de erro CORS no console. A primeira resposta não apresentou `Access-Control-Allow-Origin`, enquanto respostas seguintes o apresentaram. Isso não isola a causa do erro de mídia 4 e não permite atribuí-la exclusivamente a CORS, codecs ou rede. Nenhuma política foi alterada para contornar a falha.
 
-## Roteiro decisivo na C3 — ainda não executado
+## Roteiro na C3 — reprodução básica confirmada; validação ampliada pendente
 
 1. Confirmar o app padrão por iframe e registrar modelo/firmware antes de instalar o pacote experimental.
 2. Executar o backend na LAN com HTTPS confiável, token local e provider `public-test`. Abrir o modo nativo, digitar `hls-test` e confirmar imagem/som, carregamento, retorno e liberação do vídeo. Não prosseguir com Kick se o teste HLS falhar.
@@ -188,4 +192,4 @@ Na investigação adicional de `yoda`, o navegador observou respostas HTTP 200, 
 6. Alternar para o iframe, usar o mesmo canal e voltar à entrada. O app deve permanecer utilizável se a descoberta ou a reprodução nativa falhar.
 7. Se as etapas anteriores funcionarem, reproduzir por uma hora e executar vinte ciclos de troca/retorno. Observar memória, recursos e proteções OLED da própria TV, sem desabilitá-las.
 
-**Resposta atual ao critério principal:** há evidência de descoberta e mídia acessível diretamente no Ubuntu, mas não de reprodução Kick neste `<video>` nem no webOS. O erro 4 do Chromium precisa ser separado das limitações próprias da LG por teste no dispositivo. A arquitetura permanece uma PoC isolada, e não substitui o caminho funcional por iframe.
+**Resposta atual ao critério principal:** sim, o usuário confirmou reprodução Kick com imagem e áudio no player independente da LG C3, utilizando o backend local HTTPS para descoberta e recebendo vídeo diretamente da CDN. Não se afirma conclusão de todos os testes ampliados de qualidade, interrupção de rede ou reprodução prolongada. A descoberta Direct HLS, sem backend, é um experimento separado ainda pendente na TV.

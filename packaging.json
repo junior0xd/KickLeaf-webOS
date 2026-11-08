@@ -12,6 +12,8 @@
     "native-player.js",
     "native-hls.html",
     "native-api.js",
-    "native-hls.js"
+    "native-hls.js",
+    "hls-manifest.js",
+    "direct-api.js"
   ]
 }

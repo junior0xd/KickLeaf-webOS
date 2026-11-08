@@ -1,8 +1,8 @@
 # KickTV para LG webOS — prova de conceito
 
-**Branch experimental `feat/native-hls-backend`:** inclui backend Python local e modo opcional com `<video>` independente. O iframe continua sendo o padrão. Consulte [arquitetura, instalação, evidências e limitações](docs/NATIVE-HLS.md) antes de habilitar; reprodução Kick no modo nativo da C3 ainda não foi validada.
+**Branch experimental `feat/direct-hls-webos`:** adiciona descoberta HLS pelo JavaScript da TV (`mode:direct-hls`), sem backend. Reutiliza o player Native HLS e mantém o iframe como padrão. Consulte [ativação, arquitetura, CORS e roteiro físico](docs/DIRECT-HLS.md). O Native HLS com backend HTTPS já reproduziu imagem e áudio na LG C3, conforme confirmação do usuário; **Direct HLS ainda requer validação física**. A implementação anterior está documentada em [Native HLS](docs/NATIVE-HLS.md).
 
-**Estado: prova de conceito validada com sucesso pelo usuário na LG OLED C3.** A reprodução usa o **embed oficial dentro do aplicativo instalado**, sem abrir navegador externo. Não há, nas fontes oficiais consultadas, um método documentado para obter HLS de visualização. O app não consulta status pela API nem detecta falhas internas do embed; o próprio player apresenta os estados de offline e canal inexistente.
+**Estado da modalidade padrão: prova de conceito validada com sucesso pelo usuário na LG OLED C3.** A reprodução usa o **embed oficial dentro do aplicativo instalado**, sem abrir navegador externo. Não há, nas fontes oficiais consultadas, um método documentado para obter HLS de visualização. O app não consulta status pela API nem detecta falhas internas do embed; o próprio player apresenta os estados de offline e canal inexistente.
 
 Alvo informado: LG OLED55C3PSA, webOS 25, versão 10.3.1-3006. Investigação em 08/11/2026.
 

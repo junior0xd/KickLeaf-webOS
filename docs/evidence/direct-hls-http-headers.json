@@ -1,0 +1,16 @@
+{
+  "physical_tv": false,
+  "browser_cors_enforcement": false,
+  "observations": [
+    {
+      "origin": "null",
+      "status": 403,
+      "acao": null
+    },
+    {
+      "origin": "http://127.0.0.1:18765",
+      "status": 403,
+      "acao": null
+    }
+  ]
+}

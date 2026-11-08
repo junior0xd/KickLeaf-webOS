@@ -1,0 +1,50 @@
+{
+  "date": "2026-11-08T23:45:31.277Z",
+  "channel": "xqc",
+  "physical_tv": false,
+  "experiments": [
+    {
+      "origin": "http://127.0.0.1:45885",
+      "protocol": "http:",
+      "http_status": 200,
+      "offline": true,
+      "has_playback_url": false,
+      "readable": true,
+      "request_origins": [
+        "http://127.0.0.1:45885"
+      ],
+      "response_cors_headers": [
+        {
+          "acao": "http://127.0.0.1:45885",
+          "vary_origin": true
+        }
+      ],
+      "observed_http_statuses": [
+        200
+      ],
+      "cors_console_error": false
+    },
+    {
+      "origin": "file://",
+      "protocol": "file:",
+      "http_status": 200,
+      "offline": true,
+      "has_playback_url": false,
+      "readable": true,
+      "request_origins": [
+        "null"
+      ],
+      "response_cors_headers": [
+        {
+          "acao": "null",
+          "vary_origin": true
+        }
+      ],
+      "observed_http_statuses": [
+        200
+      ],
+      "cors_console_error": false
+    }
+  ],
+  "chromium": "158.0.8127.18"
+}

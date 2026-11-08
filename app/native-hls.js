@@ -2,6 +2,8 @@
   'use strict';
   var params = {};
   try { params = JSON.parse((window.PalmSystem && window.PalmSystem.launchParams) || '{}'); } catch (error) { /* Configuração inválida será apresentada no formulário. */ }
+  var mode = params.mode === 'direct-hls' ? 'direct-hls' : 'native-hls';
+  var provider = mode === 'direct-hls' ? window.KickDirectAPI : window.KickNativeAPI;
   var home = document.getElementById('home');
   var input = document.getElementById('channel');
   var watch = document.getElementById('watch');
@@ -53,7 +55,7 @@
   function showHome(text) {
     stop(); metadata = null; home.hidden = false; message.textContent = text || ''; watch.focus();
   }
-  function fail(text) { log('failed'); showHome(text); }
+  function fail(text, stage) { log('failed', { stage: stage || 'playback', mode: mode }); showHome(text); }
   function fallback() {
     var value = input.value;
     stop();
@@ -107,7 +109,7 @@
     });
     on('waiting', function () { if (!current.paused && !current.ended) { hint('Carregando vídeo…'); if (!timers.media) deadline(); log('buffering'); } });
     on('pause', function () { clear('media'); hideHint(); frameSample = null; log('paused'); });
-    on('error', function () { if (current.error) { log('media_error', { code: current.error.code }); fail(errors[current.error.code] || 'Erro de reprodução.'); } });
+    on('error', function () { if (current.error) { log('media_error', { code: current.error.code, message: errors[current.error.code] || 'Erro de mídia', browser_message_present: !!current.error.message }); fail(errors[current.error.code] || 'Erro de reprodução.'); } });
     on('ended', function () { showHome('A reprodução terminou.'); });
     hint('Carregando vídeo…'); deadline();
     current.src = item ? item.url : metadata.playback.url;
@@ -118,21 +120,22 @@
   }
   async function open() {
     var settings, next;
-    try { next = window.KickChannel.normalizeChannel(input.value); settings = window.KickNativeAPI.config(params); }
+    try { next = window.KickChannel.normalizeChannel(input.value); settings = provider.config(params); }
     catch (error) { message.textContent = error.message; return; }
     stop(); channel = next; selected = 'auto'; home.hidden = true; document.body.focus();
     var ticket = generation;
     var controller = new AbortController(); request = controller;
-    hint('Consultando backend local…');
+    log('discovery_start', { mode: mode, channel: channel });
+    hint(mode === 'direct-hls' ? 'Consultando a Kick diretamente…' : 'Consultando backend local…');
     later('request', function () { controller.abort(); }, 12000);
     try {
-      var data = await window.KickNativeAPI.resolve(channel, settings, controller.signal);
+      var data = await provider.resolve(channel, settings, controller.signal);
       if (ticket !== generation) return;
       clear('request'); request = null;
       if (!data.online) { showHome('Canal offline ou sem transmissão disponível.'); return; }
       metadata = data; play('auto');
     } catch (error) {
-      if (ticket === generation) fail(error.message);
+      if (ticket === generation) fail(error.message, 'discovery');
     }
   }
   document.getElementById('native-form').addEventListener('submit', function (event) { event.preventDefault(); open(); });
@@ -144,11 +147,16 @@
     var entries = [{ id: 'auto', label: 'Auto', selectable: true }].concat(metadata.playback.qualities);
     entries.forEach(function (entry) {
       var button = document.createElement('button'); button.type = 'button';
-      button.textContent = entry.label + (entry.selectable ? '' : ' (áudio separado; use Auto)');
+      button.textContent = entry.label + (entry.selectable ? '' : (entry.reason === 'invalid_variant_url' ? ' (URL indisponível; use Auto)' : (entry.reason === 'external_rendition' ? ' (áudio/vídeo separado; use Auto)' : ' (áudio separado; use Auto)')));
       button.disabled = !entry.selectable;
       button.addEventListener('click', function () { play(entry.id); });
       menu.appendChild(button);
     });
+    if (metadata.analysis && metadata.analysis.status === 'unavailable') {
+      var explanation = document.createElement('p');
+      explanation.textContent = 'Transmissão descoberta; não foi possível ler o manifesto. Reprodução em Auto disponível.';
+      menu.appendChild(explanation);
+    }
     menu.hidden = false; menu.querySelector('button').focus();
   });
   document.addEventListener('keyboardStateChange', function (event) { keyboardVisible = event.visibility === true || !!(event.detail && event.detail.visibility); });
@@ -180,5 +188,6 @@
   });
   document.addEventListener('visibilitychange', function () { if (document.hidden) showHome('Reprodução encerrada ao sair do aplicativo.'); });
   window.KickNativeDiagnostics = { snapshot: snapshot };
+  log('mode_selected', { mode: mode, origin: window.location.origin, protocol: window.location.protocol });
   input.focus();
 }());
