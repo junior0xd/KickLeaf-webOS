@@ -1,0 +1,18 @@
+{
+    "programs": [
+        {
+            "streams": [
+                {
+                    "codec_name": "aac",
+                    "codec_type": "audio"
+                }
+            ]
+        }
+    ],
+    "streams": [
+        {
+            "codec_name": "aac",
+            "codec_type": "audio"
+        }
+    ]
+}

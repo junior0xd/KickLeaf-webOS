@@ -1,0 +1,43 @@
+{
+  "source": "https://api.kick.com/swagger/doc.json",
+  "retrieved": "2026-11-08",
+  "sha256_of_full_schema": "d228f311c66ce7a01f2ba49df9d834ee655e3bb7c25accd08a468b9086d06ba6",
+  "channel_security": [
+    {
+      "UserAccessToken": [
+        "channel:read"
+      ]
+    },
+    {
+      "AppAccessToken": []
+    }
+  ],
+  "channel_query": [
+    "broadcaster_user_id",
+    "slug"
+  ],
+  "stream_fields": [
+    "custom_tags",
+    "is_live",
+    "is_mature",
+    "key",
+    "language",
+    "start_time",
+    "thumbnail",
+    "url",
+    "viewer_count"
+  ],
+  "stream_url_example": "rtmps://stream.kick.com/1234567890",
+  "livestream_paths": [
+    "/public/v1/livestreams",
+    "/public/v1/livestreams/stats",
+    "/public/v1/users/livestreams",
+    "/public/v2/livestreams"
+  ],
+  "playback_url_present_in_schema": false,
+  "unauthenticated_channel_probe": {
+    "slug": "xqc",
+    "http": 401,
+    "message": "Unauthorized"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "date": "2026-11-08T16:28:26.411Z",
+  "environment": "Playwright Chromium desktop Linux; página local file://; NÃO é webOS",
+  "channel": "sxb",
+  "statuses": {
+    "player.kick.com 200": 8,
+    "player.kick.com 302": 1,
+    "player.kick.com 204": 1
+  },
+  "observation": {
+    "hasVideo": true,
+    "paused": false,
+    "readyState": 4,
+    "currentTime": 16.304662,
+    "mediaErrorCode": null,
+    "offlineText": false,
+    "challengeText": false
+  },
+  "laterTime": 19.308093,
+  "timeAdvanced": true,
+  "parentFocus": "BODY",
+  "returnedHomeAfterBack": true,
+  "limitation": "Observação pontual. Não prova compatibilidade na TV nem consulta de status pela API oficial."
+}

@@ -1,0 +1,10 @@
+{
+  "source": "https://player.kick.com/xqc",
+  "retrieved": "2026-11-08",
+  "headers": [
+    "HTTP/2 200 ",
+    "content-type: text/html; charset=utf-8",
+    "access-control-allow-origin: *"
+  ],
+  "note": "Nenhum X-Frame-Options ou CSP observado nesta resposta. HTTP 200 não comprova reprodução. HTML contém script de challenge Cloudflare; não foi contornado."
+}

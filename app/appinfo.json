@@ -1,0 +1,13 @@
+{
+  "id": "com.kicktv.poc",
+  "version": "0.1.0",
+  "vendor": "KickTV PoC independente",
+  "type": "web",
+  "main": "index.html",
+  "title": "KickTV PoC",
+  "icon": "icon.png",
+  "largeIcon": "largeIcon.png",
+  "resolution": "1920x1080",
+  "disableBackHistoryAPI": true,
+  "requiredACG": []
+}

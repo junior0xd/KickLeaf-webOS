@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KickTV — Diagnóstico HLS</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body tabindex="-1">
+  <main id="test-panel" class="home">
+    <div class="test-content">
+      <p>Diagnóstico HLS nativo — amostra pública Apple Bip Bop</p>
+      <button id="start" type="button">Iniciar teste HLS</button>
+      <p id="message" role="status" aria-live="polite">Voltar encerra o teste.</p>
+    </div>
+  </main>
+  <video id="video" class="screen" hidden playsinline preload="none"></video>
+  <script src="native-player.js"></script>
+</body>
+</html>
