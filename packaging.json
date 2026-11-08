@@ -1,0 +1,13 @@
+{
+  "files": [
+    "appinfo.json",
+    "index.html",
+    "app.js",
+    "channel.js",
+    "style.css",
+    "icon.png",
+    "largeIcon.png",
+    "hls-test.html",
+    "native-player.js"
+  ]
+}

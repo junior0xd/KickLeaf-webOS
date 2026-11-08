@@ -1,18 +1,18 @@
 # KickTV para LG webOS — prova de conceito
 
-**Estado: pacote experimental gerado; reprodução real da Kick na LG C3 ainda não validada.** Não há, nas fontes oficiais consultadas, um método documentado para obter HLS de visualização. A alternativa implementada é o **embed oficial dentro do aplicativo instalado**, sem abrir navegador externo. A PoC não atende ainda a todos os critérios: não consulta status pela API nem detecta falhas internas do embed.
+**Estado: prova de conceito validada com sucesso pelo usuário na LG OLED C3.** A reprodução usa o **embed oficial dentro do aplicativo instalado**, sem abrir navegador externo. Não há, nas fontes oficiais consultadas, um método documentado para obter HLS de visualização. O app não consulta status pela API nem detecta falhas internas do embed; o próprio player apresenta os estados de offline e canal inexistente.
 
 Alvo informado: LG OLED55C3PSA, webOS 25, versão 10.3.1-3006. Investigação em 08/11/2026.
 
-**Resultado prático:** uma live real de `sxb` iniciou no embed, em Chromium Linux com o app aberto de arquivo local. O tempo avançou de 16,30 para 19,31 segundos, sem erro de mídia, e Voltar sintético removeu o player. Isso demonstra a alternativa no desktop; imagem, som e controle físico na TV ainda precisam de validação.
+**Resultado prático:** após os testes locais, o usuário confirmou instalação, teclado, reprodução de canais online em tela cheia, indicação de offline e retorno à entrada na C3, sem erros de uso identificados. Foram utilizados `yoda`, `xqc` e `minerva`, além do canal inexistente `lgiptv`. O [relato completo](docs/TESTES.md) distingue os testes na TV das verificações locais.
 
 ## Arquivos e funcionamento
 
 - `app/`: HTML, CSS, JavaScript puro, manifesto e ícones. Sem dependências de execução.
 - `assets/kick-512.png`: ícone original enviado em 512×512; `app/icon.png` e `app/largeIcon.png` são versões em 80×80 e 130×130 para o webOS.
-- `dist/com.kicktv.poc_0.1.0_all.ipk`: pacote gerado pela CLI oficial.
+- `dist/releases/<id>_<versão>_all.ipk`: saída atual da CLI oficial, gerada localmente ou pelo CI. Os arquivos antigos já versionados na raiz de `dist/` são históricos e não são usados pelos workflows.
 - [Investigação](docs/INVESTIGACAO.md): fontes, bloqueios e alternativas.
-- [Testes e validação na TV](docs/TESTES.md): evidências e roteiro pendente.
+- [Testes e validação na TV](docs/TESTES.md): evidências, aceite na C3 e verificações complementares.
 
 O fluxo é: nome ou URL do canal → validação local → `https://player.kick.com/<canal>?autoplay=true&muted=false` em iframe de 100% da tela. **O app não obtém uma URL `.m3u8` da Kick.** O player remoto resolve e reproduz a transmissão sob controle da plataforma. Não há chamadas a endpoints privados, extração de tokens, cookies próprios ou segredos no pacote.
 
@@ -22,17 +22,20 @@ O iframe não recebe foco nem cliques, para que o documento pai mantenha Voltar.
 
 ## Preparar e empacotar no Ubuntu
 
-Instale Node.js e npm. As dependências fixadas exigem Node >=20. A [página da LG](https://webostv.developer.lge.com/develop/tools/cli-installation) identifica `@webos-tools/cli` como CLI oficial; a versão utilizada foi 3.2.6, com Node 22.22.3. Tudo foi instalado localmente neste projeto.
+Instale Node.js, npm, Python 3 e `ar` (pacote Ubuntu `binutils`). O CI utiliza Node 22.22.3 e Ubuntu 24.04. A [página da LG](https://webostv.developer.lge.com/develop/tools/cli-installation) identifica `@webos-tools/cli` como CLI oficial; a versão 3.2.6 está fixada no projeto e é instalada localmente por `npm ci`.
 
 Na pasta `kicktv`:
 
 ```bash
 npm ci
+npm run validate
 npm run package
 npm run package:info
 ```
 
-O pacote contém somente `app/`; não inclui Node, ferramentas, testes ou documentação. É gerado sem minificação para facilitar a depuração. `requiredACG: []` declara que não usamos Luna APIs; não é necessário solicitar permissões adicionais.
+Não há compilação ou bundler: a aplicação é HTML/CSS/JavaScript puro. `npm run package` valida o projeto, seleciona o perfil `tv` na CLI oficial, copia somente os nove arquivos de execução listados em `packaging.json` para `.build/webos-app/` e gera o `.ipk` em `dist/releases/`, sem minificação. O diagnóstico HLS existente é mantido, preservando o comportamento do app.
+
+Arquivos fora dessa lista são excluídos, inclusive se estiverem dentro de `app/`. Dependências, testes, documentação, configurações locais, credenciais, arquivos temporários e o PNG original de desenvolvimento não são copiados. A auditoria final abre o IPK sem extrair seus arquivos e compara conteúdo, versão e metadados com a origem; conteúdo extra, ausente, alterado ou links causam falha. Ao adicionar um arquivo de execução no futuro, atualize também `packaging.json`. `requiredACG: []` declara que não usamos Luna APIs.
 
 Neste servidor, Node está fora do PATH e a pasta pessoal é somente leitura. Os comandos equivalentes usados foram:
 
@@ -56,7 +59,7 @@ npx ares-novacom --device lgc3 --getkey
 Digite a passphrase exibida na TV quando solicitada pela CLI. Não a grave no código. Se `lgc3` já existir, use `--modify` em vez de `--add`. Em seguida:
 
 ```bash
-npx ares-install --device lgc3 dist/com.kicktv.poc_0.1.0_all.ipk
+npx ares-install --device lgc3 dist/releases/com.kicktv.poc_0.1.0_all.ipk
 npx ares-launch --device lgc3 com.kicktv.poc
 ```
 
@@ -116,3 +119,59 @@ node scripts/probe-embed.cjs xqc
 ```
 
 O script abre o player oficial normalmente, observa o resultado em Chromium desktop e salva metadados sem URLs de mídia. A observação por automação de um frame remoto não é uma capacidade do app instalado.
+
+
+## GitHub Actions e publicação de versões
+
+Os workflows usam ações oficiais do GitHub fixadas por SHA e ferramentas de desenvolvimento fixadas pelo `package-lock.json`.
+
+O [relatório de preparação do CI](docs/CI.md) descreve a estrutura analisada, as validações locais e os limites dessa validação.
+
+| Workflow | Disparo | Resultado |
+| --- | --- | --- |
+| `.github/workflows/validate.yml` — Validate webOS app | Push em qualquer branch e pull requests | Valida metadados, executa testes unitários e de navegador, empacota e audita o IPK; guarda o artefato por 7 dias, sem publicar Release |
+| `.github/workflows/release.yml` — Release webOS IPK | Push de tags `v*` | Exige tag igual à versão do manifesto, repete os testes e o empacotamento, guarda o artefato por 14 dias e publica o IPK em uma Release com notas automáticas |
+
+O job de build tem somente `contents: read`. Apenas o job separado de publicação recebe `contents: write`; ele baixa o pacote validado da mesma execução e usa o `GITHUB_TOKEN` automático como `GH_TOKEN`, sem instalar dependências ou executar scripts do projeto. Não é necessário criar PAT, credenciais Kick, chave SSH da TV ou secret adicional. A [documentação do GitHub explica essas permissões](https://docs.github.com/en/actions/tutorials/authenticate-with-github_token).
+
+### Criar uma versão
+
+Exemplo para uma futura `v0.2.0` (os comandos abaixo publicam quando executados; não são executados pela preparação do CI):
+
+1. Altere `version` em `app/appinfo.json` para `0.2.0`. Use três inteiros, sem zeros à esquerda ou sufixos (`-beta`, `+build`), com até nove dígitos por componente, conforme o formato webOS.
+2. Atualize os metadados npm, sem criar tag automaticamente:
+
+   ```bash
+   npm version 0.2.0 --no-git-tag-version
+   ```
+
+3. Valide e teste localmente:
+
+   ```bash
+   npm ci
+   npm run validate -- --tag v0.2.0
+   npx --no-install playwright install chromium
+   npm test
+   npm run package
+   npm run package:info
+   ```
+
+4. Faça commit das mudanças, revise e integre na branch desejada. Garanta que os workflows e scripts de empacotamento também estejam nesse commit. Com o envio autorizado, publique o commit e depois a tag correspondente:
+
+   ```bash
+   git push origin main
+   git tag -a v0.2.0 -m 'KickTV v0.2.0'
+   git push origin v0.2.0
+   ```
+
+A tag deve apontar para o commit com `appinfo.json`, `package.json` e as duas entradas de versão do `package-lock.json` sincronizados. Não há alteração automática da versão pelo workflow. Tags como `v1`, `v0.2.0-beta` ou uma tag divergente disparam o filtro `v*`, mas falham na validação antes de publicar. O fluxo atual publica somente versões estáveis no formato `vX.Y.Z`.
+
+### Acompanhar e baixar
+
+No repositório, abra **Actions → Validate webOS app** para commits/PRs ou **Actions → Release webOS IPK** para tags. Confira os logs dos passos de metadados, testes, empacotamento e publicação. Um pacote só é publicado se todos os passos do build passarem. Na validação, o IPK fica em **Artifacts → kicktv-ipk-validation**; na execução de tag, em **Artifacts → kicktv-ipk** e, após a publicação, em **Releases → vX.Y.Z → Assets**. As notas são geradas pela API do GitHub usando [`gh release create --generate-notes`](https://cli.github.com/manual/gh_release_create).
+
+No Ubuntu runner, `gh` já está disponível. O comando usa `--verify-tag`, portanto não cria tags implicitamente. Para acompanhar pelo seu computador, se tiver GitHub CLI autenticada, use `gh run list`, `gh run watch <ID>` e `gh run view <ID> --log-failed`.
+
+Se o build falhar, nenhuma Release é criada. Se a publicação falhar, examine os logs e os artefatos antes de usar **Re-run failed jobs**. Releases existentes não são sobrescritas: uma repetição após publicação bem-sucedida falha ao tentar recriar a mesma Release. Se um envio parcial de assets tiver deixado um rascunho, revise-o no GitHub antes de decidir como recuperar. Para uma nova versão pública, prefira uma nova versão/tag.
+
+A integração precisa de Actions habilitado no repositório e políticas que permitam as ações oficiais utilizadas e `contents: write` no job de publicação. Os testes de CI não substituem a validação de reprodução na televisão.

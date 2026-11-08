@@ -1,0 +1,89 @@
+name: Release webOS IPK
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Validate, test and package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    outputs:
+      ipk: ${{ steps.metadata.outputs.ipk }}
+    steps:
+      - name: Checkout tagged source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22.22.3'
+          cache: npm
+
+      - name: Validate tag and project metadata
+        id: metadata
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: npm run validate -- --tag "$RELEASE_TAG"
+
+      - name: Install locked development tools
+        run: npm ci --no-audit --no-fund
+
+      - name: Install test browser
+        run: npx --no-install playwright install --with-deps chromium
+
+      - name: Run unit and browser tests
+        run: npm test
+
+      # HTML/CSS/JS puro: não há compilação. O script seleciona o perfil tv,
+      # copia só a lista de arquivos de execução e confere o conteúdo do IPK.
+      - name: Package with official webOS CLI (tv)
+        run: npm run package
+
+      - name: Keep the validated IPK
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: kicktv-ipk
+          path: ${{ steps.metadata.outputs.ipk }}
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      # Não executa código do projeto neste job com permissão de escrita.
+      - name: Download the validated IPK from this run
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: kicktv-ipk
+          path: dist/releases
+
+      - name: Create release with generated notes and IPK asset
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          IPK_PATH: ${{ needs.build.outputs.ipk }}
+        run: |
+          test -f "$IPK_PATH"
+          gh release create "$RELEASE_TAG" "$IPK_PATH" \
+            --repo "$GH_REPO" \
+            --verify-tag \
+            --generate-notes \
+            --title "$RELEASE_TAG"

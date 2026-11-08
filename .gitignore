@@ -3,3 +3,33 @@ test-results/
 playwright-report/
 .tools/
 *.log
+
+# Saídas geradas. Os pacotes antigos já versionados em dist/ são históricos.
+/dist/
+/.build/
+coverage/
+__pycache__/
+*.pyc
+*.tmp
+*.bak
+*~
+.DS_Store
+.vscode/
+.idea/
+
+# Configurações locais e credenciais nunca fazem parte do pacote.
+.env
+.env.*
+!.env.example
+.npmrc
+.webos/
+.ssh/
+*.pem
+*.key
+*.p12
+*.pfx
+credentials*.json
+secrets*.json
+id_rsa*
+id_ed25519*
+.netrc
