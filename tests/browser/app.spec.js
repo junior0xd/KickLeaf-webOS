@@ -65,15 +65,16 @@ test('load do iframe não é anunciado como live online ou reprodução confirma
   await expect(page.locator('#notice')).toBeHidden();
 });
 
-test('falha observável do frame permite tentar novamente', async ({ page }) => {
+test('falha observável do frame permite tentar novamente com backoff', async ({ page }) => {
   await page.goto('/');
+  await page.clock.install();
   await page.locator('#channel').fill('xqc');
   await page.keyboard.press('Enter');
   await page.locator('iframe').evaluate(el => el.dispatchEvent(new Event('error')));
-  await expect(page.locator('#message')).toContainText('Não foi possível abrir');
-  await expect(page.locator('iframe')).toHaveCount(0);
-  await page.keyboard.press('Enter');
+  await expect(page.locator('#notice')).toContainText('Tentando novamente');
+  await page.clock.runFor(2000);
   await expect(page.locator('iframe')).toHaveCount(1);
+  await expect(page.locator('#home')).toBeHidden();
 });
 
 test('erro nativo HLS mostra mensagem e libera a mídia; Voltar funciona', async ({ page }) => {

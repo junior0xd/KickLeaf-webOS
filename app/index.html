@@ -16,7 +16,17 @@
   </main>
   <div id="player-container" hidden></div>
   <p id="notice" class="notice" role="status" hidden></p>
+  <section id="player-controls" class="player-controls" tabindex="-1" aria-label="Controles da transmissão" hidden>
+    <button id="quality-button" type="button">Qualidade</button>
+    <button id="reload-button" type="button">Recarregar transmissão</button>
+  </section>
+  <section id="quality-menu" class="quality-menu" role="dialog" aria-modal="true" aria-labelledby="quality-title" hidden>
+    <h2 id="quality-title">Qualidade gerenciada pela Kick</h2>
+    <p>O player oficial não disponibiliza a seleção de qualidade para este aplicativo.</p>
+    <button id="close-quality" type="button">Fechar</button>
+  </section>
   <script src="channel.js"></script>
+  <script src="embed-player.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

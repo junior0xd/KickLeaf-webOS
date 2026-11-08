@@ -1,5 +1,7 @@
 # Etapa E — testes e limites da validação
 
+Este documento registra o aceite da PoC 0.1.0. A evolução do player 0.2.0 tem validação local própria e [roteiro de TV ainda pendente](PLAYER.md); o aceite anterior não confirma os controles ou a recuperação adicionados depois.
+
 **Resultado: prova de conceito bem-sucedida na LG OLED C3, conforme validação realizada e relatada pelo usuário.** A instalação, o teclado, a reprodução de canais online em tela cheia, a indicação de offline e o retorno à entrada funcionaram. Não foram identificados erros durante o uso relatado.
 
 Os testes locais foram executados em 08/11/2026, Ubuntu Linux, Node 22.22.3, CLI oficial `@webos-tools/cli` 3.2.6 e Playwright 1.65.0. Nessa execução, o agente não conectou uma TV. A validação no dispositivo foi feita posteriormente pelo usuário; não foi uma execução remota pelo agente. O ambiente de destino informado é LG OLED55C3PSA, webOS 25, versão 10.3.1-3006; o agente não inspecionou o firmware.

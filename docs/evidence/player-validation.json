@@ -1,0 +1,40 @@
+{
+  "version": "0.2.0",
+  "date": "2026-11-08",
+  "environment": "Ubuntu Linux; Node 22.22.3; Playwright 1.65.0; webOS CLI 3.2.6",
+  "tests": {
+    "unit_passed": 10,
+    "browser_passed": 19,
+    "retry_events": "synthetic iframe error; deterministic clock",
+    "listener_cycles": 10,
+    "manual_reload_cycles": 5,
+    "real_embed_channels": [
+      "yoda",
+      "minerva"
+    ],
+    "tv_validation_performed": false,
+    "prolonged_playback_performed": false
+  },
+  "package": {
+    "file": "com.kicktv.poc_0.2.0_all.ipk",
+    "size_bytes": 12794,
+    "sha256": "c2c83c67724c8086a7b243f47c900395828944edab2286862757f9d916d53a8b",
+    "runtime_files": [
+      "appinfo.json",
+      "index.html",
+      "app.js",
+      "embed-player.js",
+      "channel.js",
+      "style.css",
+      "icon.png",
+      "largeIcon.png",
+      "hls-test.html",
+      "native-player.js"
+    ],
+    "source_bytes_verified": true
+  },
+  "limitations": [
+    "Quality selection, buffering, media error and latency of the remote video are not exposed by the documented embed interface.",
+    "iframe load and network events do not prove video playback or recovery."
+  ]
+}

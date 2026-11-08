@@ -4,6 +4,8 @@
 
 Alvo informado: LG OLED55C3PSA, webOS 25, versão 10.3.1-3006. Investigação em 08/11/2026.
 
+**Evolução 0.2.0:** controles por OK/setas/Voltar, recarga manual e recuperação limitada de falhas observáveis do iframe. O menu de qualidade informa o limite da integração: seleção manual e detecção de buffering do vídeo remoto não estão disponíveis pela API documentada. Esta versão ainda precisa de validação na C3. Veja [player: implementação, limites e roteiro de teste](docs/PLAYER.md).
+
 **Resultado prático:** após os testes locais, o usuário confirmou instalação, teclado, reprodução de canais online em tela cheia, indicação de offline e retorno à entrada na C3, sem erros de uso identificados. Foram utilizados `yoda`, `xqc` e `minerva`, além do canal inexistente `lgiptv`. O [relato completo](docs/TESTES.md) distingue os testes na TV das verificações locais.
 
 ## Arquivos e funcionamento
@@ -16,7 +18,7 @@ Alvo informado: LG OLED55C3PSA, webOS 25, versão 10.3.1-3006. Investigação em
 
 O fluxo é: nome ou URL do canal → validação local → `https://player.kick.com/<canal>?autoplay=true&muted=false` em iframe de 100% da tela. **O app não obtém uma URL `.m3u8` da Kick.** O player remoto resolve e reproduz a transmissão sob controle da plataforma. Não há chamadas a endpoints privados, extração de tokens, cookies próprios ou segredos no pacote.
 
-O campo aceita, por exemplo, `xqc`, `https://kick.com/xqc` e `https://www.kick.com/xqc/`. Setas cima/baixo alternam entre campo e botão quando o teclado virtual está fechado; esquerda/direita editam o texto; OK usa a ação nativa. O teclado virtual recebe as setas enquanto estiver aberto. Voltar durante a reprodução remove o iframe e retorna ao formulário. Na tela inicial, dois toques em Voltar encerram o app.
+O campo aceita, por exemplo, `xqc`, `https://kick.com/xqc` e `https://www.kick.com/xqc/`. Setas cima/baixo alternam entre campo e botão quando o teclado virtual está fechado; esquerda/direita editam o texto; OK usa a ação nativa. O teclado virtual recebe as setas enquanto estiver aberto. Durante a reprodução, OK abre/oculta controles; setas selecionam Qualidade ou Recarregar transmissão e OK executa. Voltar fecha primeiro o diálogo/painel aberto; sem sobreposição, remove o iframe e retorna ao formulário. Na tela inicial, dois toques em Voltar encerram o app.
 
 O iframe não recebe foco nem cliques, para que o documento pai mantenha Voltar. Isso exige que o autoplay com áudio funcione. Se o player exigir clique, login, consentimento ou verificação, esta PoC não atende esse caso. Não há API documentada do embed para encaminhar OK, remover seus controles ou receber eventos de mídia. A apresentação e as mensagens internas são da Kick.
 
@@ -33,7 +35,7 @@ npm run package
 npm run package:info
 ```
 
-Não há compilação ou bundler: a aplicação é HTML/CSS/JavaScript puro. `npm run package` valida o projeto, seleciona o perfil `tv` na CLI oficial, copia somente os nove arquivos de execução listados em `packaging.json` para `.build/webos-app/` e gera o `.ipk` em `dist/releases/`, sem minificação. O diagnóstico HLS existente é mantido, preservando o comportamento do app.
+Não há compilação ou bundler: a aplicação é HTML/CSS/JavaScript puro. `npm run package` valida o projeto, seleciona o perfil `tv` na CLI oficial, copia somente os arquivos de execução listados em `packaging.json` para `.build/webos-app/` e gera o `.ipk` em `dist/releases/`, sem minificação. O diagnóstico HLS existente é mantido, preservando o comportamento do app.
 
 Arquivos fora dessa lista são excluídos, inclusive se estiverem dentro de `app/`. Dependências, testes, documentação, configurações locais, credenciais, arquivos temporários e o PNG original de desenvolvimento não são copiados. A auditoria final abre o IPK sem extrair seus arquivos e compara conteúdo, versão e metadados com a origem; conteúdo extra, ausente, alterado ou links causam falha. Ao adicionar um arquivo de execução no futuro, atualize também `packaging.json`. `requiredACG: []` declara que não usamos Luna APIs.
 
@@ -59,7 +61,7 @@ npx ares-novacom --device lgc3 --getkey
 Digite a passphrase exibida na TV quando solicitada pela CLI. Não a grave no código. Se `lgc3` já existir, use `--modify` em vez de `--add`. Em seguida:
 
 ```bash
-npx ares-install --device lgc3 dist/releases/com.kicktv.poc_0.1.0_all.ipk
+npx ares-install --device lgc3 dist/releases/com.kicktv.poc_0.2.0_all.ipk
 npx ares-launch --device lgc3 com.kicktv.poc
 ```
 
@@ -99,7 +101,7 @@ Abra no Chrome o endereço que a CLI fornecer. A opção `--open` também pode a
 
 - Entrada inválida gera mensagem em português e mantém o formulário utilizável.
 - O player HLS de diagnóstico trata falhas de rede, decodificação, formato, rejeição de `play()` e 30 segundos sem avanço.
-- No embed, `error` do iframe é tratado quando emitido, mas navegadores frequentemente não o emitem para erros HTTP. Um aviso aparece se `load` não chegar em 25 segundos; isso não detecta vídeo travado.
+- No embed, `error` observável do iframe permite até três recargas com backoff de 2/4/8 segundos. Navegadores frequentemente não emitem esse evento para erros HTTP. Um aviso temporário aparece se `load` não chegar em 25 segundos; isso não detecta vídeo travado nem aciona recarga automática.
 - Offline, canal inexistente e erros internos ficam com o player Kick. O app não inventa um status a partir de `load`, timeout ou mensagens cross-origin não documentadas.
 - Se CORS, `frame-ancestors`, cookies, autoplay ou proteção de acesso impedirem a execução, a próxima ação é registrar o erro e consultar a Kick. Não há fallback com proxy, falsificação de origem/referer ou contorno de controles.
 
@@ -137,6 +139,8 @@ O job de build tem somente `contents: read`. Apenas o job separado de publicaç�
 ### Criar uma versão
 
 Exemplo para uma futura `v0.2.0` (os comandos abaixo publicam quando executados; não são executados pela preparação do CI):
+
+Se a versão desejada já estiver sincronizada nos três arquivos, como na preparação atual da 0.2.0, pule os passos 1 e 2. A atualização do número não cria uma tag nem uma Release.
 
 1. Altere `version` em `app/appinfo.json` para `0.2.0`. Use três inteiros, sem zeros à esquerda ou sufixos (`-beta`, `+build`), com até nove dígitos por componente, conforme o formato webOS.
 2. Atualize os metadados npm, sem criar tag automaticamente:
