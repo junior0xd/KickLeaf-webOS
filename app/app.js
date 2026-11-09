@@ -3,8 +3,9 @@
   var params = {};
   try { params = JSON.parse((window.PalmSystem && window.PalmSystem.launchParams) || '{}'); }
   catch (error) { console.warn('[KickTV] Parâmetros de abertura inválidos.'); }
+  var mode = params.mode || 'direct-hls';
   var query = new URLSearchParams(window.location.search);
-  if ((params.mode === 'native-hls' || params.mode === 'direct-hls') && !query.has('iframe')) {
+  if ((mode === 'native-hls' || mode === 'direct-hls') && !query.has('iframe')) {
     window.location.replace('native-hls.html');
     return;
   }

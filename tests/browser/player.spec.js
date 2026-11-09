@@ -1,6 +1,7 @@
 const { test, expect } = require('@playwright/test');
 
 test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => { window.PalmSystem = { launchParams: '{"mode":"iframe"}' }; });
   await page.route('https://player.kick.com/**', route => route.fulfill({ contentType: 'text/html', body: '<body>Player simulado</body>' }));
   await page.goto('/');
   await page.clock.install();

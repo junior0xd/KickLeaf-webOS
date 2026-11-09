@@ -2,7 +2,9 @@
 
 ## Estado e isolamento
 
-Desenvolvimento na branch `feat/native-hls-backend`, a partir de `cf91560`. A branch `main` e o player por iframe são preservados. O lançamento normal continua usando o embed; o novo modo exige `mode=native-hls`. Não há publicação, tag, Release, serviço systemd, proxy de segmentos nem alteração de Caddy, Docker, UFW ou outros serviços existentes.
+**Versão atual 0.2.1:** Direct HLS é o modo padrão. O histórico abaixo descreve o isolamento da PoC original; Native HLS continua disponível com `mode:native-hls` e o iframe com `mode:iframe`.
+
+Desenvolvimento na branch `feat/native-hls-backend`, a partir de `cf91560`. A branch `main` e o player por iframe são preservados. Na PoC original, o lançamento normal usava o embed; Native HLS exige `mode=native-hls`. Não há publicação, tag, Release, serviço systemd, proxy de segmentos nem alteração de Caddy, Docker, UFW ou outros serviços existentes.
 
 **Validação física confirmada pelo usuário:** Native HLS reproduziu imagem e áudio da amostra Apple (`hls-test`) e de transmissões reais Kick na LG OLED55C3PSA, webOS 25 10.3.1-3006, com o backend acessado por HTTPS através do Caddy. O backend apenas descobre e analisa o manifesto; a TV recebe vídeo diretamente da CDN. A descoberta funcionou sem cookies, Chromium ou desafios JavaScript. Este é um relato de execução física do usuário, não um teste de TV executado pelo agente.
 
@@ -122,7 +124,7 @@ O [JSON de exemplo](../config/native-hls.example.json) contém `mode`, `backendU
 npm ci
 npm run package
 npx ares-launch --device lgc3 --close com.kicktv.poc
-npx ares-install --device lgc3 dist/releases/com.kicktv.poc_0.2.0_all.ipk
+npx ares-install --device lgc3 dist/releases/com.kicktv.poc_0.2.1_all.ipk
 npx ares-launch --device lgc3 --params "$(cat .tools/native-hls.local.json)" com.kicktv.poc
 ```
 
@@ -130,14 +132,14 @@ Não use `--verbose` nem compartilhe parâmetros de abertura/Network/HAR sem rem
 
 Digite `hls-test` com o provider de teste; depois, com `kick`, tente `yoda` ou `minerva` quando online. OK abre os controles; setas navegam; Qualidade oferece Auto e somente variantes selecionáveis. Quando a playlist declara áudio externo, a variante fica desabilitada e deve ser usado Auto para preservar o áudio. A preferência de qualidade vale para a reprodução atual; Recarregar faz nova descoberta e volta a Auto. Recursos anteriores são liberados ao trocar de qualidade/canal e ao sair.
 
-**Usar player oficial** encerra o vídeo e retorna à entrada do iframe com o canal preenchido. O parâmetro de retorno evita redirecionamento de volta ao modo experimental. Para iniciar diretamente o modo original, feche e abra o aplicativo sem parâmetros:
+**Usar player oficial** encerra o vídeo e retorna à entrada do iframe com o canal preenchido. O parâmetro de retorno evita redirecionamento de volta ao modo experimental. Para iniciar diretamente o iframe, feche e abra o aplicativo com o modo explícito:
 
 ```bash
 npx ares-launch --device lgc3 --close com.kicktv.poc
-npx ares-launch --device lgc3 com.kicktv.poc
+npx ares-launch --device lgc3 --params '{"mode":"iframe"}' com.kicktv.poc
 ```
 
-O IPK original desta branch contém ambos os modos com o mesmo ID/versão do app da branch base; instalá-lo substitui o pacote instalado, mas mantém o iframe como padrão. O pacote original permanece disponível a partir de `main`. Não é necessário instalar o experimental para continuar usando a versão funcional.
+Historicamente, o IPK inicial da PoC mantinha iframe como padrão. O IPK atual 0.2.1 inclui as três modalidades com o mesmo ID e inicia em Direct HLS; Native HLS e iframe exigem os parâmetros explícitos descritos acima.
 
 ## Métricas e compatibilidade
 
@@ -184,7 +186,7 @@ Na investigação adicional de `yoda`, o navegador observou respostas HTTP 200, 
 
 ## Roteiro na C3 — reprodução básica confirmada; validação ampliada pendente
 
-1. Confirmar o app padrão por iframe e registrar modelo/firmware antes de instalar o pacote experimental.
+1. Confirmar o modo iframe e registrar modelo/firmware antes de instalar o pacote experimental.
 2. Executar o backend na LAN com HTTPS confiável, token local e provider `public-test`. Abrir o modo nativo, digitar `hls-test` e confirmar imagem/som, carregamento, retorno e liberação do vídeo. Não prosseguir com Kick se o teste HLS falhar.
 3. Mudar o provider para `kick`, reiniciar e testar `yoda`/`minerva` online. Registrar a mensagem e o código de `video.error`, sem expor URLs. Se houver 403, encerrar a tentativa; não usar Chromium/cookies como solução de descoberta.
 4. Se reproduzir, testar Auto e cada qualidade habilitada. Confirmar vídeo **e áudio**, largura/altura e bitrate nominal. Amostrar buffer, quadros descartados, FPS observado e distância da borda quando disponíveis; não chamar essa distância de latência ponta a ponta.

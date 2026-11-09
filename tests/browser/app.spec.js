@@ -8,7 +8,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('campo, setas, OK, tela inteira, Voltar e destruição do iframe', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?iframe');
   await expect(page.locator('#channel')).toBeFocused();
   await page.locator('#channel').fill('https://kick.com/XQC');
   await page.keyboard.press('ArrowDown');
@@ -31,7 +31,7 @@ test('campo, setas, OK, tela inteira, Voltar e destruição do iframe', async ({
 });
 
 test('entrada inválida apresenta erro sem navegar', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?iframe');
   await page.locator('#channel').fill('https://evil.test/xqc');
   await page.keyboard.press('Enter');
   await expect(page.locator('#message')).toContainText('kick.com');
@@ -39,7 +39,7 @@ test('entrada inválida apresenta erro sem navegar', async ({ page }) => {
 });
 
 test('teclado virtual mantém posse das setas e do primeiro Voltar', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?iframe');
   await page.evaluate(() => {
     const event = new Event('keyboardStateChange');
     event.visibility = true;
@@ -57,7 +57,7 @@ test('teclado virtual mantém posse das setas e do primeiro Voltar', async ({ pa
 test('load do iframe não é anunciado como live online ou reprodução confirmada', async ({ page }) => {
   const logs = [];
   page.on('console', msg => logs.push(msg.text()));
-  await page.goto('/');
+  await page.goto('/?iframe');
   await page.locator('#channel').fill('xqc');
   await page.keyboard.press('Enter');
   await expect.poll(() => logs.some(text => text.includes('iframe_load'))).toBe(true);
@@ -66,7 +66,7 @@ test('load do iframe não é anunciado como live online ou reprodução confirma
 });
 
 test('falha observável do frame permite tentar novamente com backoff', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?iframe');
   await page.clock.install();
   await page.locator('#channel').fill('xqc');
   await page.keyboard.press('Enter');
@@ -99,6 +99,6 @@ test('parâmetro de abertura inicia diagnóstico HLS, sem opção extra na inter
 });
 
 test('captura da tela inicial', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?iframe');
   await page.screenshot({ path: 'docs/evidence/tela-inicial.png' });
 });

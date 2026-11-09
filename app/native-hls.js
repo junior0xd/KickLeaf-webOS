@@ -2,7 +2,7 @@
   'use strict';
   var params = {};
   try { params = JSON.parse((window.PalmSystem && window.PalmSystem.launchParams) || '{}'); } catch (error) { /* Configuração inválida será apresentada no formulário. */ }
-  var mode = params.mode === 'direct-hls' ? 'direct-hls' : 'native-hls';
+  var mode = params.mode === 'native-hls' ? 'native-hls' : 'direct-hls';
   var provider = mode === 'direct-hls' ? window.KickDirectAPI : window.KickNativeAPI;
   var home = document.getElementById('home');
   var input = document.getElementById('channel');

@@ -1,14 +1,14 @@
 # KickTV para LG webOS — prova de conceito
 
-**Branch experimental `feat/direct-hls-webos`:** adiciona descoberta HLS pelo JavaScript da TV (`mode:direct-hls`), sem backend. Reutiliza o player Native HLS e mantém o iframe como padrão. Consulte [ativação, arquitetura, CORS e roteiro físico](docs/DIRECT-HLS.md). O Native HLS com backend HTTPS já reproduziu imagem e áudio na LG C3, conforme confirmação do usuário; **Direct HLS também foi validado fisicamente pelo usuário: imagem e áudio em `yetz` e `baianotv`, troca para 1080p e backend desligado durante todo o teste**. A implementação anterior está documentada em [Native HLS](docs/NATIVE-HLS.md).
+**Versão 0.2.1: Direct HLS é o modo padrão.** Ao abrir o app normalmente, a TV consulta a Kick e reproduz o HLS no player nativo, sem backend, Caddy ou token. `iframe` e `native-hls` continuam disponíveis por parâmetros de abertura. Consulte [arquitetura, CORS e validação](docs/DIRECT-HLS.md) e a [documentação do backend opcional](docs/NATIVE-HLS.md).
 
-**Estado da modalidade padrão: prova de conceito validada com sucesso pelo usuário na LG OLED C3.** A reprodução usa o **embed oficial dentro do aplicativo instalado**, sem abrir navegador externo. Não há, nas fontes oficiais consultadas, um método documentado para obter HLS de visualização. O app não consulta status pela API nem detecta falhas internas do embed; o próprio player apresenta os estados de offline e canal inexistente.
+**Validação física pelo usuário na LG C3:** `yetz` e `baianotv` reproduziram imagem e áudio no Direct HLS, a troca para 1080p funcionou e o backend permaneceu desligado durante todo o teste. O Native HLS com backend HTTPS também foi validado. Esses relatos não substituem os testes pendentes de estabilidade prolongada e interrupção de rede. A descoberta usa um endpoint interno, sem garantia oficial de estabilidade; não incorpora contorno de restrições.
 
 Alvo informado: LG OLED55C3PSA, webOS 25, versão 10.3.1-3006. Investigação em 08/11/2026.
 
-**Evolução 0.2.0:** controles por OK/setas/Voltar, recarga manual e recuperação limitada de falhas observáveis do iframe. O menu de qualidade informa o limite da integração: seleção manual e detecção de buffering do vídeo remoto não estão disponíveis pela API documentada. Esta versão ainda precisa de validação na C3. Veja [player: implementação, limites e roteiro de teste](docs/PLAYER.md).
+**Histórico 0.2.0 — iframe:** controles por OK/setas/Voltar, recarga manual e recuperação limitada de falhas observáveis do iframe. O menu de qualidade informa o limite da integração: seleção manual e detecção de buffering do vídeo remoto não estão disponíveis pela API documentada. A validação ampliada desses controles do iframe continua documentada separadamente. Veja [player: implementação, limites e roteiro de teste](docs/PLAYER.md).
 
-**Resultado prático:** após os testes locais, o usuário confirmou instalação, teclado, reprodução de canais online em tela cheia, indicação de offline e retorno à entrada na C3, sem erros de uso identificados. Foram utilizados `yoda`, `xqc` e `minerva`, além do canal inexistente `lgiptv`. O [relato completo](docs/TESTES.md) distingue os testes na TV das verificações locais.
+**Resultado histórico da PoC por iframe:** após os testes locais, o usuário confirmou instalação, teclado, reprodução de canais online em tela cheia, indicação de offline e retorno à entrada na C3, sem erros de uso identificados. Foram utilizados `yoda`, `xqc` e `minerva`, além do canal inexistente `lgiptv`. O [relato completo](docs/TESTES.md) distingue os testes na TV das verificações locais.
 
 ## Arquivos e funcionamento
 
@@ -18,11 +18,11 @@ Alvo informado: LG OLED55C3PSA, webOS 25, versão 10.3.1-3006. Investigação em
 - [Investigação](docs/INVESTIGACAO.md): fontes, bloqueios e alternativas.
 - [Testes e validação na TV](docs/TESTES.md): evidências, aceite na C3 e verificações complementares.
 
-O fluxo é: nome ou URL do canal → validação local → `https://player.kick.com/<canal>?autoplay=true&muted=false` em iframe de 100% da tela. **O app não obtém uma URL `.m3u8` da Kick.** O player remoto resolve e reproduz a transmissão sob controle da plataforma. Não há chamadas a endpoints privados, extração de tokens, cookies próprios ou segredos no pacote.
+O fluxo padrão é: nome ou URL de canal → normalização → `https://kick.com/api/v2/channels/{canal}/livestream` → validação de `data.playback_url` → `<video>` nativo com HLS diretamente da CDN. A análise opcional do manifesto oferece apenas variantes seguras; se falhar, a reprodução tenta Auto com a playlist principal. Não há retransmissão de vídeo ou credenciais Kick no app.
 
-O campo aceita, por exemplo, `xqc`, `https://kick.com/xqc` e `https://www.kick.com/xqc/`. Setas cima/baixo alternam entre campo e botão quando o teclado virtual está fechado; esquerda/direita editam o texto; OK usa a ação nativa. O teclado virtual recebe as setas enquanto estiver aberto. Durante a reprodução, OK abre/oculta controles; setas selecionam Qualidade ou Recarregar transmissão e OK executa. Voltar fecha primeiro o diálogo/painel aberto; sem sobreposição, remove o iframe e retorna ao formulário. Na tela inicial, dois toques em Voltar encerram o app.
+O campo aceita, por exemplo, `xqc`, `https://kick.com/xqc` e `https://www.kick.com/xqc/`. OK abre os controles; setas navegam por Qualidade, Recarregar transmissão e Usar player oficial. Voltar fecha primeiro menus/painéis e depois retorna à entrada. A troca/recarga libera os recursos anteriores. Controles e indicadores desaparecem durante a reprodução normal; não são alteradas as proteções OLED.
 
-O iframe não recebe foco nem cliques, para que o documento pai mantenha Voltar. Isso exige que o autoplay com áudio funcione. Se o player exigir clique, login, consentimento ou verificação, esta PoC não atende esse caso. Não há API documentada do embed para encaminhar OK, remover seus controles ou receber eventos de mídia. A apresentação e as mensagens internas são da Kick.
+A alternativa `iframe` usa o embed oficial `player.kick.com`; seus eventos internos, qualidades e buffering não são acessíveis ao documento pai. O modo `native-hls` usa o mesmo player nativo com descoberta pelo backend local autenticado. Para o comportamento detalhado de cada modalidade, veja [Direct HLS](docs/DIRECT-HLS.md), [Native HLS](docs/NATIVE-HLS.md) e [iframe](docs/PLAYER.md).
 
 ## Preparar e empacotar no Ubuntu
 
@@ -63,9 +63,18 @@ npx ares-novacom --device lgc3 --getkey
 Digite a passphrase exibida na TV quando solicitada pela CLI. Não a grave no código. Se `lgc3` já existir, use `--modify` em vez de `--add`. Em seguida:
 
 ```bash
-npx ares-install --device lgc3 dist/releases/com.kicktv.poc_0.2.0_all.ipk
+npx ares-install --device lgc3 dist/releases/com.kicktv.poc_0.2.1_all.ipk
 npx ares-launch --device lgc3 com.kicktv.poc
 ```
+
+A abertura sem parâmetros usa Direct HLS. Para usar o player oficial, feche e reabra explicitamente:
+
+```bash
+npx ares-launch --device lgc3 --close com.kicktv.poc
+npx ares-launch --device lgc3 --params '{"mode":"iframe"}' com.kicktv.poc
+```
+
+`{"mode":"direct-hls"}` continua válido. Para `native-hls`, use os parâmetros de backend descritos em [Native HLS](docs/NATIVE-HLS.md).
 
 A [LG documenta esse pareamento e a sessão do Developer Mode](https://webostv.developer.lge.com/develop/getting-started/developer-mode-app). Quando o modo expira e é desabilitado, aplicativos de desenvolvimento podem ser removidos pela TV.
 
@@ -140,22 +149,22 @@ O job de build tem somente `contents: read`. Apenas o job separado de publicaç�
 
 ### Criar uma versão
 
-Exemplo para uma futura `v0.2.0` (os comandos abaixo publicam quando executados; não são executados pela preparação do CI):
+Exemplo para uma futura `v0.2.2` (os comandos abaixo publicam quando executados; não são executados pela preparação do CI):
 
-Se a versão desejada já estiver sincronizada nos três arquivos, como na preparação atual da 0.2.0, pule os passos 1 e 2. A atualização do número não cria uma tag nem uma Release.
+A versão atual é 0.2.1. Se a versão seguinte desejada já estiver sincronizada nos três arquivos, pule os passos 1 e 2. A atualização do número não cria uma tag nem uma Release.
 
-1. Altere `version` em `app/appinfo.json` para `0.2.0`. Use três inteiros, sem zeros à esquerda ou sufixos (`-beta`, `+build`), com até nove dígitos por componente, conforme o formato webOS.
+1. Altere `version` em `app/appinfo.json` para `0.2.2`. Use três inteiros, sem zeros à esquerda ou sufixos (`-beta`, `+build`), com até nove dígitos por componente, conforme o formato webOS.
 2. Atualize os metadados npm, sem criar tag automaticamente:
 
    ```bash
-   npm version 0.2.0 --no-git-tag-version
+   npm version 0.2.2 --no-git-tag-version
    ```
 
 3. Valide e teste localmente:
 
    ```bash
    npm ci
-   npm run validate -- --tag v0.2.0
+   npm run validate -- --tag v0.2.2
    npx --no-install playwright install chromium
    npm test
    npm run package
@@ -166,11 +175,11 @@ Se a versão desejada já estiver sincronizada nos três arquivos, como na prepa
 
    ```bash
    git push origin main
-   git tag -a v0.2.0 -m 'KickTV v0.2.0'
-   git push origin v0.2.0
+   git tag -a v0.2.2 -m 'KickTV v0.2.2'
+   git push origin v0.2.2
    ```
 
-A tag deve apontar para o commit com `appinfo.json`, `package.json` e as duas entradas de versão do `package-lock.json` sincronizados. Não há alteração automática da versão pelo workflow. Tags como `v1`, `v0.2.0-beta` ou uma tag divergente disparam o filtro `v*`, mas falham na validação antes de publicar. O fluxo atual publica somente versões estáveis no formato `vX.Y.Z`.
+A tag deve apontar para o commit com `appinfo.json`, `package.json` e as duas entradas de versão do `package-lock.json` sincronizados. Não há alteração automática da versão pelo workflow. Tags como `v1`, `v0.2.2-beta` ou uma tag divergente disparam o filtro `v*`, mas falham na validação antes de publicar. O fluxo atual publica somente versões estáveis no formato `vX.Y.Z`.
 
 ### Acompanhar e baixar
 

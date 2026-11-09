@@ -1,6 +1,6 @@
-# Direct HLS experimental no webOS
+# Direct HLS no webOS
 
-Branch `feat/direct-hls-webos`, derivada da implementação Native HLS. O padrão continua **iframe**. Os modos `iframe` e `native-hls` permanecem disponíveis; nenhum backend, Caddy, firewall, serviço ou permissão da TV foi alterado.
+Implementado originalmente em `feat/direct-hls-webos` e integrado à `main`. A partir de **0.2.1**, o padrão é **direct-hls**, inclusive sem parâmetros de abertura. Os modos `iframe` e `native-hls` permanecem disponíveis; nenhum backend, Caddy, firewall, serviço ou permissão da TV foi alterado.
 
 O usuário confirmou imagem e áudio no Native HLS na **LG OLED55C3PSA, webOS 25 10.3.1-3006**, tanto com a amostra Apple quanto com transmissões Kick, usando backend HTTPS pelo Caddy. O vídeo vem diretamente da CDN. Esse resultado valida a referência Native HLS.
 
@@ -75,22 +75,22 @@ npm test
 npx ares-config --profile tv
 npm run package
 npx ares-launch --device lgc3 --close com.kicktv.poc
-npx ares-install --device lgc3 dist/releases/com.kicktv.poc_0.2.0_all.ipk
+npx ares-install --device lgc3 dist/releases/com.kicktv.poc_0.2.1_all.ipk
 npx ares-launch --device lgc3 --params '{"mode":"direct-hls"}' com.kicktv.poc
 ```
 
-A configuração de exemplo é [config/direct-hls.example.json](../config/direct-hls.example.json), contendo somente `mode`. Não exige backendURL, domínio, Caddy ou token. O pacote mantém ID/versão existentes e substitui o instalado; inclui apenas os quinze arquivos de execução da allowlist `packaging.json`, sem Python, configuração privada ou dependências de desenvolvimento. Não há etapa de compilação/bundling, tags ou Release.
+A configuração de exemplo é [config/direct-hls.example.json](../config/direct-hls.example.json), contendo somente `mode`. Não exige backendURL, domínio, Caddy ou token. O pacote 0.2.1 mantém o ID existente e atualiza o instalado; inclui apenas os quinze arquivos de execução da allowlist `packaging.json`, sem Python, configuração privada ou dependências de desenvolvimento. Não há etapa de compilação/bundling. A tag `v0.2.1` aciona o workflow de publicação do IPK no GitHub Releases.
 
 Para comparar, feche o app antes de cada abertura:
 
 ```bash
-# Iframe padrão
+# Iframe explícito
 npx ares-launch --device lgc3 --close com.kicktv.poc
-npx ares-launch --device lgc3 com.kicktv.poc
+npx ares-launch --device lgc3 --params '{"mode":"iframe"}' com.kicktv.poc
 # Native HLS: arquivo local já configurado para seu backend
 npx ares-launch --device lgc3 --close com.kicktv.poc
 npx ares-launch --device lgc3 --params "$(cat .tools/native-hls.local.json)" com.kicktv.poc
-# Direct HLS, sem infraestrutura local
+# Direct HLS padrão, sem infraestrutura local
 npx ares-launch --device lgc3 --close com.kicktv.poc
 npx ares-launch --device lgc3 --params '{"mode":"direct-hls"}' com.kicktv.poc
 ```
