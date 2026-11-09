@@ -1,0 +1,39 @@
+{
+  "source": "user report in conversation; physical TV operated by user, not agent",
+  "device": {
+    "model": "LG OLED55C3PSA",
+    "platform": "webOS 25",
+    "version": "10.3.1-3006",
+    "source": "device context supplied by user"
+  },
+  "mode": "direct-hls",
+  "confirmed": {
+    "experimental_ipk_installed": true,
+    "launched_in_direct_hls": true,
+    "channels": {
+      "yetz": {
+        "video": true,
+        "audio": true
+      },
+      "baianotv": {
+        "video": true,
+        "audio": true
+      }
+    },
+    "manual_quality_selection": {
+      "selected": "1080p",
+      "working": true,
+      "channel_for_quality_change": "not specified"
+    },
+    "backend_off_during_entire_test": true
+  },
+  "main_criterion": "Direct discovery and real Kick playback without Python backend confirmed by user on target TV.",
+  "not_measured_or_not_reported": [
+    "Effective decoded resolution, bitrate, FPS and latency",
+    "HTTP status, request Origin and response CORS headers on TV",
+    "Playback duration and repeated switching/resource measurements",
+    "Error recovery, network interruption and full remote-control regression",
+    "Fresh comparison of iframe and native-hls after installation"
+  ],
+  "application_changes": "none; documentation update only"
+}

@@ -2,7 +2,9 @@
 
 Branch `feat/direct-hls-webos`, derivada da implementação Native HLS. O padrão continua **iframe**. Os modos `iframe` e `native-hls` permanecem disponíveis; nenhum backend, Caddy, firewall, serviço ou permissão da TV foi alterado.
 
-O usuário confirmou imagem e áudio no Native HLS na **LG OLED55C3PSA, webOS 25 10.3.1-3006**, tanto com a amostra Apple quanto com transmissões Kick, usando backend HTTPS pelo Caddy. O vídeo vem diretamente da CDN. Esse resultado valida a referência Native HLS; **não valida a descoberta Direct HLS na TV**.
+O usuário confirmou imagem e áudio no Native HLS na **LG OLED55C3PSA, webOS 25 10.3.1-3006**, tanto com a amostra Apple quanto com transmissões Kick, usando backend HTTPS pelo Caddy. O vídeo vem diretamente da CDN. Esse resultado valida a referência Native HLS.
+
+**Direct HLS validado fisicamente pelo usuário na mesma LG C3:** IPK experimental instalado e iniciado com `mode:direct-hls`; canais `yetz` e `baianotv` reproduziram imagem e áudio; a troca de qualidade para **1080p** funcionou. O usuário confirmou que o **backend permaneceu desligado durante todo o teste**. Isso confirma o critério principal de descoberta e reprodução sem backend nesse dispositivo/ambiente. A seleção de 1080p foi relatada; resolução efetivamente decodificada, bitrate e FPS não foram medidos. Não foram fornecidos logs HTTP/CORS do dispositivo. Veja o [registro do relato físico](evidence/direct-hls-tv-user-validation.json).
 
 ## Implementação
 
@@ -39,7 +41,7 @@ A URL é validada **antes** da análise opcional. Falha HTTP, CORS, rede, timeou
 
 ## CORS, origem e compatibilidade
 
-A [LG informa que webOS 25 usa Chromium 120 e que apps empacotados usam esquema file, sem suporte a cookies](https://webostv.developer.lge.com/develop/specifications/web-api-and-web-engine). A [FAQ da LG](https://webostv.developer.lge.com/faq) informa que webOS segue CORS. As APIs usadas (`fetch`, AbortController, streams de resposta, TextDecoder e URL) existem nessa geração de Chromium; diferenças do WebAppManager ainda exigem teste real. `requiredACG` permanece vazio: não há declaração que deva ser adicionada para desativar CORS, e nenhuma política de segurança foi relaxada.
+A [LG informa que webOS 25 usa Chromium 120 e que apps empacotados usam esquema file, sem suporte a cookies](https://webostv.developer.lge.com/develop/specifications/web-api-and-web-engine). A [FAQ da LG](https://webostv.developer.lge.com/faq) informa que webOS segue CORS. As APIs usadas (`fetch`, AbortController, streams de resposta, TextDecoder e URL) existem nessa geração de Chromium; o teste físico relatado confirmou descoberta e reprodução neste dispositivo, sem garantir todos os cenários do WebAppManager. `requiredACG` permanece vazio: não há declaração que deva ser adicionada para desativar CORS, e nenhuma política de segurança foi relaxada.
 
 `location.origin` e o cabeçalho HTTP Origin não são necessariamente idênticos. No Chromium Linux deste experimento, a página file apresentou `location.origin = "file://"`, mas enviou **Origin: null**. A TV registra `location.origin` e o esquema no evento `mode_selected`; confirme o Origin efetivamente enviado no Network do Inspector. Não o presuma a partir do desktop.
 
@@ -49,7 +51,7 @@ Experimentos reais locais em 2026-11-08, com Chromium **158**, sem flags para de
 
 - `yoda`, `minerva` e `xqc`: JSON legível, HTTP 200, `data:null`, por HTTP local e file. A resposta permitiu a origem HTTP enviada e, para file, `Access-Control-Allow-Origin:null`, com `Vary:Origin`. Não houve erro CORS no console.
 - Uma requisição Python separada ao canal `yoda`, com Origin null ou HTTP local, recebeu 403 sem ACAO. Isso não contradiz a leitura pelo Chromium: o acesso depende do cliente/ambiente e pode mudar. Não foi feito contorno desse bloqueio.
-- Não há teste físico de Direct HLS, nem garantia de resposta igual no Chromium 120 da LG, em outra rede ou com outro canal ao vivo.
+- Estes experimentos desktop precedem a confirmação física do usuário. Na C3, Direct HLS posteriormente reproduziu `yetz` e `baianotv` com o backend desligado. Não há garantia de disponibilidade futura do endpoint ou de comportamento igual em outras redes/dispositivos.
 
 Evidências sem corpos/URLs assinadas: [CORS yoda](evidence/direct-hls-desktop-cors.json), [minerva](evidence/direct-hls-desktop-minerva.json), [xqc](evidence/direct-hls-desktop-xqc.json) e [consulta HTTP separada](evidence/direct-hls-http-headers.json). O script de observação consulta somente metadados; não testa reprodução, variantes nem codecs reais:
 
@@ -109,7 +111,7 @@ A suíte usa respostas e eventos de mídia simulados, sem depender de canais rea
 .tools/backend-venv/bin/python -m pytest backend/tests -q
 ```
 
-## Roteiro físico LG C3 — pendente
+## Roteiro físico LG C3 — reprodução e 1080p confirmados; validação ampliada pendente
 
 1. Registrar modelo/firmware e confirmar iframe e Native HLS como referência. Instalar o IPK experimental, fechar e iniciar com `mode:direct-hls`.
 2. Manter o backend Python desligado durante todo o teste Direct HLS. Não é necessário alterar Caddy ou qualquer serviço existente; verificar que não há pedidos ao domínio local nem Bearer no Network.
@@ -117,6 +119,6 @@ A suíte usa respostas e eventos de mídia simulados, sem depender de canais rea
 4. Confirmar imagem **e áudio**, fullscreen, carregamento e `playing`. Se o manifesto for inacessível, confirmar tentativa Auto e aviso no menu; se acessível, comparar qualidades declaradas e habilitadas. Variantes com áudio externo devem permanecer desabilitadas.
 5. Trocar qualidade somente quando habilitada; confirmar áudio, ausência de vídeo duplicado e limpeza. Voltar retorna à entrada; escolher outro canal e recarregar várias vezes. OK/setas/Voltar e volume devem manter seus comportamentos.
 6. Testar nome inválido, inexistente, canal offline e interrupção temporária da rede durante descoberta e reprodução. Confirmar erros distintos, prazos finitos e possibilidade de voltar/recarregar. Não confundir ausência de stream com existência comprovada do canal.
-7. Comparar novamente iframe e Native HLS, reabrindo com os parâmetros correspondentes. Avaliar reprodução Direct HLS prolongada, trocas repetidas e recursos no Inspector. Nenhum desses testes físicos foi declarado concluído nesta entrega.
+7. Comparar novamente iframe e Native HLS, reabrindo com os parâmetros correspondentes. Avaliar reprodução Direct HLS prolongada, trocas repetidas e recursos no Inspector. A reprodução básica, a troca para 1080p e a ausência de backend já foram confirmadas pelo usuário; comparação das três modalidades após a instalação, reprodução prolongada, trocas repetidas, erros e métricas continuam sem evidência de conclusão.
 
-O critério decisivo continua sendo imagem e áudio de uma live na C3 com descoberta no próprio aplicativo e backend desligado. O desktop demonstrou acesso ao endpoint em seu ambiente; a implementação e seus testes não substituem esse teste físico.
+O critério decisivo foi atingido no teste físico relatado: imagem e áudio de lives na C3, descoberta no próprio aplicativo e backend desligado. O roteiro acima permanece para ampliar a validação de controles, erros, limpeza de recursos e estabilidade prolongada. O sucesso observado não torna o endpoint interno uma API oficialmente suportada.

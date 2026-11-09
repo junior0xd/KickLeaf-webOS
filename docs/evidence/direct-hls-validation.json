@@ -47,11 +47,12 @@
     "separate_python_http_probe": "403 without ACAO; no circumvention"
   },
   "physical_tv": {
-    "direct_hls": "pending",
-    "native_hls_reference": "image and audio confirmed by user on LG OLED55C3PSA webOS 25 10.3.1-3006 via HTTPS backend/Caddy"
+    "direct_hls": "image and audio on yetz and baianotv, manual 1080p working, backend off throughout; confirmed by user after implementation",
+    "native_hls_reference": "image and audio confirmed by user on LG OLED55C3PSA webOS 25 10.3.1-3006 via HTTPS backend/Caddy",
+    "evidence": "direct-hls-tv-user-validation.json"
   },
   "limits": [
-    "Desktop network results do not prove LG C3 direct discovery or playback.",
+    "Desktop network results alone do not prove TV behavior; subsequent physical confirmation is recorded separately in direct-hls-tv-user-validation.json.",
     "Mocked media events do not test codecs, CDN media download, audio or prolonged playback.",
     "No live channel/playback URL was available in these direct desktop observations."
   ]

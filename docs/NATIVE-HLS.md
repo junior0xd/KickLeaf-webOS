@@ -8,7 +8,7 @@ Desenvolvimento na branch `feat/native-hls-backend`, a partir de `cf91560`. A br
 
 **Evidência local anterior preservada:** descoberta e FFmpeg funcionaram para `yoda`/`minerva`, mas o Chromium Linux recebeu erro de mídia 4 nos fluxos Kick. Esse resultado não representa o pipeline da LG e não invalida o teste físico posterior. Os arquivos de evidência antigos continuam históricos.
 
-A evolução [Direct HLS](DIRECT-HLS.md), na branch `feat/direct-hls-webos`, reutiliza este player e preserva este backend. Sua descoberta diretamente no documento webOS ainda não foi validada na TV.
+A evolução [Direct HLS](DIRECT-HLS.md), na branch `feat/direct-hls-webos`, reutiliza este player e preserva este backend. O usuário também validou sua descoberta e reprodução na C3 nos canais `yetz` e `baianotv`, com imagem e áudio, troca para 1080p e backend desligado durante todo o teste.
 
 ## Arquitetura
 
@@ -192,4 +192,4 @@ Na investigação adicional de `yoda`, o navegador observou respostas HTTP 200, 
 6. Alternar para o iframe, usar o mesmo canal e voltar à entrada. O app deve permanecer utilizável se a descoberta ou a reprodução nativa falhar.
 7. Se as etapas anteriores funcionarem, reproduzir por uma hora e executar vinte ciclos de troca/retorno. Observar memória, recursos e proteções OLED da própria TV, sem desabilitá-las.
 
-**Resposta atual ao critério principal:** sim, o usuário confirmou reprodução Kick com imagem e áudio no player independente da LG C3, utilizando o backend local HTTPS para descoberta e recebendo vídeo diretamente da CDN. Não se afirma conclusão de todos os testes ampliados de qualidade, interrupção de rede ou reprodução prolongada. A descoberta Direct HLS, sem backend, é um experimento separado ainda pendente na TV.
+**Resposta atual ao critério principal:** sim, o usuário confirmou reprodução Kick com imagem e áudio no player independente da LG C3, utilizando o backend local HTTPS para descoberta e recebendo vídeo diretamente da CDN. Não se afirma conclusão de todos os testes ampliados de qualidade, interrupção de rede ou reprodução prolongada. A descoberta Direct HLS é um experimento separado também validado pelo usuário na C3, com imagem e áudio, troca para 1080p e backend desligado durante todo o teste; veja [o relato e os limites dessa validação](DIRECT-HLS.md).
