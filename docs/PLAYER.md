@@ -1,5 +1,7 @@
 # Evolução do player — versão 0.2.0
 
+O desenvolvimento do painel **Estatísticas do vídeo** para os modos nativos está documentado em [VIDEO-STATS.md](VIDEO-STATS.md). Esta página mantém o histórico dos controles do iframe.
+
 ## Mecanismo preservado e limite da integração
 
 Na modalidade `iframe`, as lives da Kick continuam em um iframe de `https://player.kick.com/<canal>?autoplay=true&muted=false`. `channel.js`, a normalização de canais e o formulário de entrada foram preservados. O elemento `<video>` diretamente acessível em `native-player.js` pertence somente ao diagnóstico Apple HLS; ele não reproduz as lives Kick. As modalidades opcionais usam outro controlador compartilhado, `native-hls.js`: [Native HLS com backend](NATIVE-HLS.md), já validado fisicamente pelo usuário, e [Direct HLS experimental](DIRECT-HLS.md), também validado pelo usuário na C3 com imagem e áudio, troca para 1080p e backend desligado. Os limites de iframe descritos neste documento se referem à modalidade `iframe`, que pode ser selecionada explicitamente. Desde 0.2.1, o modo padrão é Direct HLS.

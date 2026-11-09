@@ -10,6 +10,8 @@ Alvo informado: LG OLED55C3PSA, webOS 25, versão 10.3.1-3006. Investigação em
 
 **Resultado histórico da PoC por iframe:** após os testes locais, o usuário confirmou instalação, teclado, reprodução de canais online em tela cheia, indicação de offline e retorno à entrada na C3, sem erros de uso identificados. Foram utilizados `yoda`, `xqc` e `minerva`, além do canal inexistente `lgiptv`. O [relato completo](docs/TESTES.md) distingue os testes na TV das verificações locais.
 
+**Desenvolvimento — Estatísticas do vídeo:** painel opcional no player nativo, com métricas locais atualizadas a cada segundo enquanto visível. Veja [classificação das métricas, controles e roteiro na LG](docs/VIDEO-STATS.md). Disponível nesta branch de desenvolvimento; não integra o pacote da Release 0.2.1 já publicada.
+
 ## Arquivos e funcionamento
 
 - `app/`: HTML, CSS, JavaScript puro, manifesto e ícones. Sem dependências de execução.

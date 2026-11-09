@@ -14,6 +14,8 @@
     "native-api.js",
     "native-hls.js",
     "hls-manifest.js",
-    "direct-api.js"
+    "direct-api.js",
+    "video-stats.js",
+    "video-stats-panel.js"
   ]
 }

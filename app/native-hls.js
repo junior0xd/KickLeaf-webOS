@@ -15,6 +15,10 @@
   var qualityButton = document.getElementById('native-quality');
   var officialHome = document.getElementById('official-home');
   var buttons = [qualityButton, document.getElementById('native-reload'), document.getElementById('official-player')];
+  var statisticsButton = document.getElementById('video-statistics-toggle');
+  buttons.push(statisticsButton);
+  var statistics = window.KickVideoStats.create();
+  var statisticsPanel = window.KickVideoStatsPanel.create(document.getElementById('video-statistics'), statistics);
   var video = null;
   var listeners = [];
   var request = null;
@@ -24,7 +28,6 @@
   var channel = '';
   var selected = 'auto';
   var keyboardVisible = false;
-  var frameSample = null;
   var errors = { 1: 'Reprodução interrompida.', 2: 'Falha de rede ao reproduzir a mídia.', 3: 'A TV não conseguiu decodificar a mídia.', 4: 'HLS indisponível ou não suportado por este dispositivo.' };
 
   function log(state, details) { console.info('[KickTV native]', state, details || ''); }
@@ -39,14 +42,15 @@
   function idleControls() { clear('controls'); if (menu.hidden) later('controls', hideControls, 5000); }
   function releaseVideo() {
     clear('media');
+    statistics.detach(); statisticsPanel.refresh();
     if (!video) return;
     listeners.forEach(function (item) { video.removeEventListener(item[0], item[1]); });
     listeners = [];
     video.pause(); video.removeAttribute('src'); video.load(); video.remove(); video = null;
-    frameSample = null;
     log('media_released');
   }
   function stop() {
+    statisticsPanel.hide(); statisticsButton.setAttribute('aria-pressed', 'false');
     generation += 1;
     if (request) { request.abort(); request = null; }
     Object.keys(timers).forEach(clear);
@@ -63,28 +67,7 @@
     try { suffix = '&channel=' + encodeURIComponent(window.KickChannel.normalizeChannel(value)); } catch (error) { /* Entrada vazia não impede voltar ao iframe. */ }
     window.location.replace('index.html?iframe' + suffix);
   }
-  function snapshot() {
-    if (!video) return null;
-    var ahead = 0;
-    for (var i = 0; i < video.buffered.length; i += 1) {
-      if (video.currentTime >= video.buffered.start(i) && video.currentTime <= video.buffered.end(i)) ahead = video.buffered.end(i) - video.currentTime;
-    }
-    var quality = selected === 'auto' ? null : metadata.playback.qualities.find(function (q) { return q.id === selected; });
-    var playbackQuality = null;
-    try { if (typeof video.getVideoPlaybackQuality === 'function') playbackQuality = video.getVideoPlaybackQuality(); } catch (error) { /* Não disponível neste pipeline. */ }
-    var now = performance.now();
-    var fps = null;
-    if (playbackQuality && !video.paused && !video.ended) {
-      var presented = playbackQuality.totalVideoFrames - playbackQuality.droppedVideoFrames;
-      if (frameSample && now - frameSample.time >= 1000) fps = Math.max(0, (presented - frameSample.frames) * 1000 / (now - frameSample.time));
-      if (!frameSample || now - frameSample.time >= 1000) frameSample = { time: now, frames: presented };
-    } else frameSample = null;
-    return { width: video.videoWidth || null, height: video.videoHeight || null,
-      quality: selected, nominal_bitrate: quality ? quality.bitrate : null, buffered_ahead_seconds: ahead,
-      observed_presented_fps: fps, dropped_frames: playbackQuality ? playbackQuality.droppedVideoFrames : null,
-      live_edge_gap_seconds: metadata.playback.live && video.seekable.length ? Math.max(0, video.seekable.end(video.seekable.length - 1) - video.currentTime) : null,
-      paused: video.paused, ready_state: video.readyState };
-  }
+  function snapshot() { return statistics.snapshot(); }
   function play(selection) {
     releaseVideo(); hideControls();
     var item = selection === 'auto' ? null : metadata.playback.qualities.find(function (q) { return q.id === selection && q.selectable; });
@@ -94,6 +77,8 @@
     var current = document.createElement('video');
     current.className = 'screen'; current.setAttribute('playsinline', ''); current.preload = 'none';
     video = current; host.appendChild(current); document.body.focus();
+    statistics.attach(current, { quality: selected, variant: item, live: metadata.playback.live });
+    statisticsPanel.refresh();
     var started = performance.now();
     var firstPlay = true;
     function on(name, callback) {
@@ -108,7 +93,7 @@
       firstPlay = false;
     });
     on('waiting', function () { if (!current.paused && !current.ended) { hint('Carregando vídeo…'); if (!timers.media) deadline(); log('buffering'); } });
-    on('pause', function () { clear('media'); hideHint(); frameSample = null; log('paused'); });
+    on('pause', function () { clear('media'); hideHint(); log('paused'); });
     on('error', function () { if (current.error) { log('media_error', { code: current.error.code, message: errors[current.error.code] || 'Erro de mídia', browser_message_present: !!current.error.message }); fail(errors[current.error.code] || 'Erro de reprodução.'); } });
     on('ended', function () { showHome('A reprodução terminou.'); });
     hint('Carregando vídeo…'); deadline();
@@ -125,6 +110,7 @@
     stop(); channel = next; selected = 'auto'; home.hidden = true; document.body.focus();
     var ticket = generation;
     var controller = new AbortController(); request = controller;
+    statistics.setPhase('discovering');
     log('discovery_start', { mode: mode, channel: channel });
     hint(mode === 'direct-hls' ? 'Consultando a Kick diretamente…' : 'Consultando backend local…');
     later('request', function () { controller.abort(); }, 12000);
@@ -140,6 +126,12 @@
   }
   document.getElementById('native-form').addEventListener('submit', function (event) { event.preventDefault(); open(); });
   buttons[1].addEventListener('click', open);
+  statisticsButton.addEventListener('click', function () {
+    if (!video && !request) return;
+    if (statisticsPanel.isVisible()) statisticsPanel.hide(); else statisticsPanel.show();
+    statisticsButton.setAttribute('aria-pressed', String(statisticsPanel.isVisible()));
+    idleControls();
+  });
   officialHome.addEventListener('click', fallback); buttons[2].addEventListener('click', fallback);
   qualityButton.addEventListener('click', function () {
     if (!metadata) return;

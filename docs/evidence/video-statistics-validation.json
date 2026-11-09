@@ -1,0 +1,66 @@
+{
+  "date": "2026-11-09T02:18:45.422954+00:00",
+  "branch": "feat/video-statistics",
+  "base_commit": "2bab0fca9198fe729ee57cf82edf6f02748eda93",
+  "application_version": "0.2.1 (local development package; not a new Release)",
+  "tests": {
+    "javascript_unit": {
+      "passed": 23,
+      "statistics_new": 8
+    },
+    "browser": {
+      "passed": 63,
+      "statistics_new": 10,
+      "existing": 53,
+      "media": "simulated"
+    },
+    "syntax_and_metadata": "passed",
+    "package_content_audit": "passed",
+    "git_diff_check": "passed"
+  },
+  "public_hls_smoke_test": {
+    "evidence": "video-statistics-public-hls.json",
+    "success": true,
+    "actual_media": true,
+    "backend_response_mocked": true,
+    "tv": false
+  },
+  "package": {
+    "path": "dist/releases/com.kicktv.poc_0.2.1_all.ipk",
+    "sha256": "01d6ffa6606f66e2b5b833db930f87c29ff1b058c592435928f7e78f57296665",
+    "bytes": 23816,
+    "cli": "@webos-tools/cli 3.2.6",
+    "profile": "tv",
+    "runtime_files": 17
+  },
+  "preserved_source_files": [
+    "app/app.js",
+    "app/direct-api.js",
+    "app/native-api.js",
+    "app/hls-manifest.js",
+    "app/channel.js",
+    "app/embed-player.js",
+    "app/appinfo.json",
+    "package.json",
+    "package-lock.json"
+  ],
+  "physical_tv": {
+    "statistics_panel": "not tested",
+    "pending": [
+      "Native webOS counters and accuracy",
+      "Magic Remote and viewing-distance legibility",
+      "Hardware decoding impact with panel on/off",
+      "Network interruption, repeated channel/quality changes, prolonged playback"
+    ]
+  },
+  "scope": {
+    "new_dependencies": false,
+    "extra_kick_requests": false,
+    "changed_discovery_or_challenge": false,
+    "new_reconnection_strategy": false,
+    "default_panel_enabled": false,
+    "hidden_periodic_polling": false,
+    "remote_telemetry": false
+  },
+  "architecture_note": "Available main revision 2bab0fc uses native HTML5 video and contains no explicit JavaScript challenge module; discovery files remain unchanged."
+}

@@ -21,12 +21,40 @@
     <button id="native-quality" type="button">Qualidade: Auto</button>
     <button id="native-reload" type="button">Recarregar transmissão</button>
     <button id="official-player" type="button">Usar player oficial</button>
+    <button id="video-statistics-toggle" type="button" aria-pressed="false" aria-controls="video-statistics">Estatísticas do vídeo</button>
   </section>
   <section id="native-quality-menu" class="quality-menu" role="dialog" aria-modal="true" aria-label="Qualidades disponíveis" hidden></section>
+  <aside id="video-statistics" class="video-statistics" aria-label="Estatísticas do vídeo" hidden>
+    <h2>Estatísticas do vídeo</h2>
+    <h3>Vídeo</h3>
+    <dl>
+      <div><dt>Resolução efetiva</dt><dd data-stat="resolution">N/D</dd></div>
+      <div><dt>FPS apresentados (estim.)</dt><dd data-stat="fps">N/D</dd></div>
+      <div><dt>FPS declarados</dt><dd data-stat="nominalFPS">N/D</dd></div>
+      <div><dt>Codec vídeo declarado</dt><dd data-stat="videoCodec">N/D</dd></div>
+      <div><dt>Codec áudio declarado</dt><dd data-stat="audioCodec">N/D</dd></div>
+      <div><dt>Qualidade selecionada</dt><dd data-stat="quality">N/D</dd></div>
+    </dl>
+    <h3>Reprodução</h3>
+    <dl>
+      <div><dt>Bitrate declarado</dt><dd data-stat="bitrate">N/D</dd></div>
+      <div><dt>Buffer à frente</dt><dd data-stat="buffer">N/D</dd></div>
+      <div><dt>Frames perdidos / totais</dt><dd data-stat="frames">N/D</dd></div>
+      <div><dt>Distância à borda buscável</dt><dd data-stat="edge">N/D</dd></div>
+      <div><dt>Latência real</dt><dd data-stat="latency">N/D</dd></div>
+    </dl>
+    <h3>Estado</h3>
+    <dl>
+      <div><dt>Reprodução</dt><dd data-stat="state">N/D</dd></div>
+      <div><dt>Interrupções / tempo</dt><dd data-stat="interruptions">N/D</dd></div>
+    </dl>
+  </aside>
   <script src="channel.js"></script>
   <script src="native-api.js"></script>
   <script src="hls-manifest.js"></script>
   <script src="direct-api.js"></script>
+  <script src="video-stats.js"></script>
+  <script src="video-stats-panel.js"></script>
   <script src="native-hls.js"></script>
 </body>
 </html>
