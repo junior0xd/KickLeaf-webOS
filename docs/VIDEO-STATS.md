@@ -26,7 +26,7 @@ A [LG documenta Chromium 120 para webOS 25](https://webostv.developer.lge.com/de
 | Frames perdidos / totais | Medida, informada pelo navegador | `getVideoPlaybackQuality()`. Total inclui apresentados e descartados; não é exclusivamente número de quadros decodificados. API ausente, exceção ou valores inconsistentes: N/D. |
 | Codecs de vídeo e áudio | Declarados | Identificadores `CODECS` da variante manual, separados por famílias conhecidas. Não comprova o decoder ativo; valores desconhecidos e Auto: N/D. |
 | Qualidade selecionada | Estado do aplicativo | Rótulo da variante manual ou `Auto (variante N/D)`; não deduz variante pela resolução. |
-| Distância à borda buscável | Medida relativa | Fim de `seekable` menos `currentTime`, somente para streams live e borda válida. É a borda exposta pelo player, não atraso câmera-tela. |
+| Distância da borda acessível | Medida relativa | Fim de `seekable` menos `currentTime`, somente para streams live e borda válida. É a borda exposta pelo player, não atraso câmera-tela. |
 | Latência real | Indisponível | N/D: não há referência temporal confiável vinculando o vídeo à origem ao vivo. Não se usa buffer ou borda como substituto. |
 | Interrupções e tempo | Medida por eventos / relógio monotônico | Episódios `waiting` após a primeira reprodução; eventos repetidos no mesmo episódio contam uma vez. Termina em `playing`, pausa, busca, erro ou fim. |
 | Estado | Observado | Descobrindo, carregando, reproduzindo, buffering, pausado, buscando posição, erro ou encerrado. A interface de erro/retorno existente encerra o painel. |
@@ -50,7 +50,7 @@ Não há preferência persistida entre sessões. Fundo escuro semitransparente, 
 
 - Criados: `app/video-stats.js` (coletor), `app/video-stats-panel.js` (apresentação), `tests/video-stats.test.js`, `tests/browser/video-stats.spec.js`, `scripts/probe-video-statistics.cjs`, este documento e os registros `docs/evidence/video-statistics-validation.json` e `docs/evidence/video-statistics-public-hls.json`.
 - Modificados: `app/native-hls.js` (integração/ciclo de vida), `app/native-hls.html` (painel e botão), `app/style.css` (layout), `packaging.json` (allowlist), `README.md` e `docs/PLAYER.md` (referências).
-- Sem alterações: resolução/descoberta de canais, parser HLS, backend, iframe, versões, dependências e workflows de publicação.
+- Sem alterações: resolução/descoberta de canais, parser HLS, backend, iframe, dependências e workflows de publicação.
 
 ## Verificações locais
 
@@ -72,16 +72,18 @@ node scripts/probe-video-statistics.cjs
 
 O comando grava um JSON sanitizado em `docs/evidence/video-statistics-public-hls.json` e uma captura local em `.build/video-statistics-public-preview.png`. Não requer backend real e não consulta a Kick.
 
-A [evidência desta entrega](evidence/video-statistics-validation.json) registra resultados e hash do IPK. A versão de metadados permanece 0.2.1 para o pacote local de desenvolvimento; nenhuma tag, Release ou alteração remota é criada nesta entrega. O pacote da Release 0.2.1 publicada anteriormente não contém esta evolução. O empacotamento usa a CLI oficial no perfil `tv`, com allowlist de dezessete arquivos de execução.
+A [evidência desta entrega](evidence/video-statistics-validation.json) registra resultados e hash do IPK. Esse registro corresponde ao pacote experimental 0.2.1. A versão 0.2.2 integra as estatísticas e renomeia a métrica para “Distância da borda acessível”, sem alterar seu cálculo. O pacote da Release 0.2.1 publicada anteriormente não contém esta evolução. O empacotamento usa a CLI oficial no perfil `tv`, com allowlist de dezessete arquivos de execução.
 
-## Validar fisicamente na LG C3 — pendente
+## Validação física e roteiro de regressão
 
-Na branch desta entrega, empacotar e instalar:
+O usuário confirmou ter testado o IPK experimental e autorizou a integração e publicação da versão 0.2.2. Não foram fornecidos resultados individuais de cada cenário abaixo; eles permanecem como roteiro de regressão.
+
+Para empacotar e instalar:
 
 ```bash
 npm run package
 npx ares-launch --device lgc3 --close com.kicktv.poc
-npx ares-install --device lgc3 dist/releases/com.kicktv.poc_0.2.1_all.ipk
+npx ares-install --device lgc3 dist/releases/com.kicktv.poc_0.2.2_all.ipk
 npx ares-launch --device lgc3 com.kicktv.poc
 npx ares-inspect --device lgc3 --app com.kicktv.poc
 ```
@@ -94,4 +96,4 @@ npx ares-inspect --device lgc3 --app com.kicktv.poc
 6. Trocar canal, recarregar, voltar, sair do app e comparar Native HLS opcional/iframe. Verificar encerramento do painel, nenhuma atualização de vídeo anterior e funcionamento dos controles. Repetir ciclos e observar recursos no Inspector.
 7. Comparar reprodução prolongada com painel ligado/desligado: fluidez, áudio, buffer, quadros descartados e responsividade. Não declarar impacto nulo no decoder sem esse teste no hardware.
 
-A confirmação física anterior de Direct HLS/1080p continua válida como referência; **o painel e seu impacto no hardware ainda não foram testados na televisão**.
+A confirmação física anterior de Direct HLS/1080p continua válida como referência. O teste do IPK experimental foi confirmado pelo usuário; não há medição detalhada de desempenho ou de reprodução prolongada no hardware nesta entrega.
