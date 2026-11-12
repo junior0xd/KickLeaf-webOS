@@ -19,7 +19,7 @@ function readProject(root, tag) {
   }
   if (!/^[a-z0-9][a-z0-9.-]+$/.test(manifest.id)) throw new Error('ID inválido em appinfo.json.');
   if (!Array.isArray(files) || files.length === 0 || new Set(files).size !== files.length ||
-      files.some(name => typeof name !== 'string' || !/^[a-zA-Z0-9_-]+\.(html|js|css|png|json)$/.test(name))) {
+      files.some(name => typeof name !== 'string' || !/^[a-zA-Z0-9_-]+\.(html|js|css|png|json|svg|txt)$/.test(name))) {
     throw new Error('packaging.json deve listar arquivos de execução, sem diretórios ou caminhos relativos.');
   }
   if (manifest.type !== 'web' || !['appinfo.json', manifest.main, manifest.icon, manifest.largeIcon].every(name => files.includes(name))) {

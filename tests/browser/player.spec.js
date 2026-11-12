@@ -1,3 +1,4 @@
+const { action } = require('./helpers/controls');
 const { test, expect } = require('@playwright/test');
 
 test.beforeEach(async ({ page }) => {
@@ -21,22 +22,22 @@ async function back(page) {
   await page.evaluate(() => window.dispatchEvent(new KeyboardEvent('keydown', { keyCode: 461, bubbles: true, cancelable: true })));
 }
 
-test('OK alterna controles, setas navegam e Voltar fecha menus antes da entrada', async ({ page }) => {
+test('OK abre a barra e configurações; Voltar restaura o foco antes de sair', async ({ page }) => {
   await start(page);
   await page.keyboard.press('Enter');
-  await expect(page.locator('#player-controls')).toBeVisible();
+  await expect(page.locator('#player-settings')).toBeFocused();
   await page.keyboard.press('Enter');
-  await expect(page.locator('#player-controls')).toBeHidden();
-  await page.keyboard.press('ArrowRight');
   await expect(page.locator('#quality-button')).toBeFocused();
   await page.keyboard.press('Enter');
-  await expect(page.locator('#quality-menu')).toBeVisible();
   await expect(page.locator('#quality-menu')).toContainText('não disponibiliza');
   await page.clock.runFor(10000);
   await expect(page.locator('#quality-menu')).toBeVisible();
   await back(page);
   await expect(page.locator('#quality-menu')).toBeHidden();
-  await expect(page.locator('#player-controls')).toBeVisible();
+  await expect(page.locator('#quality-button')).toBeFocused();
+  await back(page);
+  await expect(page.locator('#player-settings-panel')).toBeHidden();
+  await expect(page.locator('#player-settings')).toBeFocused();
   await back(page);
   await expect(page.locator('#player-controls')).toBeHidden();
   await expect(page.locator('iframe')).toHaveCount(1);
@@ -50,7 +51,7 @@ test('controles desaparecem após cinco segundos e setas renovam o prazo', async
   await page.keyboard.press('Enter');
   await page.clock.runFor(4000);
   await page.keyboard.press('ArrowLeft');
-  await expect(page.locator('#reload-button')).toBeFocused();
+  await expect(page.locator('#player-settings')).toBeFocused();
   await page.clock.runFor(4000);
   await expect(page.locator('#player-controls')).toBeVisible();
   await page.clock.runFor(1000);
@@ -62,9 +63,7 @@ test('recarga manual substitui o iframe e libera callbacks antigos em ciclos rep
   await start(page);
   for (let i = 0; i < 5; i++) {
     await page.locator('iframe').evaluate(frame => { window.previousFrame = frame; });
-    await page.keyboard.press('Enter');
-    await page.keyboard.press('ArrowLeft');
-    await page.keyboard.press('Enter');
+    await action(page,1,'player');
     await expect(page.locator('iframe')).toHaveCount(1);
     await expect.poll(() => page.evaluate(() => !window.previousFrame.isConnected && window.previousFrame.onload === null && window.previousFrame.onerror === null)).toBe(true);
     await expect(page.locator('#player-controls')).toBeHidden();
@@ -166,8 +165,7 @@ test('logs não expõem o canal, URL, tokens ou conteúdo de mensagens remotas',
   const logs = [];
   page.on('console', msg => logs.push(msg.text()));
   await start(page);
-  await page.keyboard.press('ArrowRight');
-  await page.keyboard.press('Enter');
+  await action(page,0,'player');
   await frameError(page);
   expect(logs.some(line => line.includes('capabilities'))).toBe(true);
   expect(logs.join('\n')).not.toMatch(/https:\/\/|yoda|FAKE_PRIVATE_TOKEN|m3u8/);
@@ -189,8 +187,7 @@ test('ciclos de abertura e recarga não acumulam listeners de rede', async ({ pa
   });
   for (let i = 0; i < 10; i++) {
     await start(page);
-    await page.keyboard.press('ArrowLeft');
-    await page.keyboard.press('Enter'); // recarrega
+    await action(page,1,'player');
     expect(await page.evaluate(() => [window.networkListeners.online.size, window.networkListeners.offline.size])).toEqual([1, 1]);
     await back(page);
     expect(await page.evaluate(() => [window.networkListeners.online.size, window.networkListeners.offline.size])).toEqual([0, 0]);

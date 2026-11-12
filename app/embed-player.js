@@ -10,6 +10,9 @@
     var reloadButton = document.getElementById('reload-button');
     var closeQuality = document.getElementById('close-quality');
     var buttons = [qualityButton, reloadButton];
+    var settings = document.getElementById('player-settings-panel');
+    var settingsButton = document.getElementById('player-settings');
+    var closeSettingsButton = document.getElementById('player-close-settings');
     var frame = null;
     var url = '';
     var active = false;
@@ -43,16 +46,22 @@
     function hideControls() {
       cancel('controls');
       quality.hidden = true;
+      setSettingsVisible(false);
       controls.hidden = true;
       if (active) document.body.focus();
     }
     function idleControls() {
       cancel('controls');
-      if (quality.hidden) later('controls', hideControls, 5000);
+      if (quality.hidden && settings.hidden) later('controls', hideControls, 5000);
     }
+    function setSettingsVisible(visible) {
+      settings.hidden = !visible;
+      settingsButton.setAttribute('aria-expanded', String(visible));
+    }
+    function closeSettings() { setSettingsVisible(false); settingsButton.focus(); idleControls(); }
     function showControls() {
       controls.hidden = false;
-      controls.focus();
+      settingsButton.focus();
       idleControls();
     }
     function destroyFrame() {
@@ -73,6 +82,7 @@
       pendingFailure = false;
       url = '';
       controls.hidden = true;
+      setSettingsVisible(false);
       quality.hidden = true;
       notice.hidden = true;
       container.hidden = true;
@@ -176,16 +186,23 @@
     qualityButton.addEventListener('click', function () {
       if (!active) return;
       cancel('controls');
+      setSettingsVisible(false);
       quality.hidden = false;
       closeQuality.focus();
       log('quality_menu; managed_by_kick');
     });
     closeQuality.addEventListener('click', function () {
       quality.hidden = true;
+      setSettingsVisible(true);
       qualityButton.focus();
       idleControls();
     });
     reloadButton.addEventListener('click', reload);
+    settingsButton.addEventListener('click', function () {
+      if (!active) return;
+      cancel('controls'); setSettingsVisible(true); qualityButton.focus();
+    });
+    closeSettingsButton.addEventListener('click', closeSettings);
 
     function handleKey(event) {
       if (!active) return false;
@@ -193,26 +210,28 @@
       if (code === 461 || event.key === 'Escape') {
         event.preventDefault();
         if (!quality.hidden) closeQuality.click();
+        else if (!settings.hidden) closeSettings();
         else if (!controls.hidden) hideControls();
         else { close(); onExit(); }
         return true;
       }
+      var targets = !settings.hidden ? buttons.concat([closeSettingsButton]) : [settingsButton];
       if (code === 13 || event.key === 'Enter') {
         event.preventDefault();
         if (controls.hidden) showControls();
         else if (!quality.hidden) closeQuality.click();
-        else if (buttons.indexOf(document.activeElement) !== -1) document.activeElement.click();
+        else if (targets.indexOf(document.activeElement) !== -1) document.activeElement.click();
         else hideControls();
         return true;
       }
-      if ([37, 38, 39, 40].indexOf(code) !== -1) {
+      if ([37, 38, 39, 40, 9].indexOf(code) !== -1) {
         event.preventDefault();
         if (controls.hidden) showControls();
         if (!quality.hidden) { closeQuality.focus(); return true; }
-        var index = buttons.indexOf(document.activeElement);
-        var direction = code === 37 || code === 38 ? -1 : 1;
-        index = index === -1 ? (direction === 1 ? 0 : buttons.length - 1) : (index + direction + buttons.length) % buttons.length;
-        buttons[index].focus();
+        var index = targets.indexOf(document.activeElement);
+        var direction = code === 37 || code === 38 || (code === 9 && event.shiftKey) ? -1 : 1;
+        index = index === -1 ? (direction === 1 ? 0 : targets.length - 1) : (index + direction + targets.length) % targets.length;
+        targets[index].focus();
         idleControls();
         return true;
       }

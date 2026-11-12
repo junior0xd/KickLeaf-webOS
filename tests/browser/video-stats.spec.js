@@ -1,3 +1,4 @@
+const { action } = require('./helpers/controls');
 const {test,expect}=require('@playwright/test');
 const API='https://kick.com/api/v2/channels/';
 const MASTER='https://test.playback.live-video.net/master.m3u8?token=PRIVATE_TEST';
@@ -32,7 +33,7 @@ test.beforeEach(async({page})=>{
   await page.goto('/');await page.clock.install();await page.clock.pauseAt(Date.now()+1000);
 });
 async function start(page,channel='yetz'){await page.locator('#channel').fill(channel);await page.locator('#watch').click();await expect(page.locator('video')).toHaveCount(1);await expect(page.locator('#notice')).toBeHidden();}
-async function enable(page){await page.keyboard.press('ArrowRight');await page.keyboard.press('ArrowLeft');await expect(page.locator('#video-statistics-toggle')).toBeFocused();await page.keyboard.press('Enter');await expect(page.locator('#video-statistics')).toBeVisible();}
+async function enable(page){await action(page,3);await expect(page.locator('#video-statistics')).toBeVisible();}
 const field=(page,key)=>page.locator('[data-stat="'+key+'"]');
 
 test('controle remoto ativa/desativa sem reiniciar vídeo ou capturar foco; painel independe dos controles',async({page})=>{
@@ -41,7 +42,7 @@ test('controle remoto ativa/desativa sem reiniciar vídeo ou capturar foco; pain
   await expect(page.locator('#video-statistics-toggle')).toHaveAttribute('aria-pressed','true');
   expect(await page.locator('video').boundingBox()).toEqual(before);expect(await page.evaluate(()=>testVideo===document.querySelector('video'))).toBe(true);
   await page.clock.fastForward(5100);await expect(page.locator('#native-controls')).toBeHidden();await expect(page.locator('#video-statistics')).toBeVisible();
-  await page.keyboard.press('ArrowRight');await page.keyboard.press('ArrowLeft');await page.keyboard.press('Enter');
+  await action(page,3);
   await expect(page.locator('#video-statistics')).toBeHidden();await expect(page.locator('#video-statistics-toggle')).toHaveAttribute('aria-pressed','false');
   const reads=await page.evaluate(()=>testQualityReads);await page.clock.fastForward(10000);expect(await page.evaluate(()=>testQualityReads)).toBe(reads);
   await expect(page.locator('video')).toHaveCount(1);
@@ -59,7 +60,7 @@ test('atualiza medidas reais da API, estima FPS e não inventa metadados em Auto
 test('qualidade manual usa declarações e troca não mistura métricas nem perde preferência visual',async({page})=>{
   await start(page);await enable(page);await page.locator('video').evaluate(v=>{window.oldStatsVideo=v;v.dispatchEvent(new Event('waiting'));});
   await page.clock.fastForward(1000);await expect(field(page,'interruptions')).toHaveText('1 / 1,0 s');
-  await page.keyboard.press('ArrowRight');await page.keyboard.press('Enter');await page.keyboard.press('ArrowDown');await page.keyboard.press('Enter');
+  await action(page,0);await page.keyboard.press('ArrowDown');await page.keyboard.press('Enter');
   await page.clock.fastForward(1000);await expect(field(page,'quality')).toHaveText('1080p');await expect(field(page,'bitrate')).toHaveText('6,20 Mbps');
   await expect(field(page,'nominalFPS')).toHaveText('60,00 fps');await expect(field(page,'videoCodec')).toHaveText('avc1.640028');await expect(field(page,'audioCodec')).toHaveText('mp4a.40.2');
   await expect(field(page,'interruptions')).toHaveText('0 / 0,0 s');await expect(page.locator('#video-statistics')).toBeVisible();
@@ -86,7 +87,7 @@ test('saída/troca de canal e recarga desligam polling, removem listeners e não
   expect(await page.evaluate(()=>releasedStatsVideo.testAdds===releasedStatsVideo.testRemoves)).toBe(true);
   const reads=await page.evaluate(()=>testQualityReads);await page.clock.fastForward(10000);expect(await page.evaluate(()=>testQualityReads)).toBe(reads);
   await start(page,'baianotv');await expect(page.locator('#video-statistics')).toBeHidden();await enable(page);await expect(field(page,'quality')).toHaveText('Auto (variante N/D)');
-  await page.keyboard.press('ArrowRight');await page.keyboard.press('ArrowRight');await page.keyboard.press('Enter');await expect(page.locator('#video-statistics')).toBeHidden();await expect(page.locator('video')).toHaveCount(1);
+  await action(page,1);await expect(page.locator('#video-statistics')).toBeHidden();await expect(page.locator('video')).toHaveCount(1);
 });
 for(const event of ['error','ended'])test(event+' limpa painel, estado e polling',async({page})=>{
   await start(page);await enable(page);await page.locator('video').evaluate((v,event)=>{if(event==='error')Object.defineProperty(v,'error',{value:{code:3}});v.dispatchEvent(new Event(event));},event);

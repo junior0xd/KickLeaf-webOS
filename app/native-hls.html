@@ -18,10 +18,23 @@
   <div id="native-video-host"></div>
   <p id="notice" class="notice" role="status" hidden></p>
   <section id="native-controls" class="player-controls" tabindex="-1" aria-label="Controles HLS" hidden>
-    <button id="native-quality" type="button">Qualidade: Auto</button>
-    <button id="native-reload" type="button">Recarregar transmissão</button>
-    <button id="official-player" type="button">Usar player oficial</button>
-    <button id="video-statistics-toggle" type="button" aria-pressed="false" aria-controls="video-statistics">Estatísticas do vídeo</button>
+    <div class="control-group" role="group" aria-label="Reprodução">
+      <button class="icon-control" type="button" aria-label="Reproduzir ou pausar (em breve)" title="Reproduzir ou pausar (em breve)" disabled><img src="phosphor-play-fill.svg" alt="" aria-hidden="true"></button>
+      <span id="native-live" hidden class="live-indicator"><img src="phosphor-broadcast-fill.svg" alt="" aria-hidden="true">AO VIVO</span>
+    </div>
+    <div class="control-group" role="group" aria-label="Visualização e configurações">
+      <button class="icon-control" type="button" aria-label="Modo teatro (em breve)" title="Modo teatro (em breve)" disabled><img src="phosphor-rectangle.svg" alt="" aria-hidden="true"></button>
+      <button id="native-settings" class="icon-control" type="button" aria-label="Configurações" title="Configurações" aria-haspopup="dialog" aria-controls="native-settings-panel" aria-expanded="false"><img src="phosphor-gear-six.svg" alt="" aria-hidden="true"></button>
+      <button class="icon-control" type="button" aria-label="Tela cheia (em breve)" title="Tela cheia (em breve)" disabled><img src="phosphor-corners-out.svg" alt="" aria-hidden="true"></button>
+    </div>
+    <section id="native-settings-panel" class="player-settings" role="dialog" aria-modal="true" aria-labelledby="native-settings-title" hidden>
+      <h2 id="native-settings-title">Ações da transmissão</h2>
+      <button id="native-quality" type="button">Qualidade: Auto</button>
+      <button id="native-reload" type="button">Recarregar transmissão</button>
+      <button id="official-player" type="button">Usar player oficial</button>
+      <button id="video-statistics-toggle" type="button" aria-pressed="false" aria-controls="video-statistics">Estatísticas do vídeo</button>
+      <button id="native-close-settings" type="button">Fechar</button>
+    </section>
   </section>
   <section id="native-quality-menu" class="quality-menu" role="dialog" aria-modal="true" aria-label="Qualidades disponíveis" hidden></section>
   <aside id="video-statistics" class="video-statistics" aria-label="Estatísticas do vídeo" hidden>

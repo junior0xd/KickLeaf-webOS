@@ -1,5 +1,7 @@
 # KickTV para LG webOS — prova de conceito
 
+**Versão 0.2.3:** barra compacta com ícones Phosphor locais de 37px, gradiente inferior e painel transitório com as ações existentes. Ícone de volume removido: o áudio é controlado pela TV. Aparência aprovada pelo usuário na LG C3. Veja [controles, navegação e validação](docs/PLAYER-CONTROLS.md).
+
 **Versão 0.2.1: Direct HLS é o modo padrão.** Ao abrir o app normalmente, a TV consulta a Kick e reproduz o HLS no player nativo, sem backend, Caddy ou token. `iframe` e `native-hls` continuam disponíveis por parâmetros de abertura. Consulte [arquitetura, CORS e validação](docs/DIRECT-HLS.md) e a [documentação do backend opcional](docs/NATIVE-HLS.md).
 
 **Validação física pelo usuário na LG C3:** `yetz` e `baianotv` reproduziram imagem e áudio no Direct HLS, a troca para 1080p funcionou e o backend permaneceu desligado durante todo o teste. O Native HLS com backend HTTPS também foi validado. Esses relatos não substituem os testes pendentes de estabilidade prolongada e interrupção de rede. A descoberta usa um endpoint interno, sem garantia oficial de estabilidade; não incorpora contorno de restrições.
@@ -10,7 +12,7 @@ Alvo informado: LG OLED55C3PSA, webOS 25, versão 10.3.1-3006. Investigação em
 
 **Resultado histórico da PoC por iframe:** após os testes locais, o usuário confirmou instalação, teclado, reprodução de canais online em tela cheia, indicação de offline e retorno à entrada na C3, sem erros de uso identificados. Foram utilizados `yoda`, `xqc` e `minerva`, além do canal inexistente `lgiptv`. O [relato completo](docs/TESTES.md) distingue os testes na TV das verificações locais.
 
-**Desenvolvimento — Estatísticas do vídeo:** painel opcional no player nativo, com métricas locais atualizadas a cada segundo enquanto visível. Veja [classificação das métricas, controles e roteiro na LG](docs/VIDEO-STATS.md). Disponível nesta branch de desenvolvimento; não integra o pacote da Release 0.2.1 já publicada.
+**Estatísticas do vídeo (desde 0.2.2):** painel opcional no player nativo, com métricas locais atualizadas a cada segundo enquanto visível. Veja [classificação das métricas, controles e roteiro na LG](docs/VIDEO-STATS.md). Incluído nas versões atuais; não integra o pacote histórico da Release 0.2.1.
 
 ## Arquivos e funcionamento
 

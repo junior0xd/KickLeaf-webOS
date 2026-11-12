@@ -1,3 +1,4 @@
+const { action } = require('./helpers/controls');
 const { test, expect } = require('@playwright/test');
 const TOKEN = 'local-test-' + 'x'.repeat(32);
 const BASE = 'http://127.0.0.1:8766';
@@ -41,7 +42,7 @@ test('inicializa vídeo nativo com autenticação só no backend e usa Auto', as
 test('troca qualidade real, bloqueia variante com áudio externo e libera vídeo anterior', async ({ page }) => {
   await start(page);
   await page.locator('video').evaluate(video=>{window.previousVideo=video;});
-  await page.keyboard.press('ArrowRight'); await page.keyboard.press('Enter');
+  await action(page,0);
   await expect(page.locator('#native-quality-menu button').last()).toBeDisabled();
   await page.keyboard.press('ArrowDown'); await page.keyboard.press('Enter');
   await expect(page.locator('#native-quality')).toHaveText('Qualidade: 720p');
@@ -94,10 +95,7 @@ test('timeout e retorno cancelam requisição; resposta tardia não abre vídeo'
 
 test('alternância para iframe preserva modo padrão sem loop e encerra vídeo', async ({ page }) => {
   await start(page);
-  await page.keyboard.press('ArrowRight'); // qualidade
-  await page.keyboard.press('ArrowRight'); // recarregar
-  await page.keyboard.press('ArrowRight'); // iframe
-  await page.keyboard.press('Enter');
+  await action(page,2);
   await expect(page).toHaveURL(/index.html\?iframe&channel=yoda$/);
   await expect(page.locator('#channel')).toHaveValue('yoda');
   await page.route('https://player.kick.com/**',route=>route.fulfill({contentType:'text/html',body:'<body>iframe simulado</body>'}));

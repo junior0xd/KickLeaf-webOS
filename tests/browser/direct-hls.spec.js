@@ -1,3 +1,4 @@
+const { action } = require('./helpers/controls');
 const {test,expect}=require('@playwright/test');
 const API='https://kick.com/api/v2/channels/';
 const MASTER='https://test.playback.live-video.net/master.m3u8?token=SECRET_TEST';
@@ -25,7 +26,7 @@ test('descobre sem backend/token/cookies, normaliza canal e reutiliza vídeo e c
   const discovery=requests.find(r=>r.url()===API+'yoda/livestream');
   expect(discovery).toBeTruthy();expect(discovery.headers().authorization).toBeUndefined();expect(discovery.headers().cookie).toBeUndefined();
   expect(requests.some(r=>r.url().includes('/api/streams/'))).toBe(false);
-  await page.keyboard.press('ArrowRight');await page.keyboard.press('Enter');
+  await action(page,0);
   await expect(page.locator('#native-quality-menu button')).toHaveCount(2);
   await page.keyboard.press('ArrowDown');await page.keyboard.press('Enter');
   await expect(page.locator('#native-quality')).toHaveText('Qualidade: 720p');
@@ -56,13 +57,13 @@ test('manifesto inacessível não impede Auto e é diagnosticado separadamente',
   const logs=[];page.on('console',m=>logs.push(m.text()));
   await page.route('https://test.playback.live-video.net/**',r=>r.abort('failed'));await ready(page);
   await expect(page.locator('video')).toHaveAttribute('src',MASTER);
-  await page.keyboard.press('ArrowRight');await page.keyboard.press('Enter');
+  await action(page,0);
   await expect(page.locator('#native-quality-menu')).toContainText('não foi possível ler o manifesto');
   expect(logs.join('\n')).toContain('manifest_unavailable');expect(logs.filter(s=>s.startsWith('[KickTV')).join('\n')).not.toContain('SECRET_TEST');
 });
 test('áudio externo impede variante manual, mantendo Auto',async({page})=>{
   await page.route('https://test.playback.live-video.net/**',r=>r.fulfill({body:'#EXTM3U\n#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",URI="audio.m3u8"\n#EXT-X-STREAM-INF:RESOLUTION=1920x1080,AUDIO="audio"\n1080.m3u8',headers:{'Access-Control-Allow-Origin':'*'}}));
-  await ready(page);await page.keyboard.press('ArrowRight');await page.keyboard.press('Enter');
+  await ready(page);await action(page,0);
   await expect(page.locator('#native-quality-menu button').last()).toBeDisabled();
   await expect(page.locator('video')).toHaveAttribute('src',MASTER);
 });
@@ -85,8 +86,8 @@ test('troca canal/recarrega/libera vídeo, e pode retornar ao iframe sem loop',a
   await ready(page);await page.locator('video').evaluate(v=>window.oldVideo=v);
   await back(page);expect(await page.evaluate(()=>!oldVideo.isConnected&&!oldVideo.hasAttribute('src')&&oldVideo.paused)).toBe(true);
   await submit(page,'minerva');await expect(page.locator('video')).toHaveCount(1);
-  await page.keyboard.press('ArrowRight');await page.keyboard.press('ArrowDown');await page.keyboard.press('Enter');await expect(page.locator('video')).toHaveCount(1);
-  await page.keyboard.press('ArrowRight');await page.keyboard.press('ArrowDown');await page.keyboard.press('ArrowDown');await page.keyboard.press('Enter');
+  await action(page,1);await expect(page.locator('video')).toHaveCount(1);
+  await action(page,2);
   await expect(page).toHaveURL(/index.html\?iframe&channel=minerva$/);await expect(page.locator('video')).toHaveCount(0);
 });
 test('falha de reprodução é separada da descoberta e mensagem técnica não vaza URL',async({page})=>{
@@ -104,7 +105,7 @@ test('configuração antiga é ignorada: nenhum método do backend é chamado',a
 for(const [body,label] of [['<html>error</html>','HTML inválido'],['#EXTM3U\n#EXTINF:4,\nsegment.ts','playlist sem variantes']]){
   test('manifesto '+label+' mantém URL principal e Auto',async({page})=>{
     await page.route('https://test.playback.live-video.net/**',r=>r.fulfill({body,headers:{'Access-Control-Allow-Origin':'*'}}));await ready(page);
-    await expect(page.locator('video')).toHaveAttribute('src',MASTER);await page.keyboard.press('ArrowRight');await page.keyboard.press('Enter');
+    await expect(page.locator('video')).toHaveAttribute('src',MASTER);await action(page,0);
     await expect(page.locator('#native-quality-menu button')).toHaveCount(1);
   });
 }

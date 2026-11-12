@@ -12,6 +12,9 @@
   var notice = document.getElementById('notice');
   var controls = document.getElementById('native-controls');
   var menu = document.getElementById('native-quality-menu');
+  var settingsPanel = document.getElementById('native-settings-panel');
+  var settingsButton = document.getElementById('native-settings');
+  var closeSettingsButton = document.getElementById('native-close-settings');
   var qualityButton = document.getElementById('native-quality');
   var officialHome = document.getElementById('official-home');
   var buttons = [qualityButton, document.getElementById('native-reload'), document.getElementById('official-player')];
@@ -35,11 +38,17 @@
   function later(name, action, ms) { clear(name); timers[name] = setTimeout(action, ms); }
   function hint(text) { notice.textContent = text; notice.hidden = false; }
   function hideHint() { notice.hidden = true; }
+  function setSettingsVisible(visible) {
+    settingsPanel.hidden = !visible;
+    settingsButton.setAttribute('aria-expanded', String(visible));
+  }
+  function showControls() { controls.hidden = false; settingsButton.focus(); idleControls(); }
+  function closeSettings() { setSettingsVisible(false); settingsButton.focus(); idleControls(); }
   function hideControls() {
-    clear('controls'); controls.hidden = true; menu.hidden = true;
+    clear('controls'); controls.hidden = true; menu.hidden = true; setSettingsVisible(false);
     if (video || request) document.body.focus();
   }
-  function idleControls() { clear('controls'); if (menu.hidden) later('controls', hideControls, 5000); }
+  function idleControls() { clear('controls'); if (menu.hidden && settingsPanel.hidden) later('controls', hideControls, 5000); }
   function releaseVideo() {
     clear('media');
     statistics.detach(); statisticsPanel.refresh();
@@ -50,6 +59,7 @@
     log('media_released');
   }
   function stop() {
+    document.getElementById('native-live').hidden = true;
     statisticsPanel.hide(); statisticsButton.setAttribute('aria-pressed', 'false');
     generation += 1;
     if (request) { request.abort(); request = null; }
@@ -73,6 +83,7 @@
     var item = selection === 'auto' ? null : metadata.playback.qualities.find(function (q) { return q.id === selection && q.selectable; });
     if (selection !== 'auto' && !item) { fail('Qualidade indisponível.'); return; }
     selected = selection;
+    document.getElementById('native-live').hidden = !metadata.playback.live;
     qualityButton.textContent = 'Qualidade: ' + (item ? item.label : 'Auto');
     var current = document.createElement('video');
     current.className = 'screen'; current.setAttribute('playsinline', ''); current.preload = 'none';
@@ -126,11 +137,15 @@
   }
   document.getElementById('native-form').addEventListener('submit', function (event) { event.preventDefault(); open(); });
   buttons[1].addEventListener('click', open);
+  settingsButton.addEventListener('click', function () {
+    clear('controls'); setSettingsVisible(true); qualityButton.focus();
+  });
+  closeSettingsButton.addEventListener('click', closeSettings);
   statisticsButton.addEventListener('click', function () {
     if (!video && !request) return;
     if (statisticsPanel.isVisible()) statisticsPanel.hide(); else statisticsPanel.show();
     statisticsButton.setAttribute('aria-pressed', String(statisticsPanel.isVisible()));
-    idleControls();
+    closeSettings();
   });
   officialHome.addEventListener('click', fallback); buttons[2].addEventListener('click', fallback);
   qualityButton.addEventListener('click', function () {
@@ -149,6 +164,7 @@
       explanation.textContent = 'Transmissão descoberta; não foi possível ler o manifesto. Reprodução em Auto disponível.';
       menu.appendChild(explanation);
     }
+    setSettingsVisible(false);
     menu.hidden = false; menu.querySelector('button').focus();
   });
   document.addEventListener('keyboardStateChange', function (event) { keyboardVisible = event.visibility === true || !!(event.detail && event.detail.visibility); });
@@ -157,23 +173,24 @@
     var code = event.keyCode;
     if (code === 461 || event.key === 'Escape') {
       event.preventDefault();
-      if (!menu.hidden) { menu.hidden = true; qualityButton.focus(); idleControls(); }
+      if (!menu.hidden) { menu.hidden = true; setSettingsVisible(true); qualityButton.focus(); }
+      else if (!settingsPanel.hidden) closeSettings();
       else if (!controls.hidden) hideControls();
       else if (home.hidden) showHome();
       else fallback();
       return;
     }
-    var targets = !home.hidden ? [input, watch, officialHome] : (!menu.hidden ? Array.from(menu.querySelectorAll('button:not(:disabled)')) : buttons);
-    if ([37, 38, 39, 40].indexOf(code) !== -1) {
+    var targets = !home.hidden ? [input, watch, officialHome] : (!menu.hidden ? Array.from(menu.querySelectorAll('button:not(:disabled)')) : (!settingsPanel.hidden ? buttons.concat([closeSettingsButton]) : [settingsButton]));
+    if ([37, 38, 39, 40].indexOf(code) !== -1 || (code === 9 && home.hidden)) {
       if (!home.hidden && (code === 37 || code === 39)) return;
       event.preventDefault();
-      if (home.hidden && controls.hidden) { controls.hidden = false; controls.focus(); }
-      var index = targets.indexOf(document.activeElement), direction = code === 37 || code === 38 ? -1 : 1;
+      if (home.hidden && controls.hidden) showControls();
+      var index = targets.indexOf(document.activeElement), direction = code === 37 || code === 38 || (code === 9 && event.shiftKey) ? -1 : 1;
       targets[index === -1 ? 0 : (index + direction + targets.length) % targets.length].focus();
       if (home.hidden) idleControls();
     } else if (code === 13 && home.hidden) {
       event.preventDefault();
-      if (controls.hidden) { controls.hidden = false; controls.focus(); idleControls(); }
+      if (controls.hidden) showControls();
       else if (targets.indexOf(document.activeElement) !== -1) document.activeElement.click();
       else hideControls();
     }

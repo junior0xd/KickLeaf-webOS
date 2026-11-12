@@ -16,6 +16,12 @@
     "hls-manifest.js",
     "direct-api.js",
     "video-stats.js",
-    "video-stats-panel.js"
+    "video-stats-panel.js",
+    "phosphor-broadcast-fill.svg",
+    "phosphor-corners-out.svg",
+    "phosphor-gear-six.svg",
+    "phosphor-license.txt",
+    "phosphor-play-fill.svg",
+    "phosphor-rectangle.svg"
   ]
 }
