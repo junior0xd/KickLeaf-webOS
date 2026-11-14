@@ -119,3 +119,139 @@ test('resposta sem permissão CORS termina na descoberta, sem tentar backend',as
   await page.route(API+'**',r=>r.fulfill({json:{data:{playback_url:MASTER}},headers:{'Access-Control-Allow-Origin':'https://different-origin.invalid'}}));
   await submit(page);await expect(page.locator('#message')).toContainText('CORS');await expect(page.locator('video')).toHaveCount(0);
 });
+
+// Controlled media timeline: these tests exercise the app, not a native HLS decoder.
+async function timeline(page, seekable = [[80, 180]], buffered = [[95, 120]]) {
+  await ready(page);
+  await page.locator('video').evaluate((v, data) => {
+    window.originalVideo = v;
+    v.testPosition = 100; v.testSeekable = data.seekable; v.testBuffered = data.buffered;
+    v.playCalls = 0; v.loadCalls = 0; v.seekCalls = [];
+    Object.defineProperty(v, 'currentTime', {get(){return this.testPosition;},set(t){this.seekCalls.push(t);this.testPosition=t;}});
+    for (const [key, field] of [['seekable','testSeekable'], ['buffered','testBuffered']]) {
+      Object.defineProperty(v, key, {get(){const list=this[field];return {length:list.length,start:i=>list[i][0],end:i=>list[i][1]};}});
+    }
+    v.load = function(){this.loadCalls++;};
+    const play = v.play;
+    v.play = function(){this.playCalls++;return play.call(this);};
+  }, {seekable, buffered});
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('ArrowLeft');await page.keyboard.press('ArrowLeft');
+  await expect(page.locator('#native-play-pause')).toBeFocused();
+}
+const toggle = page => page.keyboard.press('Enter');
+for (const seconds of [5,30,120,300]) {
+  test('pausa por '+seconds+'s preserva posição disponível sem recriar/recarregar', async({page})=>{
+    await page.clock.install();await page.clock.pauseAt(Date.now()+1000);
+    await timeline(page);
+    await toggle(page);
+    await expect(page.locator('#native-play-pause')).toHaveAttribute('aria-label','Reproduzir');
+    await expect(page.locator('#native-play-pause img')).toHaveAttribute('src','phosphor-play-fill.svg');
+    await page.clock.fastForward(seconds*1000);
+    // Native engines may move currentTime even while paused; saved position must survive.
+    await page.locator('video').evaluate(v=>{v.testPosition=160;});
+    await page.keyboard.press('Enter'); // reveal controls
+    await page.keyboard.press('ArrowLeft');await page.keyboard.press('ArrowLeft');await toggle(page);
+    await expect(page.locator('#native-play-pause')).toHaveAttribute('aria-label','Pausar');
+    expect(await page.locator('video').evaluate(v=>({same:v===originalVideo,time:v.currentTime,loads:v.loadCalls,plays:v.playCalls,seeks:v.seekCalls})))
+      .toEqual({same:true,time:100,loads:0,plays:1,seeks:[100]});
+    await expect(page.locator('#notice')).toBeHidden();
+  });
+}
+test('ponto expirado recupera no trecho mais próximo e mantém aviso após playing',async({page})=>{
+  await timeline(page);await toggle(page);
+  await page.locator('video').evaluate(v=>{v.testSeekable=[[130,170],[180,200]];v.testBuffered=[];v.testPosition=199;});
+  await toggle(page);
+  expect(await page.locator('video').evaluate(v=>v.currentTime)).toBe(130.25);
+  await expect(page.locator('#notice')).toContainText('ponto pausado não está mais disponível');
+  await expect(page.locator('#native-play-pause')).toHaveAttribute('aria-label','Pausar');
+});
+test('buffer preservado permite ponto anterior ao seekable; intervalos vazios não provam expiração',async({page})=>{
+  await timeline(page,[[130,180]],[[95,110]]);await toggle(page);await toggle(page);
+  expect(await page.locator('video').evaluate(v=>v.currentTime)).toBe(100);
+  await toggle(page);await page.locator('video').evaluate(v=>{v.testSeekable=[];v.testBuffered=[];});await toggle(page);
+  expect(await page.locator('video').evaluate(v=>v.currentTime)).toBe(100);
+  await expect(page.locator('#notice')).toBeHidden();
+});
+test('retomada corrige salto automático do motor nativo uma vez',async({page})=>{
+  await timeline(page);await toggle(page);
+  await page.locator('video').evaluate(v=>{v.play=function(){this.testPaused=false;this.testPosition=170;this.dispatchEvent(new Event('playing'));return Promise.resolve();};});
+  await toggle(page);
+  expect(await page.locator('video').evaluate(v=>v.seekCalls)).toEqual([100]);
+  await page.locator('video').evaluate(v=>v.dispatchEvent(new Event('seeked')));
+  await expect(page.locator('#native-play-pause')).toHaveAttribute('aria-busy','false');
+});
+test('acionamentos rápidos não sobrepõem play pendente e rejeição permite tentar novamente',async({page})=>{
+  await timeline(page);await toggle(page);
+  await page.locator('video').evaluate(v=>{v.play=function(){this.playCalls++;return new Promise((resolve,reject)=>{window.rejectPlay=reject;});};});
+  await toggle(page);
+  await page.evaluate(()=>{for(let i=0;i<20;i++)document.getElementById('native-play-pause').click();});
+  expect(await page.locator('video').evaluate(v=>v.playCalls)).toBe(1);
+  await page.evaluate(()=>rejectPlay(new Error('denied')));
+  await expect(page.locator('#notice')).toContainText('Não foi possível retomar');
+  await expect(page.locator('#native-play-pause')).toHaveAttribute('aria-busy','false');
+  await page.locator('video').evaluate(v=>{v.play=HTMLMediaElement.prototype.play;});
+  await toggle(page);await expect(page.locator('#notice')).toBeHidden();
+  expect(await page.locator('video').evaluate(v=>v.currentTime)).toBe(100);
+});
+test('conexão temporária: waiting/playing retoma mesmo ponto; timeout é limitado',async({page})=>{
+  await page.clock.install();await page.clock.pauseAt(Date.now()+1000);
+  await timeline(page);await toggle(page);
+  await page.locator('video').evaluate(v=>{v.play=function(){this.testPaused=false;this.dispatchEvent(new Event('waiting'));return new Promise(()=>{});};});
+  await toggle(page);await page.clock.fastForward(10000);
+  await expect(page.locator('#native-play-pause')).toHaveAttribute('aria-busy','true');
+  await page.locator('video').evaluate(v=>v.dispatchEvent(new Event('playing')));
+  await expect(page.locator('#notice')).toBeHidden();
+  expect(await page.locator('video').evaluate(v=>v.currentTime)).toBe(100);
+  await page.keyboard.press('Enter');await page.keyboard.press('ArrowLeft');await page.keyboard.press('ArrowLeft');
+  await toggle(page);await toggle(page);
+  await page.clock.fastForward(25000);
+  await expect(page.locator('#notice')).toContainText('Verifique a conexão');
+  expect(await page.locator('video').evaluate(v=>v.paused)).toBe(true);
+  await page.clock.fastForward(300000);await expect(page.locator('video')).toHaveCount(1);
+  // A late native playing event after a timed-out play must not restart audio.
+  await page.locator('video').evaluate(v=>{v.testPaused=false;v.dispatchEvent(new Event('playing'));});
+  expect(await page.locator('video').evaluate(v=>v.paused)).toBe(true);
+});
+test('ponto expira durante espera: uma recuperação, depois pausa sem loop',async({page})=>{
+  await page.clock.install();await page.clock.pauseAt(Date.now()+1000);
+  await timeline(page);await toggle(page);
+  await page.locator('video').evaluate(v=>{v.play=function(){this.testPaused=false;this.playCalls++;return new Promise(()=>{});};});
+  await toggle(page);
+  await page.locator('video').evaluate(v=>{v.testSeekable=[[140,180]];v.testBuffered=[];});
+  await page.clock.fastForward(25000);
+  expect(await page.locator('video').evaluate(v=>v.currentTime)).toBe(140.25);
+  await page.clock.fastForward(25000);
+  await expect(page.locator('#notice')).toContainText('Não foi possível retomar');
+  expect(await page.locator('video').evaluate(v=>({paused:v.paused,plays:v.playCalls,loads:v.loadCalls}))).toEqual({paused:true,plays:1,loads:0});
+});
+test('teclas de mídia e eventos reais atualizam ícone sem mudar foco; repetição é ignorada',async({page})=>{
+  await timeline(page);
+  await page.evaluate(()=>window.dispatchEvent(new KeyboardEvent('keydown',{keyCode:19,cancelable:true})));
+  await expect(page.locator('#native-play-pause')).toHaveAttribute('aria-label','Reproduzir');
+  await page.evaluate(()=>window.dispatchEvent(new KeyboardEvent('keydown',{keyCode:415,cancelable:true})));
+  await expect(page.locator('#native-play-pause')).toHaveAttribute('aria-label','Pausar');
+  await page.evaluate(()=>window.dispatchEvent(new KeyboardEvent('keydown',{keyCode:13,repeat:true,cancelable:true})));
+  await expect(page.locator('#native-play-pause')).toBeFocused();
+  expect(await page.locator('video').evaluate(v=>v.paused)).toBe(false);
+  await page.locator('video').evaluate(v=>v.pause());
+  await expect(page.locator('#native-play-pause')).toHaveAttribute('aria-label','Reproduzir');
+});
+test('motor que insiste em saltar encerra tentativa sem loop de busca',async({page})=>{
+  await timeline(page);await toggle(page);
+  await page.locator('video').evaluate(v=>{v.play=function(){this.testPaused=false;this.testPosition=170;this.dispatchEvent(new Event('playing'));return Promise.resolve();};});
+  await toggle(page);
+  await page.locator('video').evaluate(v=>{v.testPosition=170;v.dispatchEvent(new Event('seeked'));});
+  await expect(page.locator('#notice')).toContainText('não conseguiu preservar o ponto pausado');
+  expect(await page.locator('video').evaluate(v=>({paused:v.paused,seeks:v.seekCalls}))).toEqual({paused:true,seeks:[100]});
+});
+test('liberação durante play pendente ignora rejeição e eventos tardios',async({page})=>{
+  await timeline(page);await toggle(page);
+  await page.locator('video').evaluate(v=>{v.play=function(){return new Promise((resolve,reject)=>{window.rejectOldPlay=reject;});};});
+  await toggle(page);await back(page);await back(page);
+  await expect(page.locator('#home')).toBeVisible();
+  await page.evaluate(()=>{rejectOldPlay(new Error('late'));originalVideo.dispatchEvent(new Event('playing'));});
+  await expect(page.locator('#message')).toBeEmpty();
+  await expect(page.locator('video')).toHaveCount(0);
+  expect(await page.evaluate(()=>!originalVideo.isConnected&&!originalVideo.hasAttribute('src'))).toBe(true);
+});

@@ -1,0 +1,17 @@
+body.theater #native-video-host .screen { width: 75%; height: 100%; right: 25%; object-fit: contain; }
+body.theater #native-controls { right: 25%; }
+body.theater #notice { left: 5%; width: 65%; }
+body.theater #video-statistics { right: 27%; max-width: 40vw; }
+#chat-panel { position: fixed; top: 0; right: 0; bottom: 0; width: 25%; padding: 24px 20px 16px; background: #111318; color: #e7e9ec; display: flex; flex-direction: column; border-left: 1px solid #292c32; }
+#chat-panel header { padding-bottom: 18px; border-bottom: 1px solid #292c32; }
+#chat-channel { margin: 0 0 6px; font-size: 25px; font-weight: 600; overflow-wrap: anywhere; }
+#chat-state { font-size: 20px; color: #a8b0ba; }
+#chat-messages { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; padding-top: 14px; overflow-anchor: none; }
+.chat-row { margin: 0 0 12px; font-size: 18px; font-weight: 400; line-height: 1.32; overflow-wrap: anywhere; text-align: left; }
+.chat-row strong { font-size: 18px; color: #8ce66b; font-weight: 600; }
+.chat-row time { color: #8d969f; font-size: 17px; margin-right: 6px; white-space: nowrap; }
+.chat-row span { white-space: pre-wrap; }
+
+.chat-badges { display: inline; margin-right: 4px; white-space: normal; }
+.chat-badge { display: inline-block; width: 20px; height: 20px; object-fit: contain; vertical-align: -4px; margin-right: 3px; }
+.chat-badge-local { filter: invert(1); }

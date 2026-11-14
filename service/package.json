@@ -1,0 +1,12 @@
+{
+  "name": "com.kicktv.poc.service",
+  "version": "0.2.4",
+  "private": true,
+  "main": "service.js",
+  "engines": {
+    "node": ">=16"
+  },
+  "dependencies": {
+    "ws": "8.22.2"
+  }
+}

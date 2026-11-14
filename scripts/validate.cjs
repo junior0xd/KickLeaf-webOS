@@ -10,8 +10,8 @@ try {
   }
   const root = path.resolve(__dirname, '..');
   const project = readProject(root, args.length ? args[1] : undefined);
-  for (const name of project.files.filter(name => name.endsWith('.js'))) {
-    const result = spawnSync(process.execPath, ['--check', path.join(root, 'app', name)], { stdio: 'inherit' });
+  for (const name of [...project.files.filter(n=>n.endsWith('.js')).map(n=>'app/'+n), ...project.serviceFiles.filter(n=>n.endsWith('.js')).map(n=>'service/'+n)]) {
+    const result = spawnSync(process.execPath, ['--check', path.join(root, name)], { stdio: 'inherit' });
     if (result.error || result.status !== 0) throw new Error(`JavaScript inválido: ${name}`);
   }
   // Caminho calculado somente de metadados validados, nunca de glob sobre dist/.

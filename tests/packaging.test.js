@@ -3,13 +3,13 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { readProject, stageApp } = require('../scripts/project.cjs');
+const { readProject, stageApp, stageService, serviceRuntimeFiles } = require('../scripts/project.cjs');
 
 const source = path.resolve(__dirname, '..');
 function fixture(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'kicktv-packaging-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
-  for (const name of ['app', 'package.json', 'package-lock.json', 'packaging.json']) {
+  for (const name of ['app', 'service', 'package.json', 'package-lock.json', 'packaging.json']) {
     fs.cpSync(path.join(source, name), path.join(root, name), { recursive: true });
   }
   return root;
@@ -70,7 +70,7 @@ test('exclui credenciais, dependências, testes e arquivos temporários mesmo de
   // Uma segunda preparação também elimina sobras do build anterior.
   fs.writeFileSync(path.join(staging, 'stale.env'), 'sobra');
   stageApp(root, project);
-  assert.deepEqual(fs.readdirSync(staging).sort(), [...project.files].sort());
+  assert.deepEqual(fs.readdirSync(staging,{recursive:true}).filter(n=>fs.statSync(path.join(staging,n)).isFile()).sort(), [...project.files].sort());
   for (const name of project.files) {
     assert.deepEqual(fs.readFileSync(path.join(staging, name)), fs.readFileSync(path.join(root, 'app', name)));
   }
@@ -90,4 +90,18 @@ test('recusa caminhos externos na lista e falha se um arquivo necessário faltar
   fs.copyFileSync(path.join(source, 'packaging.json'), path.join(root, 'packaging.json'));
   fs.unlinkSync(path.join(root, 'app/index.html'));
   assert.throws(() => readProject(root), /ENOENT/);
+});
+
+
+test('inclui somente o serviço listado e ws bloqueado no lockfile', t => {
+  const root=fixture(t), project=readProject(root);
+  fs.writeFileSync(path.join(root,'service','.env'),'segredo fictício');
+  fs.mkdirSync(path.join(root,'service','node_modules','unlisted'));
+  fs.writeFileSync(path.join(root,'service','node_modules','unlisted','extra.js'),'não empacotar');
+  const staging=stageService(root,project);
+  assert.deepEqual(fs.readdirSync(staging,{recursive:true}).filter(n=>fs.statSync(path.join(staging,n)).isFile()).sort(),serviceRuntimeFiles(root,project).sort());
+  assert.equal(fs.existsSync(path.join(staging,'.env')),false);
+  assert.equal(fs.existsSync(path.join(staging,'node_modules/unlisted')),false);
+  fs.symlinkSync(path.join(root,'package.json'),path.join(root,'service/node_modules/ws/unsafe.json'));
+  assert.throws(()=>stageService(root,project),/não permitido/);
 });

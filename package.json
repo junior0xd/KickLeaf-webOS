@@ -1,15 +1,16 @@
 {
   "name": "kicktv-webos-poc",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "private": true,
-  "description": "PoC experimental: embed oficial Kick e diagnóstico HLS nativo no webOS",
+  "description": "PoC experimental: embed oficial Kick e diagn\u00f3stico HLS nativo no webOS",
   "scripts": {
     "validate": "node scripts/validate.cjs",
-    "test": "npm run test:unit && playwright test",
+    "test": "npm run test:unit && npm run test:chat && playwright test",
     "test:unit": "node --test tests/*.test.js",
     "test:browser": "playwright test",
     "package": "npm run validate && node scripts/package.cjs",
-    "package:info": "node scripts/package.cjs --info"
+    "package:info": "node scripts/package.cjs --info",
+    "test:chat": "node --test tests/chat/*.cjs"
   },
   "devDependencies": {
     "@playwright/test": "1.65.0",

@@ -1,7 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
-const { readProject, stageApp } = require('./project.cjs');
+const { readProject, stageApp, stageService } = require('./project.cjs');
 
 function run(command, args) {
   const result = spawnSync(command, args, { stdio: 'inherit' });
@@ -18,11 +18,11 @@ try {
   const cli = (name, options) => run(process.execPath, [path.join(cliRoot, 'bin', `${name}.js`), ...options]);
   cli('ares-config', ['--profile', 'tv']);
   if (!args.length) {
-    const staging = stageApp(root, project);
+    const staging = stageApp(root, project), serviceStaging = stageService(root,project);
     fs.mkdirSync(path.dirname(project.artifact), { recursive: true });
     // Evita que uma saída antiga seja aceita se a CLI não gerar o arquivo esperado.
     fs.rmSync(project.artifact, { force: true });
-    cli('ares-package', ['--no-minify', staging, '--outdir', path.dirname(project.artifact)]);
+    cli('ares-package', ['--no-minify', staging, serviceStaging, '--outdir', path.dirname(project.artifact)]);
   } else {
     cli('ares-package', ['--info-detail', project.artifact]);
   }

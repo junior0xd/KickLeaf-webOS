@@ -1,0 +1,11 @@
+{
+  "main_unchanged": true,
+  "staged_exceptions": [
+    "app/appinfo.json",
+    "service/package.json",
+    "service/session.js"
+  ],
+  "window_seconds": 1200,
+  "original_normalizer_unchanged": true,
+  "resolver_matches_previous_candidate": true
+}

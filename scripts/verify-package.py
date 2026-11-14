@@ -9,7 +9,14 @@ import tarfile
 
 def verify(package, root):
     manifest = json.loads((root / 'app/appinfo.json').read_text())
-    files = json.loads((root / 'packaging.json').read_text())['files']
+    config = json.loads((root / 'packaging.json').read_text())
+    files = config['files']
+    service_prefix = f"usr/palm/services/{manifest['id']}.service/"
+    service_files = config['serviceFiles'] + [str(p.relative_to(root/'service')) for p in (root/'service/node_modules/ws').rglob('*') if p.is_file()]
+    for name in service_files:
+        p = root/'service'/name
+        if p.is_symlink() or p.suffix == '.node':
+            raise ValueError('Conteúdo proibido no serviço.')
     expected_name = f"{manifest['id']}_{manifest['version']}_all.ipk"
     if package.name != expected_name:
         raise ValueError(f'Nome inesperado do pacote: esperado {expected_name}')
@@ -25,7 +32,7 @@ def verify(package, root):
 
     prefix = f"usr/palm/applications/{manifest['id']}/"
     metadata = f"usr/palm/packages/{manifest['id']}/packageinfo.json"
-    expected = {prefix + name for name in files} | {metadata}
+    expected = {prefix + name for name in files} | {service_prefix + name for name in service_files} | {metadata}
     with archive('data.tar.gz') as data:
         actual = {}
         for member in data.getmembers():
@@ -40,7 +47,12 @@ def verify(package, root):
         for name in files:
             if actual[prefix + name] != (root / 'app' / name).read_bytes():
                 raise ValueError(f'Conteúdo diverge da origem: {name}')
+        for name in service_files:
+            if actual[service_prefix+name] != (root/'service'/name).read_bytes():
+                raise ValueError(f'Conteúdo do serviço diverge: {name}')
         info = json.loads(actual[metadata])
+        if info.get('services') != [manifest['id']+'.service']:
+            raise ValueError('Serviço ausente ou divergente no packageinfo.json.')
         if any(info.get(key) != value for key, value in {
             'id': manifest['id'], 'app': manifest['id'], 'version': manifest['version']
         }.items()):

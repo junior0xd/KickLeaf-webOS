@@ -38,10 +38,13 @@ for (const mode of ['direct-hls', 'iframe']) {
       const panel = page.locator('#' + prefix + '-settings-panel');
       await page.keyboard.press('Enter');
       await expect(gear).toBeFocused();
-      await expect(controls.locator('.icon-control:disabled')).toHaveCount(3);
-      for (const key of ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Tab', 'Shift+Tab']) {
-        await page.keyboard.press(key);
-        await expect(gear).toBeFocused();
+      await expect(controls.locator('.icon-control:disabled')).toHaveCount(mode === 'iframe' ? 3 : 0);
+      if (mode === 'direct-hls') {
+        for (const [key,id] of [['ArrowLeft','native-theater'],['ArrowLeft','native-play-pause'],['ArrowLeft','native-fullscreen'],['ArrowLeft','native-settings'],['ArrowRight','native-fullscreen'],['ArrowRight','native-play-pause'],['ArrowRight','native-theater'],['ArrowRight','native-settings']]) {
+          await page.keyboard.press(key); await expect(page.locator('#'+id)).toBeFocused();
+        }
+      } else {
+        for (const key of ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Tab','Shift+Tab']) { await page.keyboard.press(key);await expect(gear).toBeFocused(); }
       }
       await page.keyboard.press('Enter');
       await expect(gear).toHaveAttribute('aria-expanded', 'true');

@@ -1,0 +1,21 @@
+{
+  "version": "0.2.4",
+  "user_approval": "Tá aprovado",
+  "tests": {
+    "unit": 24,
+    "chat": 105,
+    "browser": 82,
+    "failed": 0
+  },
+  "tag_metadata_validated": true,
+  "ipk_content_audit_passed": true,
+  "runtime_dependencies": {
+    "ws": "8.22.2"
+  },
+  "production_window_seconds": 1200,
+  "app_id": "com.kicktv.poc",
+  "service_id": "com.kicktv.poc.service",
+  "local_ipk_bytes": 99288,
+  "local_ipk_sha256": "cc7aa13b859872054adf457cdc51ae59cd90db05659f980ae46ee15ad301c98a",
+  "on_tv_test": "isolated 20-minute app, main not installed during experiment"
+}

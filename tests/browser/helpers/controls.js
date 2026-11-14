@@ -3,8 +3,11 @@ const { expect } = require('@playwright/test');
 async function openSettings(page, prefix = 'native') {
   const panel = page.locator('#' + prefix + '-settings-panel');
   if (!await panel.isVisible()) {
-    await page.keyboard.press('ArrowRight');
-    await expect(page.locator('#' + prefix + '-settings')).toBeFocused();
+    const gear = page.locator('#' + prefix + '-settings');
+    if (!await gear.evaluate(el => el === document.activeElement)) await page.keyboard.press('ArrowRight');
+    if (!await gear.evaluate(el => el === document.activeElement)) await page.keyboard.press('ArrowRight');
+    if (!await gear.evaluate(el => el === document.activeElement)) await page.keyboard.press('ArrowRight');
+    await expect(gear).toBeFocused();
     await page.keyboard.press('Enter');
   }
   await expect(panel).toBeVisible();

@@ -1,0 +1,99 @@
+{
+  "node": "v16.20.2",
+  "consumers": 0,
+  "totals": {
+    "sessions": 1,
+    "starts_requested": 1,
+    "connections_opened": 1,
+    "http_requests": 3
+  },
+  "state": {
+    "status": "stopped",
+    "reason": "observation_complete",
+    "error": null,
+    "resources": {
+      "socket": false,
+      "http_requests": 0,
+      "pending_commands": 0,
+      "session_timers": [],
+      "heartbeat": false,
+      "lease_timer": false,
+      "queue": 0,
+      "consumers": 0,
+      "closing": false
+    },
+    "metrics": {
+      "phases": {
+        "B": {
+          "http_requests": 2,
+          "http_body_tx": 187,
+          "http_body_rx": 418
+        },
+        "C": {
+          "connection_attempts": 1,
+          "connections_opened": 1
+        },
+        "D": {
+          "commands": 1,
+          "connect_commands": 1,
+          "ws_payload_tx": 271,
+          "frames_sent": 1,
+          "frames_received": 1,
+          "ws_payload_rx": 138
+        },
+        "E": {
+          "http_requests": 1,
+          "http_body_tx": 0,
+          "http_body_rx": 7520,
+          "commands": 1,
+          "subscribe_commands": 1,
+          "ws_payload_tx": 56,
+          "frames_sent": 1,
+          "frames_received": 1,
+          "ws_payload_rx": 23,
+          "subscriptions_confirmed": 1
+        },
+        "F": {
+          "frames_received": 4158,
+          "ws_payload_rx": 3699944,
+          "publication_pushes_seen": 4602,
+          "publications": 4601,
+          "event_message": 4601,
+          "badge_messages": 2125,
+          "badge_legacy_items": 145,
+          "badge_v2_items": 5214,
+          "badge_selected_true": 2454,
+          "badge_total_1": 1808,
+          "badge_over_four": 0,
+          "badge_truncated_legacy": 0,
+          "badge_truncated_v2": 0,
+          "ls2_sample_batches": 1371,
+          "badge_total_0": 2476,
+          "sample_queue_dropped": 626,
+          "badge_total_2": 209,
+          "badge_total_4": 49,
+          "heartbeats_received": 48,
+          "ws_payload_tx": 96,
+          "frames_sent": 48,
+          "heartbeats_sent": 48,
+          "badge_total_3": 59
+        },
+        "cleanup": {
+          "commands": 1,
+          "unsubscribe_commands": 1,
+          "ws_payload_tx": 58,
+          "frames_sent": 1,
+          "frames_received": 2,
+          "ws_payload_rx": 775,
+          "socket_close_events": 1,
+          "sessions_closed": 1
+        }
+      },
+      "http_requests": 3
+    },
+    "memory": {
+      "rss": 32743424,
+      "heap_used": 7943940
+    }
+  }
+}

@@ -3,8 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>KickTV — HLS experimental</title>
+  <title>KickTV — HLS e chat</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="chat.css">
 </head>
 <body tabindex="-1">
   <main id="home" class="home">
@@ -19,13 +20,13 @@
   <p id="notice" class="notice" role="status" hidden></p>
   <section id="native-controls" class="player-controls" tabindex="-1" aria-label="Controles HLS" hidden>
     <div class="control-group" role="group" aria-label="Reprodução">
-      <button class="icon-control" type="button" aria-label="Reproduzir ou pausar (em breve)" title="Reproduzir ou pausar (em breve)" disabled><img src="phosphor-play-fill.svg" alt="" aria-hidden="true"></button>
+      <button id="native-play-pause" class="icon-control" type="button" aria-label="Reproduzir" title="Reproduzir" disabled><img src="phosphor-play-fill.svg" alt="" aria-hidden="true"></button>
       <span id="native-live" hidden class="live-indicator"><img src="phosphor-broadcast-fill.svg" alt="" aria-hidden="true">AO VIVO</span>
     </div>
     <div class="control-group" role="group" aria-label="Visualização e configurações">
-      <button class="icon-control" type="button" aria-label="Modo teatro (em breve)" title="Modo teatro (em breve)" disabled><img src="phosphor-rectangle.svg" alt="" aria-hidden="true"></button>
+      <button id="native-theater" class="icon-control" type="button" aria-label="Ativar chat no modo teatro" title="Ativar chat no modo teatro" aria-pressed="false"><img src="phosphor-rectangle.svg" alt="" aria-hidden="true"></button>
       <button id="native-settings" class="icon-control" type="button" aria-label="Configurações" title="Configurações" aria-haspopup="dialog" aria-controls="native-settings-panel" aria-expanded="false"><img src="phosphor-gear-six.svg" alt="" aria-hidden="true"></button>
-      <button class="icon-control" type="button" aria-label="Tela cheia (em breve)" title="Tela cheia (em breve)" disabled><img src="phosphor-corners-out.svg" alt="" aria-hidden="true"></button>
+      <button id="native-fullscreen" class="icon-control" type="button" aria-label="Tela cheia: ocultar chat" title="Tela cheia: ocultar chat"><img src="phosphor-corners-out.svg" alt="" aria-hidden="true"></button>
     </div>
     <section id="native-settings-panel" class="player-settings" role="dialog" aria-modal="true" aria-labelledby="native-settings-title" hidden>
       <h2 id="native-settings-title">Ações da transmissão</h2>
@@ -62,6 +63,15 @@
       <div><dt>Interrupções / tempo</dt><dd data-stat="interruptions">N/D</dd></div>
     </dl>
   </aside>
+  <aside id="chat-panel" hidden aria-label="Chat público somente leitura">
+    <header><h2 id="chat-channel">Chat</h2><span id="chat-state" role="status">Desabilitado</span></header>
+    <div id="chat-messages" role="log" aria-label="Mensagens recentes" aria-live="off"></div>
+  </aside>
+  <script src="webOSTV.js"></script>
+  <script src="cdn-badge-url.js"></script>
+  <script src="chat-badges.js"></script>
+  <script src="chat-ui.js"></script>
+  <script src="joint-telemetry.js"></script>
   <script src="channel.js"></script>
   <script src="native-api.js"></script>
   <script src="hls-manifest.js"></script>
