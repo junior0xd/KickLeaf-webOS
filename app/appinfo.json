@@ -1,6 +1,6 @@
 {
   "id": "com.kicktv.poc",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "vendor": "KickTV PoC independente",
   "type": "web",
   "main": "index.html",

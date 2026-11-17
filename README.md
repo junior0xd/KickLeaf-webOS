@@ -12,7 +12,7 @@ Alvo informado: LG OLED55C3PSA, webOS 25, versão 10.3.1-3006. Investigação em
 
 **Resultado histórico da PoC por iframe:** após os testes locais, o usuário confirmou instalação, teclado, reprodução de canais online em tela cheia, indicação de offline e retorno à entrada na C3, sem erros de uso identificados. Foram utilizados `yoda`, `xqc` e `minerva`, além do canal inexistente `lgiptv`. O [relato completo](docs/TESTES.md) distingue os testes na TV das verificações locais.
 
-**Chat e badges (v0.2.4):** chat público somente leitura no modo teatro, usando o serviço local webOS já validado, sem proxy. Badges CDN com limites de 64/128 KiB e cache de 64 entradas. [Uso, limites e validação na LG C3](docs/CHAT.md).
+**Chat, emotes e fila (v0.2.5):** chat público somente leitura no modo teatro, com fila FIFO/ACK de inserção no DOM, crédito e emotes nativos. O ACK do Centrifugo permanece independente. Badges CDN mantêm limites de 64/128 KiB e cache de 64 entradas. [Uso e limites](docs/CHAT.md), [integração e validação da versão](docs/RELEASE-v0.2.5.md) e [relatórios históricos sanitizados](experiments/reports/README.md).
 
 **Play/Pause no HLS nativo:** botão da barra compacta com retomada do ponto pausado enquanto disponível, recuperação limitada e aviso quando expira. Veja [investigação, limites e testes manuais na TV](docs/PLAY-PAUSE.md). Não há garantia de DVR completo.
 
@@ -160,7 +160,7 @@ O job de build tem somente `contents: read`. Apenas o job separado de publicaç�
 
 Exemplo para uma futura `v0.2.2` (os comandos abaixo publicam quando executados; não são executados pela preparação do CI):
 
-A versão atual é 0.2.4. Se a versão seguinte desejada já estiver sincronizada nos três arquivos, pule os passos 1 e 2. A atualização do número não cria uma tag nem uma Release.
+A versão atual é 0.2.5. Se a versão seguinte desejada já estiver sincronizada nos três arquivos, pule os passos 1 e 2. A atualização do número não cria uma tag nem uma Release.
 
 1. Altere `version` em `app/appinfo.json` para `0.2.2`. Use três inteiros, sem zeros à esquerda ou sufixos (`-beta`, `+build`), com até nove dígitos por componente, conforme o formato webOS.
 2. Atualize os metadados npm, sem criar tag automaticamente:

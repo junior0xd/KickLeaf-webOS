@@ -1,6 +1,6 @@
 {
   "name": "kicktv-webos-poc",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "private": true,
   "description": "PoC experimental: embed oficial Kick e diagn\u00f3stico HLS nativo no webOS",
   "scripts": {

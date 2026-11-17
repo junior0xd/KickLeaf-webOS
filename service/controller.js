@@ -8,7 +8,7 @@ class Controller {
   }
   snapshot(){return {session_id:this.current?.id||null,session:this.current?this.current.session.snapshot():null,totals:{...this.totals},blocked:this.blocked,recent:this.recent.slice()};}
   start(p){
-    let channel;try{channel=slug(p.channel);if(!ID.test(p.requestId))throw Error();}catch(_){return Promise.resolve({returnValue:false,errorText:'invalid_selection'});}
+    let channel;try{channel=slug(p.channel);if(typeof p.requestId!=='string'||!ID.test(p.requestId))throw Error();}catch(_){return Promise.resolve({returnValue:false,errorText:'invalid_selection'});}
     if(this.blocked)return Promise.resolve({returnValue:false,errorText:'permanent_refusal'});
     if(this.intent===p.requestId)return Promise.resolve({returnValue:true,duplicate:true,snapshot:this.snapshot()});
     this.intent=p.requestId;const ticket=++this.serial;this.totals.starts_requested++;
@@ -24,13 +24,19 @@ class Controller {
           this.recent.push({id:current.id,reason:e.snapshot.reason,error:e.snapshot.error,messages:e.snapshot.messages,events:e.snapshot.events});if(this.recent.length>8)this.recent.shift();
           if(/^(http_(401|403|404|429)|upgrade_http_(401|403|404|429)|centrifugo_|invalid_guest_token)/.test(e.snapshot.error||''))this.blocked=true;
         }
-        this.emit({...e,session_id:current.id});
+        return this.emit({...e,session_id:current.id});
       });
       this.current=current;this.totals.sessions++;
       const r=current.session.start({channel,activityConfirmed:true});return {...r,session_id:current.id};
     };
     const result=this.chain.then(run,run);this.chain=result.catch(()=>{});return result;
   }
+  delivery(method,p){
+    if(!p||p.requestId!==this.current?.id)return {returnValue:false,errorText:'stale_session'};
+    try{return {returnValue:true,...this.current.session[method](p)};}
+    catch(_){return {returnValue:false,errorText:'invalid_delivery_request'};}
+  }
+  consumerLost(){if(this.current){this.current.session.detach();void this.current.session.stop('last_consumer');}}
   async stop(id,reason='manual_stop'){
     if(id&&this.intent&&id!==this.intent)return this.snapshot();
     if(id&&id!==this.intent&&id!==this.current?.id)return this.snapshot();

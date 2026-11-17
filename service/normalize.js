@@ -1,7 +1,7 @@
 'use strict';
 const {badgeSet}=require('./badges');
 const object=v=>v!==null&&typeof v==='object'&&!Array.isArray(v);
-function text(v,n){return typeof v==='string'?v.slice(0,n).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g,''):'';}
+function text(v,n){return typeof v==='string'?v.slice(0,n).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g,'').replace(/[\uD800-\uDBFF]$/, ''):'';}
 function decode(v){if(typeof v!=='string')return v;if(Buffer.byteLength(v)>32768)throw new Error('payload_limit');return JSON.parse(v);}
 function inspect(value){
   try{

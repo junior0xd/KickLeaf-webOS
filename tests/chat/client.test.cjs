@@ -44,10 +44,10 @@ class FakeSocket extends EventEmitter{
  close(code){this.readyState=3;this.emit('close',code);}terminate(){this.close(1006);}
 }
 function sessionSetup({refuse=false,pending=false}={}){FakeSocket.sockets=[];const calls=[],events=[];let consumers=1,rejectPending;
- const s=new Session({Socket:FakeSocket,emit:e=>events.push(e),consumers:()=>consumers,httpFactory:metrics=>({active:new Set(),cancel(){if(rejectPending)rejectPending(new Error('cancelled'));},async request(url,body,phase){calls.push({url,body});metrics.add(phase,'http_requests');if(pending)return new Promise((_,reject)=>{rejectPending=reject;});if(refuse)throw new Error('http_403');if(url.endsWith('/auth/connection'))return {data:{token:'synthetic-token'}};if(url.includes('/api/v2/'))return {id:10,slug:'xqc',chatroom:{id:20}};return {data:{connections:[{provider:'centrifugo',credentials:{url:'wss://realtime.sa-east-1.platform.kick.com/connection/websocket'}}]}};}})});
+ const s=new Session({Socket:FakeSocket,emit:e=>{events.push(e);if(e.kind==='delivery')queueMicrotask(()=>s.ack({identity:e.delivery.identity,ticket:e.delivery.ticket,seq:e.delivery.items.at(-1).seq,credit:{items:512,bytes:1048576}}));return true;},consumers:()=>consumers,httpFactory:metrics=>({active:new Set(),cancel(){if(rejectPending)rejectPending(new Error('cancelled'));},async request(url,body,phase){calls.push({url,body});metrics.add(phase,'http_requests');if(pending)return new Promise((_,reject)=>{rejectPending=reject;});if(refuse)throw new Error('http_403');if(url.endsWith('/auth/connection'))return {data:{token:'synthetic-token'}};if(url.includes('/api/v2/'))return {id:10,slug:'xqc',chatroom:{id:20}};return {data:{connections:[{provider:'centrifugo',credentials:{url:'wss://realtime.sa-east-1.platform.kick.com/connection/websocket'}}]}};}})});
  return {s,calls,events,consumers:n=>{consumers=n;}};
 }
-async function ready(t){for(let i=0;i<20&&t.s.state.status!=='reading';i++)await wait();assert.equal(t.s.state.status,'reading');}
+async function ready(t){for(let i=0;i<20&&t.s.state.status!=='reading';i++)await wait();assert.equal(t.s.state.status,'reading');t.s.attach({context:'unit-context',credit:{items:512,bytes:1048576}});}
 test('session performs three HTTP calls and one socket, ignores duplicate start and cleans all resources',async()=>{
  const t=sessionSetup();t.s.start({channel:'xqc',activityConfirmed:true});t.s.start({channel:'xqc',activityConfirmed:true});await ready(t);assert.equal(t.calls.length,3);assert.equal(FakeSocket.sockets.length,1);assert.equal(t.calls[0].body.client.type,'web');
  const w=FakeSocket.sockets[0];assert.equal(w.options.headers.Origin,undefined);assert.match(w.options.headers['User-Agent'],/independent/);assert.equal(w.options.rejectUnauthorized,true);
@@ -106,9 +106,9 @@ test('selection accepts a slug only, requires confirmed activity and makes no HT
  assert.equal(slug('Ayellol'),'ayellol');assert.equal(t.s.start({channel:'ayellol',activityConfirmed:false}).returnValue,false);assert.equal(t.calls.length,0);
  assert.equal(destination('https://kick.com/api/v2/channels/ayellol','https','ayellol').hostname,'kick.com');assert.throws(()=>destination('https://kick.com/api/v2/channels/other','https','ayellol'));
 });
-test('first sample is forwarded immediately; diagnostics expose counts and no message content',async()=>{
+test('FIFO sample is retained until DOM ACK; diagnostics expose counts and no message content',async()=>{
  const t=sessionSetup();t.s.start({channel:'xqc',activityConfirmed:true});await ready(t);
- t.s.publication(fixture());const delivered=t.events.filter(e=>e.kind==='samples');assert.equal(delivered.length,1);assert.equal(delivered[0].samples[0].user,'FixtureAuthor');assert.equal(t.s.state.samples_sent,1);assert.equal(t.s.state.steps.message,'confirmed');
+ t.s.publication(fixture());t.s.flushSamples();const delivered=t.events.filter(e=>e.kind==='delivery');assert.equal(delivered.length,1);assert.equal(JSON.parse(delivered[0].delivery.items[0].payload).user,'FixtureAuthor');assert.equal(t.s.state.samples_sent,1);assert.equal(t.s.state.steps.message,'confirmed');
  assert.equal(JSON.stringify(t.s.snapshot()).includes('FixtureAuthor'),false);t.s.publication(fixture());assert.equal(t.s.state.duplicates,1);
  t.s.publication({event:'App\\Events\\ChatMessageEvent',data:{id:'bad'}});assert.equal(t.s.state.rejected,1);t.s.publication({event:'FutureEvent',data:{}});assert.equal(t.s.state.unknown_events,1);
  await t.s.stop('manual_stop');assert.equal(t.s.queue.length,0);assert.equal(t.s.ids.size,0);
@@ -134,7 +134,7 @@ test('session closes while subscription ACK is pending and releases socket, time
 });
 test('high-volume synthetic messages retain only bounded IDs and samples and clear them at stop',async()=>{
  const t=sessionSetup();t.s.start({channel:'xqc',activityConfirmed:true});await ready(t);for(let i=0;i<250;i++)t.s.publication(fixture(String(i+1)));
- assert.equal(t.s.state.messages,250);assert.equal(t.s.queue.length,5);assert.equal(t.s.ids.size,200);assert.equal(t.s.state.samples_sent,1);await t.s.stop('manual_stop');assert.equal(t.s.queue.length,0);assert.equal(t.s.ids.size,0);assert.deepEqual(t.s.snapshot().resources.session_timers,[]);
+ assert.equal(t.s.state.messages,250);assert.equal(t.s.queue.length,250);assert.equal(t.s.ids.size,200);t.s.flushSamples();assert.equal(t.s.state.samples_sent,250);await t.s.stop('manual_stop');assert.equal(t.s.queue.length,0);assert.equal(t.s.ids.size,0);assert.deepEqual(t.s.snapshot().resources.session_timers,[]);
 });
 
 test('consumer loss during first-publication notification cannot leave a queued message after cleanup',async()=>{

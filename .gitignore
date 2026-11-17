@@ -38,3 +38,10 @@ venv/
 .pytest_cache/
 *.local.json
 *.local.env
+
+# Experimental originals may contain local diagnostics or sensitive observations.
+# Only reviewed public reports are versioned; originals remain in the workspace.
+/experiments/*
+!/experiments/reports/
+/experiments/reports/*
+!/experiments/reports/*.md

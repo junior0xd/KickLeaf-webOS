@@ -1,5 +1,5 @@
 'use strict';
-const VERSION = '0.2.4';
+const VERSION = '0.2.5';
 const AGENT = 'KickTV/' + VERSION + ' (webOS TV; independent experimental client)';
 const DEFAULT_CHANNEL = null;
 function slug(value) {
