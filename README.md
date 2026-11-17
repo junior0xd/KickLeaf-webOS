@@ -1,4 +1,6 @@
-# KickTV para LG webOS — prova de conceito
+# KickTV Alpha para LG webOS
+
+**Versão 0.2.6 — KickTV Alpha:** distintivos oficiais locais, Founder sólido e Sub Gifter por quantidade. A entrada oferece apenas Assistir; o player oficial permanece no menu do player. ID `com.kicktv.alpha`; pacote `com.kicktv.alpha_0.2.6_all.ipk`. [Notas e validação](docs/RELEASE-v0.2.6.md), [associações dos distintivos](docs/BADGE-ASSETS.md).
 
 **Versão 0.2.3:** barra compacta com ícones Phosphor locais de 37px, gradiente inferior e painel transitório com as ações existentes. Ícone de volume removido: o áudio é controlado pela TV. Aparência aprovada pelo usuário na LG C3. Veja [controles, navegação e validação](docs/PLAYER-CONTROLS.md).
 
@@ -72,15 +74,15 @@ npx ares-novacom --device lgc3 --getkey
 Digite a passphrase exibida na TV quando solicitada pela CLI. Não a grave no código. Se `lgc3` já existir, use `--modify` em vez de `--add`. Em seguida:
 
 ```bash
-npx ares-install --device lgc3 dist/releases/com.kicktv.poc_0.2.1_all.ipk
-npx ares-launch --device lgc3 com.kicktv.poc
+npx ares-install --device lgc3 dist/releases/com.kicktv.alpha_0.2.6_all.ipk
+npx ares-launch --device lgc3 com.kicktv.alpha
 ```
 
 A abertura sem parâmetros usa Direct HLS. Para usar o player oficial, feche e reabra explicitamente:
 
 ```bash
-npx ares-launch --device lgc3 --close com.kicktv.poc
-npx ares-launch --device lgc3 --params '{"mode":"iframe"}' com.kicktv.poc
+npx ares-launch --device lgc3 --close com.kicktv.alpha
+npx ares-launch --device lgc3 --params '{"mode":"iframe"}' com.kicktv.alpha
 ```
 
 `{"mode":"direct-hls"}` continua válido. Para `native-hls`, use os parâmetros de backend descritos em [Native HLS](docs/NATIVE-HLS.md).
@@ -92,15 +94,15 @@ A [LG documenta esse pareamento e a sessão do Developer Mode](https://webostv.d
 O diagnóstico usa `<video>` diretamente, sem biblioteca, com a amostra pública Apple Bip Bop. Ele não aparece como funcionalidade na tela principal. Feche o aplicativo antes de alterar o modo de abertura:
 
 ```bash
-npx ares-launch --device lgc3 --close com.kicktv.poc
-npx ares-launch --device lgc3 --params '{"mode":"hls-test"}' com.kicktv.poc
+npx ares-launch --device lgc3 --close com.kicktv.alpha
+npx ares-launch --device lgc3 --params '{"mode":"hls-test"}' com.kicktv.alpha
 ```
 
 Selecione **Iniciar teste HLS** com OK. Verifique imagem e som. Voltar interrompe e libera o vídeo; outro Voltar retorna à tela inicial. Para voltar ao lançamento normal:
 
 ```bash
-npx ares-launch --device lgc3 --close com.kicktv.poc
-npx ares-launch --device lgc3 com.kicktv.poc
+npx ares-launch --device lgc3 --close com.kicktv.alpha
+npx ares-launch --device lgc3 com.kicktv.alpha
 ```
 
 A fonte de teste é `https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/master.m3u8`, disponibilizada nos [exemplos HLS da Apple](https://developer.apple.com/streaming/examples/). Essa amostra testa mídia HLS; não comprova uma live Kick nem seu comportamento de longa duração.
@@ -110,7 +112,7 @@ A fonte de teste é `https://devstreaming-cdn.apple.com/videos/streaming/example
 Com o app aberto:
 
 ```bash
-npx ares-inspect --device lgc3 --app com.kicktv.poc
+npx ares-inspect --device lgc3 --app com.kicktv.alpha
 ```
 
 Abra no Chrome o endereço que a CLI fornecer. A opção `--open` também pode abrir o navegador automaticamente no seu Ubuntu. No Web Inspector, acompanhe **Console** e **Network**. Os logs locais usam os prefixos `[KickTV]` e `[KickTV HLS]`. Não registramos URL de mídia, cookies ou tokens. Evite compartilhar um HAR bruto do player remoto, pois ele pode conter credenciais temporárias.
@@ -158,15 +160,15 @@ O job de build tem somente `contents: read`. Apenas o job separado de publicaç�
 
 ### Criar uma versão
 
-Exemplo para uma futura `v0.2.2` (os comandos abaixo publicam quando executados; não são executados pela preparação do CI):
+Exemplo para uma futura `v0.2.7` (os comandos abaixo publicam quando executados; não são executados pela preparação do CI):
 
-A versão atual é 0.2.5. Se a versão seguinte desejada já estiver sincronizada nos três arquivos, pule os passos 1 e 2. A atualização do número não cria uma tag nem uma Release.
+A versão atual é 0.2.6. Se a versão seguinte desejada já estiver sincronizada nos três arquivos, pule os passos 1 e 2. A atualização do número não cria uma tag nem uma Release.
 
-1. Altere `version` em `app/appinfo.json` para `0.2.2`. Use três inteiros, sem zeros à esquerda ou sufixos (`-beta`, `+build`), com até nove dígitos por componente, conforme o formato webOS.
+1. Altere `version` em `app/appinfo.json` para `0.2.7`. Use três inteiros, sem zeros à esquerda ou sufixos (`-beta`, `+build`), com até nove dígitos por componente, conforme o formato webOS.
 2. Atualize os metadados npm, sem criar tag automaticamente:
 
    ```bash
-   npm version 0.2.2 --no-git-tag-version
+   npm version 0.2.7 --no-git-tag-version
    ```
 
 3. Valide e teste localmente:
@@ -174,7 +176,7 @@ A versão atual é 0.2.5. Se a versão seguinte desejada já estiver sincronizad
    ```bash
    npm ci
 npm ci --prefix service --omit=dev --ignore-scripts
-   npm run validate -- --tag v0.2.2
+   npm run validate -- --tag v0.2.7
    npx --no-install playwright install chromium
    npm test
    npm run package
@@ -185,11 +187,11 @@ npm ci --prefix service --omit=dev --ignore-scripts
 
    ```bash
    git push origin main
-   git tag -a v0.2.2 -m 'KickTV v0.2.2'
-   git push origin v0.2.2
+   git tag -a v0.2.7 -m 'KickTV v0.2.7'
+   git push origin v0.2.7
    ```
 
-A tag deve apontar para o commit com `appinfo.json`, `package.json` e as duas entradas de versão do `package-lock.json` sincronizados. Não há alteração automática da versão pelo workflow. Tags como `v1`, `v0.2.2-beta` ou uma tag divergente disparam o filtro `v*`, mas falham na validação antes de publicar. O fluxo atual publica somente versões estáveis no formato `vX.Y.Z`.
+A tag deve apontar para o commit com `appinfo.json`, `package.json` e as duas entradas de versão do `package-lock.json` sincronizados. Não há alteração automática da versão pelo workflow. Tags como `v1`, `v0.2.7-beta` ou uma tag divergente disparam o filtro `v*`, mas falham na validação antes de publicar. O fluxo atual publica somente versões estáveis no formato `vX.Y.Z`.
 
 ### Acompanhar e baixar
 

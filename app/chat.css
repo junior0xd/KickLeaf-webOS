@@ -14,7 +14,7 @@ body.theater #video-statistics { right: 27%; max-width: 40vw; }
 
 .chat-badges { display: inline; margin-right: 4px; white-space: normal; }
 .chat-badge { display: inline-block; width: 20px; height: 20px; object-fit: contain; vertical-align: -4px; margin-right: 3px; }
-.chat-badge-local { filter: invert(1); }
+.chat-badge-fallback { filter: invert(1); }
 
 /* Fixed emote boxes preserve the message layout while native images load. */
 .chat-message-text { white-space:pre-wrap; overflow-wrap:anywhere; }

@@ -1,8 +1,8 @@
 {
-  "name": "kicktv-webos-poc",
-  "version": "0.2.5",
+  "name": "kicktv-alpha",
+  "version": "0.2.6",
   "private": true,
-  "description": "PoC experimental: embed oficial Kick e diagn\u00f3stico HLS nativo no webOS",
+  "description": "KickTV Alpha: Direct HLS e chat somente leitura para webOS",
   "scripts": {
     "validate": "node scripts/validate.cjs",
     "test": "npm run test:unit && npm run test:chat && playwright test",

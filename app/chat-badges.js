@@ -1,7 +1,9 @@
 (function(){'use strict';
- var catalog=Object.freeze({moderator:'shield-check',subscriber:'star',vip:'crown',og:'diamond',verified:'seal-check',bot:'robot',sub_gifter:'gift',broadcaster:'broadcast',founder:'flag',staff:'wrench'});
+ var catalog=Object.freeze({"moderator":"ModeratorBadge","subscriber":"SubscriberBadge","vip":"VIPBadge","og":"OGBadge","verified":"VerifiedBadge","bot":"BotBadge","sub_gifter":"SubGifterBadge","broadcaster":"HostBadge","founder":"FounderBadge","staff":"StaffBadge","sidekick":"SidekickBadge","chat_identity":"IdentityBadge","trainwreckstv":"TrainwreckstvBadge"});
+ var giftThresholds=[1,5,10,25,50,100,150,200,250,300,350,400,450,500,550,600,650,700,750,800,850,900,950,1000,2000,3000,4000,5000];
+ function giftIcon(count){var n=Number.isSafeInteger(count)&&count>0?count:1;for(var i=giftThresholds.length-1;i>=0;i--)if(n>=giftThresholds[i])return "Gift"+giftThresholds[i];return "Gift1";}
  var cache=new Map(),pending=[],controllers=new Set(),active=0,generation=0,bytes=0;
- var counters={messages:0,with_badges:0,legacy:0,v2_items:0,v2_selected:0,rendered:0,legacy_rendered:0,v2_slots:0,image_slots_loaded:0,over_four:0,truncated_legacy:0,truncated_v2:0,invalid_contract:0,unknown_unavailable:0,unknown_overflow:0,invalid_url:0,requests:0,cache_hits:0,failures:0,budget_rejected:0,aborted:0,active_peak:0,load_ms_total:0,load_ms_max:0,bytes:0};
+ var counters={messages:0,with_badges:0,legacy:0,v2_items:0,v2_selected:0,rendered:0,legacy_rendered:0,v2_slots:0,image_slots_loaded:0,local_v2_rendered:0,over_four:0,truncated_legacy:0,truncated_v2:0,invalid_contract:0,unknown_unavailable:0,unknown_overflow:0,invalid_url:0,requests:0,cache_hits:0,failures:0,budget_rejected:0,aborted:0,active_peak:0,load_ms_total:0,load_ms_max:0,bytes:0};
  var distribution=Object.create(null),legacyDistribution=Object.create(null),v2Distribution=Object.create(null),selectedDistribution=Object.create(null),known=Object.create(null),unknown=Object.create(null);
  function inc(map,key){map[key]=(map[key]||0)+1;}
  function validURL(s){
@@ -23,10 +25,10 @@
   var legacy=b.legacy.items.slice(0,8),v2=b.v2.items.slice(0,8),count=0;
   counters.legacy+=legacy.length;counters.v2_items+=v2.length;inc(legacyDistribution,legacy.length);inc(v2Distribution,v2.length);
   legacy.forEach(function(x){if(!x||!x.fields)return;
-   if(x.fields.type==='known'&&typeof x.type==='string'&&Object.prototype.hasOwnProperty.call(catalog,x.type)){inc(known,x.type);out.push({kind:'legacy',icon:catalog[x.type],label:'KickTV: '+x.type});}
+   if(x.fields.type==='known'&&typeof x.type==='string'&&Object.prototype.hasOwnProperty.call(catalog,x.type)){inc(known,x.type);out.push({kind:'legacy',icon:x.type==='sub_gifter'?giftIcon(x.fields.count==='valid'?x.count:1):catalog[x.type],label:'KickTV: '+x.type});}
    else if(x.fields.type==='unknown'){unknownType(m,x);out.push({kind:'legacy',icon:'question',label:'KickTV: distintivo desconhecido'});}
   });
-  v2.forEach(function(x){if(x&&x.selected===true){count++;out.push({kind:'v2',url:x.image_url,label:'Distintivo selecionado'});}});
+  v2.forEach(function(x){if(x&&x.selected===true){count++;var level=x.metadata&&x.metadata.level;if(x.name==='level'&&x.fields&&x.fields.level==='valid'&&Number.isSafeInteger(level)&&level>=1&&level<=99)out.push({kind:'v2-local',icon:'Level'+level,label:'Nível '+level});else out.push({kind:'v2',url:x.image_url,label:'Distintivo selecionado'});}});
   counters.v2_selected+=count;inc(selectedDistribution,count);inc(distribution,out.length);if(out.length)counters.with_badges++;if(out.length>4)counters.over_four++;return out;
  }
  // Stable SHA-256/16 URL identifier; same UTF-8 hash as the host's historical collector.
@@ -99,10 +101,10 @@
   if(cache.size>=64||bytes>=2097152){counters.budget_rejected++;report(base,cache.size>=64?'cache_capacity':'session_body_budget',false);return Promise.resolve(null);}
   var resolve,promise=new Promise(function(r){resolve=r;});cache.set(url,{promise:promise,objectURL:null});pending.push(Object.assign(base,{url:url,resolve:resolve,generation:generation,stage:'queue'}));pump();return promise;
  }
- function fallback(img){img.onload=null;img.onerror=null;img.className='chat-badge chat-badge-local';img.src='badge-icons/question.svg';}
+ function fallback(img){img.onload=null;img.onerror=null;img.className='chat-badge chat-badge-local chat-badge-fallback';img.src='badge-icons/question.svg';}
  function mount(parent,items){
-  items.forEach(function(item){var img=document.createElement('img');img.className='chat-badge chat-badge-local';img.width=20;img.height=20;img.alt=item.label;img.title=item.label;img.src='badge-icons/'+(item.icon||'question')+'.svg';parent.appendChild(img);counters.rendered++;
-   if(item.kind==='legacy'){counters.legacy_rendered++;return;}counters.v2_slots++;var ticket=generation,slot={id:urlID(item.url),stage:'association',started:performance.now(),total:0,requestState:'awaiting_shared_image',settled:false,img:img,cancelTimer:null};slots.add(slot);
+  items.forEach(function(item){var img=document.createElement('img');img.className='chat-badge chat-badge-local'+(!item.icon||item.icon==='question'?' chat-badge-fallback':'');img.width=20;img.height=20;img.alt=item.label;img.title=item.label;img.src='badge-icons/'+(item.icon||'question')+'.svg';parent.appendChild(img);counters.rendered++;
+   if(item.kind==='legacy'){counters.legacy_rendered++;return;}if(item.kind==='v2-local'){counters.local_v2_rendered++;return;}counters.v2_slots++;var ticket=generation,slot={id:urlID(item.url),stage:'association',started:performance.now(),total:0,requestState:'awaiting_shared_image',settled:false,img:img,cancelTimer:null};slots.add(slot);
    function finish(code,expected){if(slot.settled)return;slot.settled=true;if(slot.cancelTimer)slot.cancelTimer();slots.delete(slot);img.onload=null;img.onerror=null;if(code)report(slot,code,expected);}
    slot.cancel=function(){finish('cleanup_cancelled',true);};
    imageURL(item.url).then(function(url){

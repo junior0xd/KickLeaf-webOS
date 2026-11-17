@@ -1,4 +1,5 @@
 const { test, expect } = require('@playwright/test');
+const { openSettings } = require('./helpers/controls');
 
 test('abertura sem parâmetros descobre na Kick e inicia vídeo Direct HLS', async ({page}) => {
   const master='https://test.playback.live-video.net/master.m3u8';
@@ -13,6 +14,10 @@ test('abertura sem parâmetros descobre na Kick e inicia vídeo Direct HLS', asy
   await page.route(master,route=>route.fulfill({body:'#EXTM3U\n#EXTINF:4,\nsegment.ts',headers:{'Access-Control-Allow-Origin':'*'}}));
   await page.goto('/');
   await expect(page).toHaveURL(/native-hls.html$/);
+  await expect(page.locator('#official-home')).toHaveCount(0);
+  await page.locator('#channel').focus();
+  await page.keyboard.press('ArrowDown');await expect(page.locator('#watch')).toBeFocused();
+  await page.keyboard.press('ArrowDown');await expect(page.locator('#channel')).toBeFocused();
   await page.evaluate(()=>{
     KickNativeAPI.config=()=>{throw new Error('Unexpected backend configuration');};
     KickNativeAPI.resolve=()=>{throw new Error('Unexpected backend request');};
@@ -21,8 +26,8 @@ test('abertura sem parâmetros descobre na Kick e inicia vídeo Direct HLS', asy
   await expect(page.locator('video')).toHaveAttribute('src',master);
   await expect(page.locator('#notice')).toBeHidden();
   expect(logs.some(line=>line.includes('mode_selected')&&line.includes('direct-hls'))).toBe(true);
-  await page.keyboard.press('Escape');await expect(page.locator('#home')).toBeVisible();
-  await page.locator('#official-home').click();
+  await page.keyboard.press('Enter');await openSettings(page);
+  await page.locator('#official-player').click();
   await expect(page).toHaveURL(/index.html\?iframe&channel=yetz$/);
   await expect(page.locator('#channel')).toHaveValue('yetz');
 });

@@ -17,7 +17,6 @@
   var playPauseButton = document.getElementById('native-play-pause');
   var closeSettingsButton = document.getElementById('native-close-settings');
   var qualityButton = document.getElementById('native-quality');
-  var officialHome = document.getElementById('official-home');
   var buttons = [qualityButton, document.getElementById('native-reload'), document.getElementById('official-player')];
   var statisticsButton = document.getElementById('video-statistics-toggle');
   buttons.push(statisticsButton);
@@ -260,7 +259,7 @@
     statisticsButton.setAttribute('aria-pressed', String(statisticsPanel.isVisible()));
     closeSettings();
   });
-  officialHome.addEventListener('click', fallback); buttons[2].addEventListener('click', fallback);
+  buttons[2].addEventListener('click', fallback);
   qualityButton.addEventListener('click', function () {
     if (!metadata) return;
     clear('controls'); menu.replaceChildren();
@@ -299,7 +298,7 @@
       else fallback();
       return;
     }
-    var targets = !home.hidden ? [input, watch, officialHome] : (!menu.hidden ? Array.from(menu.querySelectorAll('button:not(:disabled)')) : (!settingsPanel.hidden ? buttons.concat([closeSettingsButton]) : (video ? [playPauseButton, document.getElementById('native-theater'), settingsButton, document.getElementById('native-fullscreen')] : [settingsButton])));
+    var targets = !home.hidden ? [input, watch] : (!menu.hidden ? Array.from(menu.querySelectorAll('button:not(:disabled)')) : (!settingsPanel.hidden ? buttons.concat([closeSettingsButton]) : (video ? [playPauseButton, document.getElementById('native-theater'), settingsButton, document.getElementById('native-fullscreen')] : [settingsButton])));
     if ([37, 38, 39, 40].indexOf(code) !== -1 || (code === 9 && home.hidden)) {
       if (!home.hidden && (code === 37 || code === 39)) return;
       event.preventDefault();

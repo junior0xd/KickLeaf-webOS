@@ -1,7 +1,7 @@
 'use strict';
 // Structural metadata only. No selection, equivalence, image loading or display order policy.
 const LIMITS=Object.freeze({scan:16,items:8,type:32,text:40,name:64,image:1024});
-const LEGACY=Object.freeze(['moderator','subscriber','sub_gifter','vip','og','broadcaster','founder','verified','staff','bot']);
+const LEGACY=Object.freeze(['moderator','subscriber','sub_gifter','vip','og','broadcaster','founder','verified','staff','bot','sidekick','chat_identity','trainwreckstv']);
 const object=v=>v!==null&&typeof v==='object'&&!Array.isArray(v);
 const has=(v,k)=>Object.prototype.hasOwnProperty.call(v,k);
 function field(v,key,accept){

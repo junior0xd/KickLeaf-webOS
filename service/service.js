@@ -2,7 +2,7 @@
 process.env.WS_NO_BUFFER_UTIL='1';process.env.WS_NO_UTF_8_VALIDATE='1';
 const Service=require('webos-service'),Socket=require('ws');
 const {Session}=require('./session'),{Controller}=require('./controller'),{Consumers}=require('./consumers'),{VERSION}=require('./config');
-const APP='com.kicktv.poc',ID=APP+'.service',service=new Service(ID),history=[];
+const APP='com.kicktv.alpha',ID=APP+'.service',service=new Service(ID),history=[];
 const instance=require('crypto').randomBytes(6).toString('hex');
 const consumers=new Consumers(()=>controller.consumerLost());
 const controller=new Controller({consumers:()=>consumers.size,makeSession:emit=>new Session({Socket,emit,consumers:()=>consumers.size}),emit:e=>{

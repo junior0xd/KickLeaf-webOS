@@ -1,7 +1,7 @@
 const {installSDK}=require('./helpers/luna.cjs');
 const {test}=require('node:test'),assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('node:fs'),path=require('node:path'),{EventEmitter}=require('node:events');
 const {Session}=require('../../service/session'),{Protocol}=require('../../service/protocol'),{chromium}=require('@playwright/test');
-const BASE=path.resolve(__dirname,'../..'),APP='com.kicktv.poc';
+const BASE=path.resolve(__dirname,'../..'),APP='com.kicktv.alpha';
 const identity={color:'#FFAA99',badges:[{type:'moderator',text:'Moderator',unknown:'SYNTHETIC_DISCARD'}],badges_v2:[{name:'level',badge_type:'global',selected:false,sort_order:8,image_url:'https://synthetic.invalid/badge.png',metadata:{level:12,unknown:'SYNTHETIC_DISCARD'}}]};
 function publication(id='synthetic-1'){return {event:'App\\Events\\ChatMessageEvent',data:{id,content:'Texto literal <img src=x onerror="window.INJECTED=true">\nSegunda linha.',sender:{username:'SYNTHETIC_AUTHOR',identity},created_at:'2026-01-01T12:00:00Z'}};}
 function serviceFixture(initialSubscription=true){

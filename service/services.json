@@ -1,1 +1,8 @@
-{"id": "com.kicktv.poc.service", "services": [{"name": "com.kicktv.poc.service"}]}
+{
+  "id": "com.kicktv.alpha.service",
+  "services": [
+    {
+      "name": "com.kicktv.alpha.service"
+    }
+  ]
+}
