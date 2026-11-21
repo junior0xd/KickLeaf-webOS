@@ -42,3 +42,34 @@ test('mixed text, Unicode and native images preserve FIFO, release references an
 test('lost Luna DOM ACK recovers by retransmission with one visible copy',async()=>{const {page}=await setup();try{await watch(page);await enable(page);await page.evaluate(()=>{fixture.dropACK=true;fixture.emit('samples',Array.from({length:5},()=>({user:'synthetic',text:'synthetic'})));});await page.waitForFunction(()=>KickChatUI.snapshot().presented===5);assert.equal(await page.evaluate(()=>fixture.delivery.counts.confirmed),0);await page.evaluate(()=>{fixture.dropACK=false;fixture.delivery.flight.at-=2001;fixture.delivery.lastFlush=-Infinity;fixture.delivery.flush();});await page.waitForFunction(()=>fixture.delivery.counts.confirmed===5);assert.equal(await page.locator('.chat-row').count(),5);assert.equal(await page.evaluate(()=>KickChatUI.snapshot().delivery.counts.duplicates_suppressed),5);}finally{await page.close();}});
 test('local Luna recovery drains the same session without a second chat start',async()=>{const {page}=await setup();try{await watch(page);await enable(page);await page.evaluate(()=>{fixture.emit('samples',Array.from({length:20},()=>({user:'synthetic',text:'pending'})));fixture.failConsumer();});await page.waitForFunction(()=>fixture.delivery.counts.confirmed===20);assert.equal(await starts(page),1);assert.equal(await page.evaluate(()=>fixture.calls.filter(c=>c.method==='events').length),2);assert.equal(await page.locator('.chat-row').count(),20);assert.equal(await page.evaluate(()=>fixture.delivery.closed),true);}finally{await page.close();}});
 test('hiding during a burst drains admitted messages before closing the consumer',async()=>{const {page}=await setup();try{await watch(page);await enable(page);await page.evaluate(()=>{fixture.emit('samples',Array.from({length:100},()=>({user:'synthetic',text:'pending'})));KickChatUI.hide();});await page.waitForFunction(()=>KickChatUI.snapshot().state==='Closed');assert.deepEqual(await page.evaluate(()=>({confirmed:fixture.delivery.counts.confirmed,discarded:fixture.delivery.counts.discarded,queue:fixture.delivery.queue.length,refs:KickEmotes.snapshot().active_references})),{confirmed:100,discarded:0,queue:0,refs:0});assert.equal(await page.locator('.chat-row').count(),0);}finally{await page.close();}});
+
+test('collector starts the live and chat and emits a batch count without message content',async()=>{
+ const {installProbe,startStream,enableChat,chatBound}=require('../../scripts/collector/page.cjs');
+ const {page}=await setup();
+ try {
+  const cdp=await page.context().newCDPSession(page);
+  await cdp.send('Runtime.enable');
+  await cdp.send('Runtime.addBinding',{name:'fixtureCollectorEvent'});
+  const events=[];
+  cdp.on('Runtime.bindingCalled',({name,payload})=>{
+   if(name==='fixtureCollectorEvent')events.push(JSON.parse(payload));
+  });
+  assert.equal(await page.evaluate(`(${installProbe})('fixtureCollector','fixtureCollectorEvent')`),true);
+  assert.equal(await page.evaluate(startStream,'baianotv'),true);
+  await page.waitForFunction(()=>KickNativeDiagnostics.snapshot()?.state==='playing');
+  assert.equal(await page.evaluate(enableChat),true);
+  await page.waitForFunction(chatBound);
+  await page.evaluate(()=>fixture.emit('samples',[{user:'hidden-user',text:'hidden-content'}]));
+  await page.waitForFunction(()=>KickChatUI.snapshot().presented===1);
+  const snapshot=await page.evaluate(()=>fixtureCollector.read(false));
+  assert.equal(snapshot.channel,'baianotv');
+  assert.equal(snapshot.chat.state,'Connected');
+  assert.ok(snapshot.first_video_ms>=snapshot.selected_ms);
+  assert.ok(snapshot.chat_ready_ms>=snapshot.first_video_ms);
+  await page.evaluate(()=>fixtureCollector.stop());
+  assert.ok(events.some(event=>event.kind==='chat_batch'&&event.dom_inserted===1));
+  assert.ok(!JSON.stringify(events).includes('hidden-'));
+  assert.equal(await page.evaluate(()=>typeof window.fixtureCollector),'undefined');
+  await cdp.detach();
+ } finally { await page.close(); }
+});

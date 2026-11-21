@@ -131,6 +131,21 @@ Abra no Chrome o endereço que a CLI fornecer. A opção `--open` também pode a
 
 ## Testes locais
 
+### Coleta na TV
+
+Com a CLI instalada e a TV pareada, feche o KickTV e rode o coletor na raiz do projeto:
+
+```bash
+node scripts/collect-tv.cjs --device=lgc3 --length=10
+node scripts/collect-tv.cjs --device=lgc3 --mode=automatic --streamer=baianotv --length=20
+```
+
+No modo padrão, espere o aviso para abrir o KickTV com o controle e selecione o canal. No modo automático, o script abre o app, seleciona a transmissão e ativa o chat. A coleta começa quando o vídeo avança e, no modo automático, após o chat estar conectado. Se o app já estiver aberto na primeira verificação, o script avisa e encerra.
+
+O coletor registra player e métricas leves a cada 5 s, snapshots detalhados do chat a cada 30 s e eventos em `eventos.jsonl`. A pasta em `coletas/` usa o canal e o horário local do Ubuntu. O script exibe o endereço do Inspector no computador. Com `KICK_API_TOKEN` no ambiente, também consulta os metadados da API oficial da Kick a cada 30 s. Ctrl+C gera um relatório parcial após o início da coleta. Use `node scripts/collect-tv.cjs --summarize CAMINHO_DA_EXECUCAO` para recalcular o resumo.
+
+### Suíte automatizada
+
 ```bash
 npx playwright install chromium
 npm test

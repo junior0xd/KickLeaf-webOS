@@ -45,3 +45,6 @@ venv/
 !/experiments/reports/
 /experiments/reports/*
 !/experiments/reports/*.md
+
+# Coletas locais do Inspector.
+/coletas/
