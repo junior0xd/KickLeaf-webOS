@@ -3,9 +3,9 @@ const crypto=require('crypto');const {Metrics}=require('./metrics');const {HttpC
 const {Delivery}=require('./delivery');const FIFO=require('./fifo-common');
 const STEP_KEYS=['service','negotiation','guest','wss','centrifugo','subscription','heartbeat','publication','message'];
 class Session {
-  constructor({Socket,emit,consumers,httpFactory,transportFactory,windowSeconds=1200,deliveryConfig={}}){
-    Object.assign(this,{Socket,emit,consumers,httpFactory,transportFactory});this.metrics=new Metrics();this.windowSeconds=windowSeconds;this.cpuStart=process.cpuUsage();this.tickAt=Date.now();this.loopLagMax=0;
-    this.state={sequence:0,phase:'idle',status:'idle',channel:null,reconnects:0,events:0,messages:0,rejected:0,unknown_events:0,duplicates:0,samples_sent:0,checkpoints:[],error:null,steps:Object.fromEntries(STEP_KEYS.map(k=>[k,k==='service'?'confirmed':'waiting']))};
+  constructor({Socket,emit,consumers,httpFactory,transportFactory,deliveryConfig={}}){
+    Object.assign(this,{Socket,emit,consumers,httpFactory,transportFactory});this.metrics=new Metrics();this.cpuStart=process.cpuUsage();this.tickAt=Date.now();this.loopLagMax=0;
+    this.state={sequence:0,phase:'idle',status:'idle',channel:null,reconnects:0,events:0,messages:0,rejected:0,unknown_events:0,duplicates:0,samples_sent:0,error:null,steps:Object.fromEntries(STEP_KEYS.map(k=>[k,k==='service'?'confirmed':'waiting']))};
     this.delivery=new Delivery({identity:{instance:crypto.randomUUID(),run_id:'live',session_id:crypto.randomUUID()},clock:FIFO.clock(),inspect:event=>({event}),config:deliveryConfig});
     this.timers={};this.ids=new Set();this.attempted=false;this.wanted=false;this.stopping=null;this.stopped=false;
   }
@@ -17,7 +17,7 @@ class Session {
   snapshot(){
     if(this.transport)this.transport.capture();
     const now=this.state.ended_at||Date.now();
-    return {...this.state,steps:{...this.state.steps},checkpoints:this.state.checkpoints.slice(),connection_seconds:this.state.opened_at?(now-this.state.opened_at)/1000:0,subscription_seconds:this.state.reading_at?Math.max(0,(now-this.state.reading_at)/1000):0,
+    return {...this.state,steps:{...this.state.steps},connection_seconds:this.state.opened_at?(now-this.state.opened_at)/1000:0,subscription_seconds:this.state.reading_at?Math.max(0,(now-this.state.reading_at)/1000):0,
       metrics:this.metrics.snapshot(),delivery:this.delivery.snapshot(),memory:{rss:process.memoryUsage().rss,heap_used:process.memoryUsage().heapUsed},cpu:process.cpuUsage(this.cpuStart),event_loop_lag_max_ms:this.loopLagMax,
       resources:{socket:!!(this.transport&&this.transport.ws),http_requests:this.http?this.http.active.size:0,pending_commands:this.protocol?this.protocol.pending.size:0,session_timers:Object.keys(this.timers),heartbeat:!!(this.protocol&&this.protocol.heartbeat),lease_timer:!!(this.protocol&&this.protocol.expiry),queue:this.queue.length,consumers:this.consumers(),closing:!!this.stopping&&!this.stopped}};
   }
@@ -59,7 +59,7 @@ class Session {
       if(!Number.isSafeInteger(channelId)||channelId<=0||!Number.isSafeInteger(roomId)||roomId<=0||meta.slug!==this.state.channel)throw new Error('invalid_channel_metadata');
       this.state.channel_id=channelId;this.state.chatroom_id=roomId;this.state.room='chatrooms.'+roomId+'.v2';this.event('subscribing_room');this.alive();
       await this.protocol.subscribe(this.state.room);this.alive();
-      this.state.phase='F';this.state.status='reading';this.state.reading_at=Date.now();this.tickAt=Date.now();this.state.window_seconds=this.windowSeconds;clearTimeout(this.timers.deadline);delete this.timers.deadline;
+      this.state.phase='F';this.state.status='reading';this.state.reading_at=Date.now();this.tickAt=Date.now();clearTimeout(this.timers.deadline);delete this.timers.deadline;
       this.timers.tick=setInterval(()=>this.tick(),1000);this.event('reading');
     }finally{token=null;}
   }
@@ -103,11 +103,6 @@ class Session {
     this.loopLagMax=Math.max(this.loopLagMax,Math.max(0,Date.now()-this.tickAt-1000));this.tickAt=Date.now();
     if(!this.consumers()){this.stop('last_consumer');return;}
     if(process.memoryUsage().rss>128*1024*1024){this.fail('memory_budget');return;}
-    const elapsed=(Date.now()-this.state.reading_at)/1000;
-    if(elapsed>=this.windowSeconds){
-      this.state.checkpoints.push({seconds:this.windowSeconds,observed_seconds:elapsed,messages:this.state.messages,publications:this.state.events,transport_error:!!this.state.error});
-      this.stop(this.state.messages?'observation_complete':this.state.events?'publications_without_message':'no_publications_observed');return;
-    }
     this.event('status');
   }
   stop(reason,abort=reason==='memory_budget'){

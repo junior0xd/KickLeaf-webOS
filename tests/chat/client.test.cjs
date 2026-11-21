@@ -59,8 +59,29 @@ test('last consumer and cancel during pending HTTP prevent late network work',as
  const t=sessionSetup({pending:true});t.s.start({channel:'xqc',activityConfirmed:true});await wait();t.consumers(0);await t.s.stop('last_consumer');await wait();assert.equal(FakeSocket.sockets.length,0);assert.deepEqual(t.s.snapshot().resources.session_timers,[]);
  const q=sessionSetup();q.consumers(0);assert.equal(q.s.start({channel:'xqc',activityConfirmed:true}).errorText,'subscription_required');assert.equal(q.calls.length,0);
 });
-test('quiet room ends after 1200 seconds without classifying transport as failed',async()=>{
- const t=sessionSetup();t.s.start({channel:'xqc',activityConfirmed:true});await ready(t);t.s.state.reading_at=Date.now()-1201000;t.s.tick();await t.s.stopping;assert.equal(t.s.state.reason,'no_publications_observed');assert.equal(t.s.state.error,null);assert.equal(t.s.state.steps.publication,'not_observed');assert.equal(t.s.state.steps.wss,'confirmed');assert.equal(t.s.state.checkpoints.length,1);assert.equal(t.s.state.checkpoints[0].transport_error,false);
+test('an idle chat stays connected beyond 20 minutes and closes after the last consumer leaves',async()=>{
+ const t=sessionSetup();
+ try {
+  t.s.start({channel:'xqc',activityConfirmed:true});await ready(t);
+  t.s.state.reading_at=Date.now()-1201000;
+  t.s.tick();
+  const active=t.s.snapshot();
+  assert.equal(active.status,'reading');
+  assert.equal(active.error,null);
+  assert.equal(active.resources.socket,true);
+  assert.ok(active.subscription_seconds>1200);
+
+  t.consumers(0);
+  t.s.tick();
+  await t.s.stopping;
+  const stopped=t.s.snapshot();
+  assert.equal(stopped.reason,'last_consumer');
+  assert.equal(stopped.status,'stopped');
+  assert.equal(stopped.resources.socket,false);
+  assert.deepEqual(stopped.resources.session_timers,[]);
+ } finally {
+  await t.s.stop('test_end');
+ }
 });
 test('WSS HTTP refusal survives subsequent close/error and never retries',async()=>{
  class Refusal extends EventEmitter{constructor(){super();this.readyState=0;setImmediate(()=>{this.emit('unexpected-response',{destroy:()=>{this.readyState=3;this.emit('close',1006);}},{statusCode:403,socket:{authorized:true,getProtocol:()=> 'TLSv1.2'},destroy(){}});});}}
