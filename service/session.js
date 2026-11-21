@@ -76,7 +76,6 @@ class Session {
   }
   publication(value){
     if(!this.wanted)return;this.state.events++;this.metrics.add('F','publications');
-    if(this.state.events>30000){this.fail('event_budget');return;}
     if(this.state.events===1){this.step('publication','confirmed');this.event('first_publication');}
     if(!this.wanted)return;
     const parsed=inspect(value),event=parsed.event;

@@ -43,7 +43,6 @@ class Transport {
       ws.on('message',(bytes,binary)=>{
         if (this.ending) return;
         this.frames++; this.rx += bytes.length; this.metrics.add(this.phase(),'frames_received'); this.metrics.add(this.phase(),'ws_payload_rx',bytes.length);
-        if (this.frames > 12000 || this.rx > 16*1024*1024) { this.fail('incoming_budget'); return; }
         try { this.receive(bytes,binary); } catch (_) { this.fail('invalid_protocol_frame'); }
       });
       ws.on('ping',bytes=>{ this.metrics.add('F','ws_control_pings_received'); this.metrics.add('F','ws_control_pongs_auto_sent'); this.metrics.add('F','ws_control_rx',bytes.length); this.metrics.add('F','ws_control_tx',bytes.length); });

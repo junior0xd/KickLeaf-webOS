@@ -166,3 +166,72 @@ test('consumer loss during pre-WSS progress never starts a socket afterwards',as
  const t=sessionSetup();const emit=t.s.emit;t.s.emit=e=>{emit(e);if(e.kind==='opening_wss'){t.consumers(0);t.s.stop('last_consumer');}};
  t.s.start({channel:'xqc',activityConfirmed:true});for(let i=0;i<10&&!t.s.stopping;i++)await wait();await t.s.stopping;assert.equal(FakeSocket.sockets.length,0);assert.equal(t.calls.length,2);assert.equal(t.s.snapshot().resources.pending_commands,0);
 });
+
+test('lease follows the server TTL beyond one hour and keeps the five-second margin',t=>{
+ t.mock.timers.enable({apis:['Date','setTimeout']});
+ const {p,ends}=protocol();
+ p.activate({expires:true,ttl:7200});
+ t.mock.timers.tick(7194999);
+ assert.deepEqual(ends,[]);
+ t.mock.timers.tick(1);
+ assert.deepEqual(ends,['lease_ending_no_refresh']);
+ p.close();
+});
+
+test('leases beyond the Node timer range remain active until the server deadline',t=>{
+ t.mock.timers.enable({apis:['Date','setTimeout']});
+ const {p,ends}=protocol();
+ p.activate({expires:true,ttl:2147490});
+ t.mock.timers.tick(2**31-1);
+ assert.deepEqual(ends,[]);
+ t.mock.timers.tick(1353);
+ assert.deepEqual(ends,['lease_ending_no_refresh']);
+ p.close();
+});
+
+test('the seventh protocol command and sixth HTTP request remain valid',async()=>{
+ const t=protocol();
+ const connect=t.p.connect('test');
+ t.reply('connect');
+ await connect;
+ for(const kind of ['subscribe','unsubscribe','subscribe','unsubscribe','subscribe','unsubscribe']){
+  const command=kind==='subscribe'?t.p.subscribe('chatrooms.20.v2'):t.p.unsubscribe();
+  t.reply(kind);
+  await command;
+ }
+ assert.equal(t.sent.length,7);
+ t.p.close();
+
+ const http=fakeHttp(200,'{"data":{}}');
+ const metrics=new Metrics();
+ const client=new HttpClient(metrics,http.transport);
+ try {
+  for(let index=0;index<6;index++){
+   await client.request('https://web.kick.com/api/v1/realtime/connection',{},'B');
+  }
+  assert.equal(metrics.phases.B.http_requests,6);
+ } finally {
+  client.cancel();
+ }
+});
+
+test('chat stays active beyond the former publication, frame and byte budgets',async()=>{
+ const t=sessionSetup();
+ try {
+  t.s.start({channel:'xqc',activityConfirmed:true});
+  await ready(t);
+  const ws=FakeSocket.sockets[0];
+  const publication=Buffer.from(JSON.stringify({
+   push:{channel:'chatrooms.20.v2',pub:{data:{event:'test',padding:'x'.repeat(1500)}}}
+  }));
+  for(let index=0;index<30001;index++)ws.emit('message',publication,false);
+  const active=t.s.snapshot();
+  assert.equal(active.status,'reading');
+  assert.equal(active.error,null);
+  assert.equal(active.events,30001);
+  assert.ok(active.metrics.phases.F.frames_received>12000);
+  assert.ok(active.metrics.phases.F.ws_payload_rx>16*1024*1024);
+ } finally {
+  await t.s.stop('test_end');
+ }
+});

@@ -1,5 +1,7 @@
 # KickTV Alpha para LG webOS
 
+**Versão 0.2.7 — KickTV Alpha:** o chat respeita o prazo informado pelo servidor e mantém as proteções de memória e fila. As janelas fixas e os orçamentos cumulativos do serviço experimental foram removidos. [Comportamento do chat](docs/CHAT.md).
+
 **Versão 0.2.6 — KickTV Alpha:** distintivos oficiais locais, Founder sólido e Sub Gifter por quantidade. A entrada oferece apenas Assistir; o player oficial permanece no menu do player. ID `com.kicktv.alpha`; pacote `com.kicktv.alpha_0.2.6_all.ipk`. [Notas e validação](docs/RELEASE-v0.2.6.md), [associações dos distintivos](docs/BADGE-ASSETS.md).
 
 **Versão 0.2.3:** barra compacta com ícones Phosphor locais de 37px, gradiente inferior e painel transitório com as ações existentes. Ícone de volume removido: o áudio é controlado pela TV. Aparência aprovada pelo usuário na LG C3. Veja [controles, navegação e validação](docs/PLAYER-CONTROLS.md).
@@ -74,7 +76,7 @@ npx ares-novacom --device lgc3 --getkey
 Digite a passphrase exibida na TV quando solicitada pela CLI. Não a grave no código. Se `lgc3` já existir, use `--modify` em vez de `--add`. Em seguida:
 
 ```bash
-npx ares-install --device lgc3 dist/releases/com.kicktv.alpha_0.2.6_all.ipk
+npx ares-install --device lgc3 dist/releases/com.kicktv.alpha_0.2.7_all.ipk
 npx ares-launch --device lgc3 com.kicktv.alpha
 ```
 
@@ -160,15 +162,15 @@ O job de build tem somente `contents: read`. Apenas o job separado de publicaç�
 
 ### Criar uma versão
 
-Exemplo para uma futura `v0.2.7` (os comandos abaixo publicam quando executados; não são executados pela preparação do CI):
+Exemplo para uma futura `v0.2.8` (os comandos abaixo publicam quando executados; não são executados pela preparação do CI):
 
-A versão atual é 0.2.6. Se a versão seguinte desejada já estiver sincronizada nos três arquivos, pule os passos 1 e 2. A atualização do número não cria uma tag nem uma Release.
+A versão atual é 0.2.7. Se a versão seguinte desejada já estiver sincronizada nos três arquivos, pule os passos 1 e 2. A atualização do número não cria uma tag nem uma Release.
 
-1. Altere `version` em `app/appinfo.json` para `0.2.7`. Use três inteiros, sem zeros à esquerda ou sufixos (`-beta`, `+build`), com até nove dígitos por componente, conforme o formato webOS.
+1. Altere `version` em `app/appinfo.json` para `0.2.8`. Use três inteiros, sem zeros à esquerda ou sufixos (`-beta`, `+build`), com até nove dígitos por componente, conforme o formato webOS.
 2. Atualize os metadados npm, sem criar tag automaticamente:
 
    ```bash
-   npm version 0.2.7 --no-git-tag-version
+   npm version 0.2.8 --no-git-tag-version
    ```
 
 3. Valide e teste localmente:
@@ -176,7 +178,7 @@ A versão atual é 0.2.6. Se a versão seguinte desejada já estiver sincronizad
    ```bash
    npm ci
 npm ci --prefix service --omit=dev --ignore-scripts
-   npm run validate -- --tag v0.2.7
+   npm run validate -- --tag v0.2.8
    npx --no-install playwright install chromium
    npm test
    npm run package
@@ -187,11 +189,11 @@ npm ci --prefix service --omit=dev --ignore-scripts
 
    ```bash
    git push origin main
-   git tag -a v0.2.7 -m 'KickTV v0.2.7'
-   git push origin v0.2.7
+   git tag -a v0.2.8 -m 'KickTV v0.2.8'
+   git push origin v0.2.8
    ```
 
-A tag deve apontar para o commit com `appinfo.json`, `package.json` e as duas entradas de versão do `package-lock.json` sincronizados. Não há alteração automática da versão pelo workflow. Tags como `v1`, `v0.2.7-beta` ou uma tag divergente disparam o filtro `v*`, mas falham na validação antes de publicar. O fluxo atual publica somente versões estáveis no formato `vX.Y.Z`.
+A tag deve apontar para o commit com `appinfo.json`, `package.json` e as duas entradas de versão do `package-lock.json` sincronizados. Não há alteração automática da versão pelo workflow. Tags como `v1`, `v0.2.8-beta` ou uma tag divergente disparam o filtro `v*`, mas falham na validação antes de publicar. O fluxo atual publica somente versões estáveis no formato `vX.Y.Z`.
 
 ### Acompanhar e baixar
 

@@ -1,5 +1,6 @@
 'use strict';
 const {VERSION}=require('./config');
+const MAX_TIMER_DELAY_MS=2**31-1;
 const object=v=>v!==null && typeof v==='object' && !Array.isArray(v);
 class Protocol {
   constructor({send,metrics,notify,onPublication,onDisconnect,timeout=8000}) {
@@ -10,7 +11,6 @@ class Protocol {
   command(kind,data,phase) {
     if(!['connect','subscribe','unsubscribe'].includes(kind)||this.closed||this.pending.size>=2)return Promise.reject(new Error('command_not_allowed'));
     if((kind==='connect'&&(this.connected||this.pending.size))||(kind==='subscribe'&&(!this.connected||this.subscribed||this.pending.size)))return Promise.reject(new Error('invalid_protocol_state'));
-    if(this.next>=6)return Promise.reject(new Error('command_budget'));
     const id=++this.next;
     return new Promise((resolve,reject)=>{
       const timer=setTimeout(()=>{this.pending.delete(id);reject(new Error('command_timeout'));},this.timeout);
@@ -28,8 +28,14 @@ class Protocol {
       this.pingSeconds=ping;
       this.heartbeat=setInterval(()=>{if(Date.now()-this.lastSeen>(ping+10)*1000)this.onDisconnect('heartbeat_timeout');},1000);
     }
-    if(result.expires)this.expiry=setTimeout(()=>this.onDisconnect('lease_ending_no_refresh'),Math.min(ttl-5,3600)*1000);
+    if(result.expires)this.scheduleExpiry(Date.now()+(ttl-5)*1000);
     this.notify('protocol_connected',{server_version:typeof result.version==='string'&&/^[0-9. PRO-]{1,32}$/.test(result.version)?result.version:null,ping_seconds:this.pingSeconds||null,pong_required:this.pong,ttl_seconds:Number.isFinite(ttl)?ttl:null});
+  }
+  scheduleExpiry(deadline) {
+    const remaining=deadline-Date.now();
+    if(remaining<=0){this.expiry=null;this.onDisconnect('lease_ending_no_refresh');return;}
+    // Longer leases need multiple timers to stay within Node's maximum delay.
+    this.expiry=setTimeout(()=>this.scheduleExpiry(deadline),Math.min(Math.ceil(remaining),MAX_TIMER_DELAY_MS));
   }
   async connect(token){await this.command('connect',{token,name:'kicktv-chatprobe',version:VERSION},'D');if(this.closed)throw new Error('cancelled');}
   async subscribe(channel){

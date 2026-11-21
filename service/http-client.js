@@ -2,12 +2,11 @@
 const https = require('https');
 const { AGENT, destination } = require('./config');
 class HttpClient {
-  constructor(metrics, transport = https, channel = null) { this.channel = channel; this.metrics = metrics; this.transport = transport; this.agent = new https.Agent({keepAlive:true, maxSockets:1, maxFreeSockets:1, timeout:10000}); this.active = new Set(); this.cancelled = false; this.count = 0; }
+  constructor(metrics, transport = https, channel = null) { this.channel = channel; this.metrics = metrics; this.transport = transport; this.agent = new https.Agent({keepAlive:true, maxSockets:1, maxFreeSockets:1, timeout:10000}); this.active = new Set(); this.cancelled = false; }
   request(value, body, phase, redirects = 0) {
     if (this.cancelled) return Promise.reject(new Error('cancelled'));
     let u;
     try { u = destination(value, 'https', this.channel); } catch (e) { return Promise.reject(e); }
-    if (++this.count > 5) return Promise.reject(new Error('http_budget'));
     const bytes = body === undefined ? null : Buffer.from(JSON.stringify(body));
     const record = { phase, endpoint: u.origin + u.pathname, method: bytes ? 'POST' : 'GET', status: null, response_bytes: 0, request_body_bytes: bytes ? bytes.length : 0 };
     this.metrics.http.push(record); this.metrics.add(phase, 'http_requests'); this.metrics.add(phase, 'http_body_tx', record.request_body_bytes);
