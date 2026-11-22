@@ -29,19 +29,46 @@ test('late samples after hide and pagehide cannot render or restart',async()=>{c
 test('rapid toggle and channel changes coalesce without duplicate start or stealing focus',async()=>{const {page}=await setup();try{await watch(page);await page.evaluate(()=>{for(let i=0;i<20;i++){KickChatUI.toggle();KickChatUI.hide();}KickChatUI.toggle();});await page.waitForFunction(()=>KickChatUI.snapshot().state==='Connected');assert.equal(await starts(page),1);}finally{await page.close();}});
 test('fatal HLS error closes chat without starting another session',async()=>{const {page}=await setup();try{await watch(page);await enable(page);await page.locator('video').evaluate(v=>{Object.defineProperty(v,'error',{value:{code:3}});v.dispatchEvent(new Event('error'));});await page.waitForFunction(()=>KickChatUI.snapshot().state==='Closed');assert.equal(await starts(page),1);assert.equal(await page.locator('video').count(),0);assert.equal(await page.evaluate(()=>KickChatUI.snapshot().consumer),false);}finally{await page.close();}});
 test('actual form channel change follows exit policy and requires explicit re-enable',async()=>{const {page}=await setup();try{await watch(page,'yoda');await enable(page);await page.keyboard.press('Escape');await page.waitForFunction(()=>!KickChatUI.visible());await page.keyboard.press('Escape');await page.waitForFunction(()=>!document.getElementById('home').hidden);await watch(page,'newchannel');assert.equal(await starts(page),1);await enable(page);assert.equal(await starts(page),2);assert.equal(await page.evaluate(()=>fixture.calls.filter(c=>c.method==='start').at(-1).parameters.channel),'newchannel');}finally{await page.close();}});
-test('mixed text, Unicode and native images preserve FIFO, release references and keep HLS intact',async()=>{const {page}=await setup();try{
+test('mixed text, Unicode and CSS emotes preserve FIFO, release references and keep HLS intact',async()=>{const {page}=await setup();try{
  await page.route('https://files.kick.com/emotes/**',r=>r.fulfill({contentType:'image/gif',body:Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7','base64')}));
  await watch(page);await enable(page);await page.evaluate(()=>{window.videoBefore=document.querySelector('video');window.loadsBefore=videoBefore.loads;fixture.emit('samples',Array.from({length:150},(_,i)=>({user:'synthetic',text:i%3===0?'plain':i%3===1?'🔥👨‍👩‍👧‍👦':'[emote:1:fixture][emote:2:fixture]'})));});
- await page.waitForFunction(()=>fixture.delivery.counts.confirmed===150&&KickEmotes.snapshot().counts.loaded===100);
+ await page.waitForFunction(()=>{
+  const tiles=document.querySelectorAll('#chat-messages .chat-emote-lazy-css');
+  return fixture.delivery.counts.confirmed===150&&KickEmotes.snapshot().counts.lazy_css_ready===2&&
+   tiles.length===40&&document.querySelectorAll('#chat-messages img').length===0;
+ });
  assert.deepEqual(await page.locator('.chat-row').evaluateAll(rows=>rows.map(r=>Number(r.dataset.deliverySeq))),Array.from({length:60},(_,i)=>91+i));
  assert.equal(await page.evaluate(()=>document.querySelector('video')===videoBefore&&videoBefore.loads===loadsBefore),true);
  assert.equal(await page.evaluate(()=>KickChatUI.snapshot().discarded),0);
  await page.evaluate(()=>KickChatUI.hide());await page.waitForFunction(()=>KickChatUI.snapshot().state==='Closed');
- assert.deepEqual(await page.evaluate(()=>({refs:KickEmotes.snapshot().active_references,ids:KickEmotes.snapshot().known_ids,images:KickEmotes.snapshot().counts.dom_images})),{refs:0,ids:0,images:0});
+ assert.deepEqual(await page.evaluate(()=>({ids:KickEmotes.snapshot().known_ids,images:KickEmotes.snapshot().counts.lazy_css_dom_emotes})),{ids:0,images:0});
  }finally{await page.close();}});
 test('lost Luna DOM ACK recovers by retransmission with one visible copy',async()=>{const {page}=await setup();try{await watch(page);await enable(page);await page.evaluate(()=>{fixture.dropACK=true;fixture.emit('samples',Array.from({length:5},()=>({user:'synthetic',text:'synthetic'})));});await page.waitForFunction(()=>KickChatUI.snapshot().presented===5);assert.equal(await page.evaluate(()=>fixture.delivery.counts.confirmed),0);await page.evaluate(()=>{fixture.dropACK=false;fixture.delivery.flight.at-=2001;fixture.delivery.lastFlush=-Infinity;fixture.delivery.flush();});await page.waitForFunction(()=>fixture.delivery.counts.confirmed===5);assert.equal(await page.locator('.chat-row').count(),5);assert.equal(await page.evaluate(()=>KickChatUI.snapshot().delivery.counts.duplicates_suppressed),5);}finally{await page.close();}});
 test('local Luna recovery drains the same session without a second chat start',async()=>{const {page}=await setup();try{await watch(page);await enable(page);await page.evaluate(()=>{fixture.emit('samples',Array.from({length:20},()=>({user:'synthetic',text:'pending'})));fixture.failConsumer();});await page.waitForFunction(()=>fixture.delivery.counts.confirmed===20);assert.equal(await starts(page),1);assert.equal(await page.evaluate(()=>fixture.calls.filter(c=>c.method==='events').length),2);assert.equal(await page.locator('.chat-row').count(),20);assert.equal(await page.evaluate(()=>fixture.delivery.closed),true);}finally{await page.close();}});
-test('hiding during a burst drains admitted messages before closing the consumer',async()=>{const {page}=await setup();try{await watch(page);await enable(page);await page.evaluate(()=>{fixture.emit('samples',Array.from({length:100},()=>({user:'synthetic',text:'pending'})));KickChatUI.hide();});await page.waitForFunction(()=>KickChatUI.snapshot().state==='Closed');assert.deepEqual(await page.evaluate(()=>({confirmed:fixture.delivery.counts.confirmed,discarded:fixture.delivery.counts.discarded,queue:fixture.delivery.queue.length,refs:KickEmotes.snapshot().active_references})),{confirmed:100,discarded:0,queue:0,refs:0});assert.equal(await page.locator('.chat-row').count(),0);}finally{await page.close();}});
+test('hiding during a burst drains admitted messages before closing the consumer',async()=>{const {page}=await setup();try{await watch(page);await enable(page);await page.evaluate(()=>{fixture.emit('samples',Array.from({length:100},()=>({user:'synthetic',text:'pending'})));KickChatUI.hide();});await page.waitForFunction(()=>KickChatUI.snapshot().state==='Closed');assert.deepEqual(await page.evaluate(()=>({confirmed:fixture.delivery.counts.confirmed,discarded:fixture.delivery.counts.discarded,queue:fixture.delivery.queue.length,ids:KickEmotes.snapshot().known_ids})),{confirmed:100,discarded:0,queue:0,ids:0});assert.equal(await page.locator('.chat-row').count(),0);}finally{await page.close();}});
+
+test('chat yields between batches and drains via the timer when animation frames stall', async () => {
+ const {page}=await setup();
+ try {
+  await watch(page);
+  await enable(page);
+  await page.evaluate(() => {
+   window.requestAnimationFrame = () => 0;
+   fixture.emit('samples', Array.from({length:160}, () => ({user:'fixture',text:'pending'})));
+  });
+  await page.waitForFunction(() => fixture.delivery.counts.confirmed === 160, null, {polling:20});
+  const chat = await page.evaluate(() => KickChatUI.snapshot());
+  assert.equal(chat.presented, 160);
+  assert.equal(chat.queue, 0);
+  assert.ok(chat.batches >= 3);
+  assert.ok(chat.delivery.h.render_batch_items.max <= 64);
+  assert.equal(chat.delivery.h.render_timer_late_ms.n, chat.batches);
+  assert.equal(chat.delivery.h.render_frame_wait_ms.n, 0);
+  assert.equal(chat.delivery.h.render_prepare_ms.n, chat.batches);
+  assert.equal(chat.delivery.h.render_append_ms.n, chat.batches);
+  assert.equal(chat.delivery.h.ui_wait_ms.n, 160);
+ } finally { await page.close(); }
+});
 
 test('collector starts the live and chat and emits a batch count without message content',async()=>{
  const {installProbe,startStream,enableChat,chatBound}=require('../../scripts/collector/page.cjs');
@@ -66,10 +93,32 @@ test('collector starts the live and chat and emits a batch count without message
   assert.equal(snapshot.chat.state,'Connected');
   assert.ok(snapshot.first_video_ms>=snapshot.selected_ms);
   assert.ok(snapshot.chat_ready_ms>=snapshot.first_video_ms);
+  await page.evaluate(()=>fixture.failChat());
+  await page.waitForFunction(()=>KickChatUI.snapshot().state==='Error');
   await page.evaluate(()=>fixtureCollector.stop());
+  const terminal=events.find(event=>event.kind==='chat_service_status'&&event.status==='stopped');
+  assert.equal(terminal?.reason,null);
+  assert.equal(terminal?.error,'socket_closed_1006');
   assert.ok(events.some(event=>event.kind==='chat_batch'&&event.dom_inserted===1));
   assert.ok(!JSON.stringify(events).includes('hidden-'));
   assert.equal(await page.evaluate(()=>typeof window.fixtureCollector),'undefined');
   await cdp.detach();
  } finally { await page.close(); }
+});
+
+test('Inspector capture clips the chat while producing a valid JPEG',async()=>{
+ const {screenshotClip}=require('../../scripts/collector/screenshots.cjs');
+ const {page}=await setup();
+ try{
+  await watch(page,'baianotv');await enable(page);
+  const clip=await page.evaluate(screenshotClip);
+  const bounds=await page.locator('#chat-panel').boundingBox();
+  assert.ok(clip.width<bounds.x);
+  const cdp=await page.context().newCDPSession(page);
+  const {data}=await cdp.send('Page.captureScreenshot',{format:'jpeg',quality:65,clip});
+  const jpeg=Buffer.from(data,'base64');
+  assert.equal(jpeg.readUInt16BE(0),0xffd8);
+  assert.equal(jpeg.readUInt16BE(jpeg.length-2),0xffd9);
+  await cdp.detach();
+ }finally{await page.close();}
 });

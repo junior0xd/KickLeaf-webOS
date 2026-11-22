@@ -102,8 +102,66 @@
   var resolve,promise=new Promise(function(r){resolve=r;});cache.set(url,{promise:promise,objectURL:null});pending.push(Object.assign(base,{url:url,resolve:resolve,generation:generation,stage:'queue'}));pump();return promise;
  }
  function fallback(img){img.onload=null;img.onerror=null;img.className='chat-badge chat-badge-local chat-badge-fallback';img.src='badge-icons/question.svg';}
- function mount(parent,items){
-  items.forEach(function(item){var img=document.createElement('img');img.className='chat-badge chat-badge-local'+(!item.icon||item.icon==='question'?' chat-badge-fallback':'');img.width=20;img.height=20;img.alt=item.label;img.title=item.label;img.src='badge-icons/'+(item.icon||'question')+'.svg';parent.appendChild(img);counters.rendered++;
+ const cssIcons = new Set();
+ const remoteClasses = new Map();
+ let cssRules, remoteStyle;
+ let effectiveLocal = 0, effectiveRemote = 0;
+ function createStyle() {
+  const style = document.createElement('style');
+  document.head.appendChild(style);
+  return style;
+ }
+ function mountCssTile(parent, item, icon) {
+  const className = 'chat-badge-icon-' + icon;
+  if (!cssRules) cssRules = createStyle().sheet;
+  if (!cssIcons.has(icon)) {
+   cssRules.insertRule('.' + className + '{background-image:url("badge-icons/' + icon + '.svg")}', cssRules.cssRules.length);
+   cssIcons.add(icon);
+  }
+  const badge = document.createElement('span');
+  badge.className = 'chat-badge chat-badge-local chat-badge-css ' + className + (icon === 'question' ? ' chat-badge-fallback' : '');
+  badge.setAttribute('role', 'img');
+  badge.setAttribute('aria-label', item.label);
+  badge.title = item.label;
+  parent.appendChild(badge);
+  return badge;
+ }
+ function mountLocalCss(parent, item) {
+  mountCssTile(parent, item, item.icon || 'question');
+  counters.rendered++;
+  if (item.kind === 'legacy') counters.legacy_rendered++;
+  else counters.local_v2_rendered++;
+ }
+ function mountRemoteCss(parent, item) {
+  const badge = mountCssTile(parent, item, 'question');
+  counters.rendered++;
+  counters.v2_slots++;
+  const ticket = generation;
+  imageURL(item.url).then(url => {
+   if (!url || ticket !== generation || !badge.isConnected) return;
+   let className = remoteClasses.get(url);
+   if (!className) {
+    if (!remoteStyle) remoteStyle = createStyle();
+    const sheet = remoteStyle.sheet;
+    className = 'chat-badge-remote-' + sheet.cssRules.length;
+    sheet.insertRule('.' + className + '{background-image:url("' + url + '")}', sheet.cssRules.length);
+    remoteClasses.set(url, className);
+   }
+   badge.className = 'chat-badge chat-badge-css ' + className;
+   effectiveRemote++;
+  });
+ }
+ function mount(parent,items,mode){
+  let local = 0;
+  items.forEach(function(item){
+   const isLocal = item.kind==='legacy'||item.kind==='v2-local';
+   if(isLocal&&item.icon&&item.icon!=='question')local++;
+   if(mode==='css'){
+    if(isLocal)mountLocalCss(parent,item);
+    else mountRemoteCss(parent,item);
+    return;
+   }
+   var img=document.createElement('img');img.className='chat-badge chat-badge-local'+(!item.icon||item.icon==='question'?' chat-badge-fallback':'');img.width=20;img.height=20;img.alt=item.label;img.title=item.label;img.src='badge-icons/'+(item.icon||'question')+'.svg';parent.appendChild(img);counters.rendered++;
    if(item.kind==='legacy'){counters.legacy_rendered++;return;}if(item.kind==='v2-local'){counters.local_v2_rendered++;return;}counters.v2_slots++;var ticket=generation,slot={id:urlID(item.url),stage:'association',started:performance.now(),total:0,requestState:'awaiting_shared_image',settled:false,img:img,cancelTimer:null};slots.add(slot);
    function finish(code,expected){if(slot.settled)return;slot.settled=true;if(slot.cancelTimer)slot.cancelTimer();slots.delete(slot);img.onload=null;img.onerror=null;if(code)report(slot,code,expected);}
    slot.cancel=function(){finish('cleanup_cancelled',true);};
@@ -111,11 +169,12 @@
     if(slot.settled)return;if(ticket!==generation){finish('cleanup_cancelled',true);return;}if(!img.isConnected){finish('row_removed',true);return;}
     if(!url){finish(null,false);return;}
     slot.requestState='binding';img.className='chat-badge';slot.cancelTimer=timer(function(){finish(ticket!==generation?'cleanup_cancelled':!img.isConnected?'row_removed':'association_timeout',ticket!==generation||!img.isConnected);fallback(img);},2000);
-    img.onload=function(){if(!img.isConnected){finish('row_removed',true);return;}if(ticket!==generation){finish('cleanup_cancelled',true);return;}if(img.naturalWidth>0){counters.image_slots_loaded++;finish('element_loaded',false);}else{finish('association_failed',false);fallback(img);}};
+    img.onload=function(){if(!img.isConnected){finish('row_removed',true);return;}if(ticket!==generation){finish('cleanup_cancelled',true);return;}if(img.naturalWidth>0){counters.image_slots_loaded++;effectiveRemote++;finish('element_loaded',false);}else{finish('association_failed',false);fallback(img);}};
     img.onerror=function(){finish('association_failed',false);fallback(img);};img.src=url;
    });
   });
+  return local;
  }
- function clear(){generation++;slots.forEach(function(s){s.cancel();});controllers.forEach(function(c){c.abort();});pending.splice(0).forEach(function(t){report(t,'cleanup_cancelled',true);t.resolve(null);});cache.forEach(function(e){revoke(e.objectURL);});cache.clear();bytes=0;}
- window.KickBadges={select:select,mount:mount,clear:clear,snapshot:function(){return {diagnostics:{sequence:diagnosticSequence,counts:Object.assign({},diagnosticCounts),events:diagnosticEvents.slice(),outcomes:Object.assign({},outcomes)},resources:{object_urls:objectURLs.size,timers:timerCount,slots:slots.size},counts:Object.assign({},counters),distribution:Object.assign({},distribution),legacy_distribution:Object.assign({},legacyDistribution),v2_distribution:Object.assign({},v2Distribution),selected_distribution:Object.assign({},selectedDistribution),known:Object.assign({},known),unknown:Object.assign({},unknown),cache_entries:cache.size,cache_bytes:bytes,active:active,pending:pending.length,controllers:controllers.size};}};
+ function clear(){generation++;remoteStyle?.remove();remoteStyle=null;remoteClasses.clear();slots.forEach(function(s){s.cancel();});controllers.forEach(function(c){c.abort();});pending.splice(0).forEach(function(t){report(t,'cleanup_cancelled',true);t.resolve(null);});cache.forEach(function(e){revoke(e.objectURL);});cache.clear();bytes=0;}
+ window.KickBadges={select:select,mount:mount,clear:clear,noteLocal:function(count){effectiveLocal+=count;},snapshot:function(){return {diagnostics:{sequence:diagnosticSequence,counts:Object.assign({},diagnosticCounts),events:diagnosticEvents.slice(),outcomes:Object.assign({},outcomes)},resources:{object_urls:objectURLs.size,timers:timerCount,slots:slots.size},counts:Object.assign({},counters,{effective_local:effectiveLocal,effective_remote:effectiveRemote}),distribution:Object.assign({},distribution),legacy_distribution:Object.assign({},legacyDistribution),v2_distribution:Object.assign({},v2Distribution),selected_distribution:Object.assign({},selectedDistribution),known:Object.assign({},known),unknown:Object.assign({},unknown),cache_entries:cache.size,cache_bytes:bytes,active:active,pending:pending.length,controllers:controllers.size};}};
 })();

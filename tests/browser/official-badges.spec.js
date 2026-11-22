@@ -1,5 +1,53 @@
 const {test,expect}=require('@playwright/test');
 const {badgeSet}=require('../../service/badges');
+
+
+test('remote CSS counts validated badges on attached rows and reuses the rule', async ({page}) => {
+ const url = 'https://files.kick.com/synthetic-badge.png';
+ await page.route(url, route => route.fulfill({
+  body: Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7','base64'),
+  contentType: 'image/gif',
+  headers: {'access-control-allow-origin':'*'}
+ }));
+ await page.goto('/native-hls.html');
+ await page.evaluate(url => {
+  const row = document.createElement('div');
+  row.id = 'remote-badge-css-test';
+  const badge = {kind:'v2',url,label:'Distintivo remoto'};
+  KickBadges.mount(row, [badge, badge], 'css');
+  document.body.appendChild(row);
+  KickBadges.mount(document.createElement('div'), [badge], 'css');
+ }, url);
+ const badges = page.locator('#remote-badge-css-test .chat-badge-remote-0');
+ await expect(badges).toHaveCount(2);
+ await expect(badges.first()).toHaveCSS('background-image', /^url\("blob:/);
+ const counts = await page.evaluate(() => KickBadges.snapshot().counts);
+ expect(counts.effective_remote).toBe(2);
+ expect(counts.requests).toBe(1);
+ await page.evaluate(() => KickBadges.clear());
+ await expect(badges.first()).toHaveCSS('background-image', 'none');
+});
+
+test('local CSS badges reuse one rule and preserve the icon and accessible label', async ({page}) => {
+ await page.goto('/native-hls.html');
+ await page.evaluate(() => {
+  const row = document.createElement('div');
+  row.id = 'badge-css-test';
+  document.body.appendChild(row);
+  const badge = {kind:'legacy',icon:'ModeratorBadge',label:'Moderador'};
+  KickBadges.mount(row, [badge, badge], 'css');
+  KickBadges.mount(row, [badge]);
+ });
+ const row = page.locator('#badge-css-test');
+ const cssBadges = row.locator('span[role=img][aria-label=Moderador]');
+ await expect(cssBadges).toHaveCount(2);
+ await expect(cssBadges.first()).toHaveCSS('background-image', /badge-icons\/ModeratorBadge\.svg/);
+ await expect(cssBadges.first()).toHaveCSS('width', '20px');
+ await expect(row.locator('img[alt=Moderador]')).toHaveCount(1);
+ const rules = await page.evaluate(() => Array.from(document.styleSheets)
+  .flatMap(sheet => Array.from(sheet.cssRules)).filter(rule => rule.selectorText === '.chat-badge-icon-ModeratorBadge').length);
+ expect(rules).toBe(1);
+});
 test('official local badges decode at chat size without CDN requests',async({page})=>{
  const external=[];await page.route(/^https?:\/\/(?:files|ext\.cdn)\.kick\.com\//,r=>{external.push(r.request().url());return r.abort();});
  await page.goto('/native-hls.html');

@@ -1,4 +1,5 @@
 """Confere o IPK sem extrair arquivos: conteúdo permitido, versão e bytes do app."""
+import hashlib
 import io
 import json
 from pathlib import Path
@@ -7,7 +8,7 @@ import sys
 import tarfile
 
 
-def verify(package, root):
+def verify(package, root, hashes=False):
     manifest = json.loads((root / 'app/appinfo.json').read_text())
     config = json.loads((root / 'packaging.json').read_text())
     files = config['files']
@@ -20,6 +21,8 @@ def verify(package, root):
     expected_name = f"{manifest['id']}_{manifest['version']}_all.ipk"
     if package.name != expected_name:
         raise ValueError(f'Nome inesperado do pacote: esperado {expected_name}')
+    if not package.is_file():
+        raise ValueError(f'IPK ausente: {package}')
     members = subprocess.check_output(['ar', 't', str(package)]).decode().splitlines()
     if sorted(members) != ['control.tar.gz', 'data.tar.gz', 'debian-binary']:
         raise ValueError('Membros inesperados no arquivo IPK.')
@@ -66,14 +69,17 @@ def verify(package, root):
         fields = dict(line.split(': ', 1) for line in control.extractfile(entries[0]).read().decode().splitlines() if ': ' in line)
         if fields.get('Package') != manifest['id'] or fields.get('Version') != manifest['version'] or fields.get('Architecture') != 'all':
             raise ValueError('Identidade, versão ou arquitetura divergem no control do IPK.')
-    print(f'IPK conferido: {len(files)} arquivos de execução; versão {manifest["version"]}.')
+    if hashes:
+        print(json.dumps({name: hashlib.sha256(data).hexdigest() for name, data in actual.items()}, sort_keys=True))
+    else:
+        print(f'IPK conferido: {len(files)} arquivos de execução; versão {manifest["version"]}.')
 
 
 if __name__ == '__main__':
     try:
-        if len(sys.argv) != 2:
-            raise ValueError('Uso: python3 scripts/verify-package.py arquivo.ipk')
-        verify(Path(sys.argv[1]).resolve(), Path(__file__).resolve().parents[1])
+        if len(sys.argv) != 2 and not (len(sys.argv) == 3 and sys.argv[2] == '--hashes'):
+            raise ValueError('Uso: python3 scripts/verify-package.py arquivo.ipk [--hashes]')
+        verify(Path(sys.argv[1]).resolve(), Path(__file__).resolve().parents[1], hashes=len(sys.argv) == 3)
     except (ValueError, OSError, KeyError, tarfile.TarError, subprocess.CalledProcessError) as error:
         print(f'Falha na validação do IPK: {error}', file=sys.stderr)
         sys.exit(1)

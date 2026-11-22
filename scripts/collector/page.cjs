@@ -1,7 +1,7 @@
 'use strict';
 
 // These functions are serialized and evaluated in the KickTV document.
-function installProbe(key, binding) {
+function installProbe(key, binding, rafWindowMs = 1000, fastMs = 5000) {
   if (window[key]) return true;
   if (!window.KickNativeDiagnostics || !window.KickChatUI) return false;
   const home = document.getElementById('home');
@@ -11,6 +11,10 @@ function installProbe(key, binding) {
   const chatRows = document.getElementById('chat-messages');
   if (!home || !input || !host || !chatLabel || !chatRows) return false;
 
+  let playbackMode = 'direct-hls';
+  try {
+    if (JSON.parse(window.PalmSystem?.launchParams || '{}').mode === 'native-hls') playbackMode = 'native-hls';
+  } catch { /* KickTV falls back to Direct HLS. */ }
   const buffered = [];
   const unsubscribe = [];
   let dropped = 0;
@@ -21,11 +25,15 @@ function installProbe(key, binding) {
   let stream = 0;
   let video = null;
   let chatState;
+  let serviceState;
   let chatBatch = 0;
+  let chatBatchStart;
   let chatTimer;
   let frameRequest;
   let frameTimeout;
-  let renderFps = null;
+  let frameWindow = null;
+  let nextFrameWindow = 0;
+  let taskCursor = null;
   let probeTimeout;
 
   function emit(kind, fields = {}) {
@@ -79,10 +87,27 @@ function installProbe(key, binding) {
   };
   function readChatState() {
     const next = chatStates[chatLabel.textContent] ?? 'Unknown';
-    if (next === chatState) return;
-    chatState = next;
-    if (next === 'Connected') chatReady ??= performance.now();
-    emit('chat_state', { state: next });
+    const changed = next !== chatState;
+    if (changed) {
+      chatState = next;
+      if (next === 'Connected') chatReady ??= performance.now();
+      emit('chat_state', { state: next });
+    }
+    if (['Closing', 'Closed', 'Error'].includes(next)) {
+      const last = window.KickChatUI.snapshot().last;
+      if (!last) return;
+      const state = {
+        status: last.status ?? null, reason: last.reason ?? null, error: last.error ?? null,
+        socket: last.resources?.socket ?? null
+      };
+      const serialized = JSON.stringify(state);
+      if (serialized !== serviceState) {
+        serviceState = serialized;
+        emit('chat_service_status', state);
+      }
+    } else if (changed) {
+      serviceState = undefined;
+    }
   }
   const chatObserver = new MutationObserver(readChatState);
   chatObserver.observe(chatLabel, { childList: true, characterData: true, subtree: true });
@@ -90,38 +115,57 @@ function installProbe(key, binding) {
   function flushChat() {
     clearTimeout(chatTimer);
     chatTimer = undefined;
-    if (chatBatch) emit('chat_batch', { dom_inserted: chatBatch });
+    if (chatBatch) emit('chat_batch', { dom_inserted: chatBatch, start_ms: chatBatchStart });
     chatBatch = 0;
   }
   const rowObserver = new MutationObserver(records => {
+    if (!chatBatch) chatBatchStart = performance.now();
     for (const record of records) chatBatch += record.addedNodes.length;
     if (chatBatch && chatTimer === undefined) chatTimer = setTimeout(flushChat, 1000);
   });
   rowObserver.observe(chatRows, { childList: true });
 
-  // Observe animation cadence for a short burst between reads.
+  // Only collect callbacks inside bounded foreground bursts.
   function measureFrames() {
-    if (frameTimeout !== undefined || !window.requestAnimationFrame || document.hidden) return;
+    const started = performance.now();
+    if (!rafWindowMs || frameTimeout !== undefined || !window.requestAnimationFrame ||
+        document.hidden || started + 50 < nextFrameWindow) return;
+    nextFrameWindow = started + Math.max(fastMs, rafWindowMs * 5);
     let first;
     let last;
-    let count = 0;
+    const intervals = [];
     function tick(time) {
+      if (time > started + rafWindowMs || document.hidden) return;
       first ??= time;
+      if (last !== undefined) intervals.push(time - last);
       last = time;
-      count++;
       frameRequest = requestAnimationFrame(tick);
     }
     frameRequest = requestAnimationFrame(tick);
     frameTimeout = setTimeout(() => {
       cancelAnimationFrame(frameRequest);
       frameTimeout = undefined;
-      renderFps = !document.hidden && count > 1 && last > first ? (count - 1) * 1000 / (last - first) : null;
-    }, 450);
+      frameWindow = document.hidden ? null : {
+        start_ms: first ?? started, end_ms: last ?? started, requested_ms: rafWindowMs,
+        intervals_ms: intervals
+      };
+    }, rafWindowMs);
+  }
+
+  function drainTasks() {
+    const tasks = window.KickJointDiagnostics?.longTasksSince?.(taskCursor ?? 0);
+    if (!tasks) return null;
+    if (taskCursor !== null) {
+      if (tasks.lost) emit('eventos_perdidos', { count: tasks.lost, source: 'long_task' });
+      for (const task of tasks.events) emit('long_task', { tv_ms: task.tv_ms, duration_ms: task.duration_ms });
+    }
+    taskCursor = tasks.cursor;
+    return true;
   }
 
   function armCleanup() {
     clearTimeout(probeTimeout);
-    probeTimeout = setTimeout(() => window[key]?.stop(), 25_000);
+    probeTimeout = setTimeout(() => window[key]?.stop(), Math.max(25_000, fastMs * 3));
   }
 
   window[key] = {
@@ -133,12 +177,16 @@ function installProbe(key, binding) {
       else if (!channel) {
         try { channel = window.KickChannel.normalizeChannel(input.value); } catch { /* No selected channel yet. */ }
       }
-      const fps = renderFps;
+      const windowSample = frameWindow;
+      frameWindow = null;
+      const fps = windowSample?.end_ms > windowSample?.start_ms
+        ? windowSample.intervals_ms.length * 1000 / (windowSample.end_ms - windowSample.start_ms) : null;
+      const longTaskEvents = drainTasks();
       if (measure && p) measureFrames();
       const gaps = dropped;
       dropped = 0;
       return {
-        page: performance.timeOrigin, stream, channel, tv_ms: performance.now(), home: !home.hidden,
+        page: performance.timeOrigin, stream, channel, playback_mode: playbackMode, tv_ms: performance.now(), home: !home.hidden,
         home_message: !home.hidden ? document.getElementById('message')?.textContent : null,
         selected_ms: selected, first_video_ms: firstVideo, chat_ready_ms: chatReady,
         player: p && {
@@ -150,7 +198,7 @@ function installProbe(key, binding) {
           effective_bitrate: null, absolute_latency_seconds: null, width: p.width, height: p.height,
           total_frames: p.total_frames, dropped_frames: p.dropped_frames, reported_fps: p.observed_presented_fps
         },
-        ui: { raf_fps: fps, js_heap_used_bytes: performance.memory?.usedJSHeapSize ?? null },
+        ui: { raf_fps: fps, raf_window: windowSample, long_task_events: longTaskEvents, js_heap_used_bytes: performance.memory?.usedJSHeapSize ?? null },
         chat: { state: chatState, enabled: window.KickChatUI.visible() },
         events: buffered.splice(0), dropped_events: gaps
       };
@@ -164,6 +212,7 @@ function installProbe(key, binding) {
       if (frameRequest !== undefined) cancelAnimationFrame(frameRequest);
       clearTimeout(frameTimeout);
       flushChat();
+      drainTasks();
       delete window[key];
       return buffered.splice(0);
     }
@@ -200,14 +249,32 @@ async function readSlow(serviceUri) {
   const chat = j.chat;
   const result = {
     page: performance.timeOrigin,
+    tv_ms: j.monotonic_ms,
     ui: j.ui,
     chat: {
       session: chat.session_id, state: chat.state, presented: chat.presented,
       received: chat.received, dom_rows: chat.dom_rows, batches: chat.batches,
       render_ms_total: chat.render_ms_total, render_ms_max: chat.render_ms_max,
       counts: chat.delivery?.counts, queue: chat.delivery?.queue,
+      oldest_age_ms: chat.delivery?.oldest_age_ms,
       render_batch_ms: chat.delivery?.h?.render_batch_ms,
-      emotes: chat.images?.counts, badges: chat.badges?.counts
+      latency: {
+        service_offered_ui_received_ms: chat.delivery?.h?.bridge_ms,
+        ui_received_dom_ms: chat.delivery?.h?.ui_wait_ms,
+        render_prepare_ms: chat.delivery?.h?.render_prepare_ms,
+        render_append_ms: chat.delivery?.h?.render_append_ms,
+        emote_mount_ms: chat.delivery?.h?.emote_mount_ms,
+        prune_ms: chat.delivery?.h?.prune_ms,
+        scroll_read_ms: chat.delivery?.h?.scroll_read_ms,
+        scroll_write_ms: chat.delivery?.h?.scroll_write_ms,
+        render_frame_wait_ms: chat.delivery?.h?.render_frame_wait_ms,
+        render_timer_late_ms: chat.delivery?.h?.render_timer_late_ms
+      },
+      render_batch_items: chat.delivery?.h?.render_batch_items,
+      emotes: chat.images?.counts, badges: chat.badges?.counts,
+      emote_images: chat.images?.counts?.lazy_css_dom_emotes,
+      emote_entries: chat.images?.known_ids,
+      badge_entries: chat.badges?.cache_entries
     },
     service: null, service_status: 'not_requested'
   };
@@ -230,11 +297,24 @@ async function readSlow(serviceUri) {
   result.version = c.version;
   result.service = s && {
     version: c.version, runtime: c.supported_runtime,
-    instance: c.instance, session: c.snapshot.session_id, status: s.status,
+    instance: c.instance, session: c.snapshot.session_id, status: s.status, renewal: s.renewal,
+    authorization: s.connection_authorization ?? (s.protocol_details ? {
+      ttl_seconds: s.protocol_details.ttl_seconds, active: s.resources.socket,
+      renewal_required: s.resources.socket ? s.resources.lease_timer : null, expires_at_ms: null
+    } : null),
     started_at: s.started_at, reading_at: s.reading_at, ended_at: s.ended_at,
     reason: s.reason, error: s.error, messages: s.messages, duplicates: s.duplicates,
     counts: s.delivery.counts, queue: s.delivery.queue, delivery_state: s.delivery.state,
-    socket: s.resources.socket, memory: s.memory,
+    oldest_age_ms: s.delivery.oldest_age_ms,
+    socket: s.resources.socket, memory: s.memory, load: s.delivery.load,
+    latency: {
+      service_received_normalized_ms: s.delivery.latency?.receive_normalized_ms,
+      service_received_admitted_ms: s.delivery.latency?.receive_admitted_ms,
+      service_admitted_offered_ms: s.delivery.h?.service_wait_ms,
+      service_received_ack_ms: s.delivery.latency?.receive_ack_ms,
+      ui_dom_service_ack_ms: s.delivery.h?.dom_ack_ms,
+      service_flush_timer_late_ms: s.delivery.h?.flush_timer_late_ms
+    },
     network: {
       websocket: {
         dns: s.metrics.network.dns, tls: s.metrics.network.tls,
@@ -251,8 +331,13 @@ async function readSlow(serviceUri) {
   };
   result.history = (reply.history || []).filter(e => [
     'opening_wss', 'protocol_connected', 'subscribed', 'server_disconnect',
-    'closing', 'stopped', 'reading'
-  ].includes(e.kind)).map(({ kind, at, session_id }) => ({ kind, at, session_id }));
+    'closing', 'stopped', 'reading', 'lease_refresh_started', 'lease_refresh_confirmed',
+    'lease_refresh_retry', 'lease_refresh_failed'
+  ].includes(e.kind)).map(({ kind, at, session_id, details }) => ({
+    kind, at, session_id, ...(kind.startsWith('lease_refresh_') ? {
+      attempt: details?.attempt, ttl_seconds: details?.ttl_seconds, code: details?.code, retry_ms: details?.retry_ms
+    } : {})
+  }));
   return result;
 }
 

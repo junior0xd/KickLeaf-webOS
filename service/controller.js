@@ -6,7 +6,7 @@ class Controller {
     Object.assign(this,{makeSession,emit,consumers});this.current=null;this.intent=null;this.chain=Promise.resolve();this.serial=0;
     this.blocked=false;this.totals={sessions:0,starts_requested:0,connections_opened:0,http_requests:0};this.recent=[];
   }
-  snapshot(){return {session_id:this.current?.id||null,session:this.current?this.current.session.snapshot():null,totals:{...this.totals},blocked:this.blocked,recent:this.recent.slice()};}
+  snapshot(detailed=false){return {session_id:this.current?.id||null,session:this.current?this.current.session.snapshot(detailed):null,totals:{...this.totals},blocked:this.blocked,recent:this.recent.slice()};}
   start(p){
     let channel;try{channel=slug(p.channel);if(typeof p.requestId!=='string'||!ID.test(p.requestId))throw Error();}catch(_){return Promise.resolve({returnValue:false,errorText:'invalid_selection'});}
     if(this.blocked)return Promise.resolve({returnValue:false,errorText:'permanent_refusal'});
@@ -22,7 +22,7 @@ class Controller {
           this.totals.connections_opened+=metrics.phases.C?.connections_opened||0;
           this.totals.http_requests+=metrics.http.length;
           this.recent.push({id:current.id,reason:e.snapshot.reason,error:e.snapshot.error,messages:e.snapshot.messages,events:e.snapshot.events});if(this.recent.length>8)this.recent.shift();
-          if(/^(http_(401|403|404|429)|upgrade_http_(401|403|404|429)|centrifugo_|invalid_guest_token)/.test(e.snapshot.error||''))this.blocked=true;
+          if(/^(?:refresh_)?(http_(401|403|404|429)|upgrade_http_(401|403|404|429)|centrifugo_|invalid_guest_token)/.test(e.snapshot.error||''))this.blocked=true;
         }
         return this.emit({...e,session_id:current.id});
       });

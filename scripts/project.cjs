@@ -27,8 +27,10 @@ function readProject(root, tag) {
   }
   const appDir = path.join(root, 'app');
   if (!fs.lstatSync(appDir).isDirectory() || fs.lstatSync(appDir).isSymbolicLink()) throw new Error('app/ deve ser um diretório real.');
+  for (const directory of new Set(files.map(name => path.dirname(name)))) {
+    if (!fs.lstatSync(path.join(appDir, directory)).isDirectory()) throw new Error(`Diretório de execução inválido: ${directory}`);
+  }
   for (const name of files) {
-    if (name.includes('/') && (!fs.lstatSync(path.join(appDir,'badge-icons')).isDirectory() || fs.lstatSync(path.join(appDir,'badge-icons')).isSymbolicLink())) throw new Error('Diretório de badges inválido.');
     if (!fs.lstatSync(path.join(appDir, name)).isFile()) throw new Error(`Arquivo de execução ausente ou não regular: ${name}`);
   }
   if (!Array.isArray(serviceFiles) || !serviceFiles.length || new Set(serviceFiles).size!==serviceFiles.length || serviceFiles.some(n=>typeof n!=='string'||!/^[a-zA-Z0-9_-]+\.(js|json)$/.test(n))) throw new Error('Lista do serviço inválida.');

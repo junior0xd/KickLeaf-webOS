@@ -9,8 +9,10 @@ class Protocol {
     this.pong=false;this.heartbeat=null;this.expiry=null;this.lastSeen=Date.now();
   }
   command(kind,data,phase) {
-    if(!['connect','subscribe','unsubscribe'].includes(kind)||this.closed||this.pending.size>=2)return Promise.reject(new Error('command_not_allowed'));
+    if(!['connect','subscribe','unsubscribe','refresh'].includes(kind)||this.closed||this.pending.size>=2)return Promise.reject(new Error('command_not_allowed'));
     if((kind==='connect'&&(this.connected||this.pending.size))||(kind==='subscribe'&&(!this.connected||this.subscribed||this.pending.size)))return Promise.reject(new Error('invalid_protocol_state'));
+    if(kind==='refresh'&&(!this.connected||!this.subscribed||[...this.pending.values()].some(p=>p.kind==='refresh')))
+      return Promise.reject(new Error('invalid_protocol_state'));
     const id=++this.next;
     return new Promise((resolve,reject)=>{
       const timer=setTimeout(()=>{this.pending.delete(id);reject(new Error('command_timeout'));},this.timeout);
@@ -22,14 +24,28 @@ class Protocol {
   activate(result) {
     const ping=Number(result.ping),ttl=Number(result.ttl);
     if(result.pong===true&&(!Number.isFinite(ping)||ping<=0||ping>300))throw new Error('invalid_heartbeat');
-    if(result.expires&&(!Number.isFinite(ttl)||ttl<=5))throw new Error('invalid_lease');
+    this.updateLease(result);
     this.connected=true;this.pong=result.pong===true;this.lastSeen=Date.now();
     if(Number.isFinite(ping)&&ping>0&&ping<=300){
       this.pingSeconds=ping;
       this.heartbeat=setInterval(()=>{if(Date.now()-this.lastSeen>(ping+10)*1000)this.onDisconnect('heartbeat_timeout');},1000);
     }
-    if(result.expires)this.scheduleExpiry(Date.now()+(ttl-5)*1000);
     this.notify('protocol_connected',{server_version:typeof result.version==='string'&&/^[0-9. PRO-]{1,32}$/.test(result.version)?result.version:null,ping_seconds:this.pingSeconds||null,pong_required:this.pong,ttl_seconds:Number.isFinite(ttl)?ttl:null});
+  }
+  updateLease(result) {
+    const ttl=Number(result.ttl);
+    if((result.expires!==undefined&&typeof result.expires!=='boolean')||
+       (result.expires&&(!Number.isFinite(ttl)||ttl<=5)))throw new Error('invalid_lease');
+    clearTimeout(this.expiry);
+    this.expiry=null;
+    this.leaseTtlSeconds=result.expires?ttl:null;
+    this.leaseExpiresAt=result.expires?Date.now()+ttl*1000:null;
+    this.leaseDeadline=this.leaseExpiresAt===null?null:this.leaseExpiresAt-5000;
+    if(this.leaseDeadline!==null)this.scheduleExpiry(this.leaseDeadline);
+    return this.leaseDeadline===null?null:ttl;
+  }
+  async refresh(token) {
+    return this.command('refresh',{token},'R');
   }
   scheduleExpiry(deadline) {
     const remaining=deadline-Date.now();
@@ -58,7 +74,7 @@ class Protocol {
       if(r.id!==undefined&&r.id!==0){
         if(!Number.isSafeInteger(r.id)||r.id<1)throw new Error('invalid_reply_id');
         const p=this.pending.get(r.id);if(!p)throw new Error('uncorrelated_reply');clearTimeout(p.timer);this.pending.delete(r.id);
-        if(r.error){const code=Number.isInteger(r.error.code)?r.error.code:null;this.notify('protocol_error',{code,temporary:r.error.temporary===true});p.reject(new Error('centrifugo_'+(code===null?'error':code)));continue;}
+        if(r.error){const code=Number.isInteger(r.error.code)?r.error.code:null;this.notify('protocol_error',{code,temporary:r.error.temporary===true});p.reject(Object.assign(new Error('centrifugo_'+(code===null?'error':code)),{temporary:r.error.temporary===true}));continue;}
         if(!object(r[p.kind])){p.reject(new Error('invalid_reply'));continue;}
         try{
           // Apply acknowledgements synchronously: the next line may already be a ping or publication.

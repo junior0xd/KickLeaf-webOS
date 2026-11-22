@@ -1,6 +1,6 @@
 # KickTV Alpha para LG webOS
 
-**Versão 0.2.7 — KickTV Alpha:** o chat respeita o prazo informado pelo servidor e mantém as proteções de memória e fila. As janelas fixas e os orçamentos cumulativos do serviço experimental foram removidos. [Comportamento do chat](docs/CHAT.md).
+**Versão 0.2.8 — KickTV Alpha:** emotes animados e distintivos usam regras CSS compartilhadas. O chat carrega imagens sob demanda e mantém a entrega FIFO com ACK. [Comportamento do chat](docs/CHAT.md).
 
 **Versão 0.2.6 — KickTV Alpha:** distintivos oficiais locais, Founder sólido e Sub Gifter por quantidade. A entrada oferece apenas Assistir; o player oficial permanece no menu do player. ID `com.kicktv.alpha`; pacote `com.kicktv.alpha_0.2.6_all.ipk`. [Notas e validação](docs/RELEASE-v0.2.6.md), [associações dos distintivos](docs/BADGE-ASSETS.md).
 
@@ -76,7 +76,7 @@ npx ares-novacom --device lgc3 --getkey
 Digite a passphrase exibida na TV quando solicitada pela CLI. Não a grave no código. Se `lgc3` já existir, use `--modify` em vez de `--add`. Em seguida:
 
 ```bash
-npx ares-install --device lgc3 dist/releases/com.kicktv.alpha_0.2.7_all.ipk
+npx ares-install --device lgc3 dist/releases/com.kicktv.alpha_0.2.8_all.ipk
 npx ares-launch --device lgc3 com.kicktv.alpha
 ```
 
@@ -142,7 +142,11 @@ node scripts/collect-tv.cjs --device=lgc3 --mode=automatic --streamer=baianotv -
 
 No modo padrão, espere o aviso para abrir o KickTV com o controle e selecione o canal. No modo automático, o script abre o app, seleciona a transmissão e ativa o chat. A coleta começa quando o vídeo avança e, no modo automático, após o chat estar conectado. Se o app já estiver aberto na primeira verificação, o script avisa e encerra.
 
-O coletor registra player e métricas leves a cada 5 s, snapshots detalhados do chat a cada 30 s e eventos em `eventos.jsonl`. A pasta em `coletas/` usa o canal e o horário local do Ubuntu. O script exibe o endereço do Inspector no computador. Com `KICK_API_TOKEN` no ambiente, também consulta os metadados da API oficial da Kick a cada 30 s. Ctrl+C gera um relatório parcial após o início da coleta. Use `node scripts/collect-tv.cjs --summarize CAMINHO_DA_EXECUCAO` para recalcular o resumo.
+Nos dois modos, o coletor primeiro valida o IPK de `dist/releases/` contra o código atual e confere os hashes SHA-256 do app e do serviço instalados na TV. Se o IPK estiver desatualizado, gere outro com `npm run package`. Se a instalação divergir, instale esse IPK antes de repetir. Use `node scripts/collect-tv.cjs --device=lgc3 --check-package` para verificar a instalação sem iniciar a coleta. As novas coletas registram a impressão SHA-256 do conteúdo verificado em `execucao.json`.
+
+O coletor registra player a cada 5 s, diagnóstico detalhado do chat a cada 30 s e eventos em `eventos.jsonl`. A pasta em `coletas/` usa o canal e o horário local do Ubuntu. O script exibe o endereço do Inspector no computador. Ctrl+C gera um relatório parcial após o início da coleta. Use `node scripts/collect-tv.cjs --summarize CAMINHO_DA_EXECUCAO` para recalcular o resumo. Veja [metodologia, limiares e arquivos da telemetria](docs/TELEMETRIA-FASE-2.md).
+
+Veja o [guia de coleta na LG C3](docs/TESTES-DE-CHAT-NA-TV.md) para acompanhar a fila, a renderização e os distintivos no chat real.
 
 ### Suíte automatizada
 
@@ -179,7 +183,7 @@ O job de build tem somente `contents: read`. Apenas o job separado de publicaç�
 
 Exemplo para uma futura `v0.2.8` (os comandos abaixo publicam quando executados; não são executados pela preparação do CI):
 
-A versão atual é 0.2.7. Se a versão seguinte desejada já estiver sincronizada nos três arquivos, pule os passos 1 e 2. A atualização do número não cria uma tag nem uma Release.
+A versão atual é 0.2.8. Se a versão seguinte desejada já estiver sincronizada nos três arquivos, pule os passos 1 e 2. A atualização do número não cria uma tag nem uma Release.
 
 1. Altere `version` em `app/appinfo.json` para `0.2.8`. Use três inteiros, sem zeros à esquerda ou sufixos (`-beta`, `+build`), com até nove dígitos por componente, conforme o formato webOS.
 2. Atualize os metadados npm, sem criar tag automaticamente:

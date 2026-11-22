@@ -2,23 +2,27 @@
 
 const { execFile, spawn } = require('node:child_process');
 const { appendFile, mkdir, mkdtemp, rename, writeFile } = require('node:fs/promises');
-const { randomBytes } = require('node:crypto');
+const { createHash, randomBytes } = require('node:crypto');
 const path = require('node:path');
 const { setTimeout: delay } = require('node:timers/promises');
 const { parseArgs, promisify } = require('node:util');
 
 const APP = 'com.kicktv.alpha';
 const SERVICE = APP + '.service';
+const INSPECTOR_BROWSER_HOST = '192.168.3.8';
 const { version: VERSION } = require('../app/appinfo.json');
 const { installProbe, startStream, enableChat, chatBound, readSlow } = require('./collector/page.cjs');
 const { summarize } = require('./collector/report.cjs');
+const { archive } = require('./collector/archive.cjs');
+const { createScreenshots, screenshotClip } = require('./collector/screenshots.cjs');
+const { readThresholds } = require('./collector/analysis.cjs');
 const FAST_MS = 5_000;
 const SLOW_MS = 30_000;
 const STARTUP_MS = 60_000;
 const WAIT_MS = 2_000;
 const IO_MS = 8_000;
 const exec = promisify(execFile);
-const { KICK_API_TOKEN: apiToken, ...cliEnv } = process.env;
+const { KICK_API_TOKEN: omittedToken, ...cliEnv } = process.env;
 let nextRequestId = 0;
 
 function options(args) {
@@ -28,9 +32,17 @@ function options(args) {
       device: { type: 'string', default: 'lgc3' },
       mode: { type: 'string', default: 'manual' },
       streamer: { type: 'string' },
+      'continue-on-timeout': { type: 'boolean' },
       length: { type: 'string', default: '10' },
       output: { type: 'string', default: 'coletas' },
       summarize: { type: 'string' },
+      'check-package': { type: 'boolean' },
+      'player-interval': { type: 'string', default: '5' },
+      'chat-interval': { type: 'string' },
+      'raf-window': { type: 'string', default: '1' },
+      thresholds: { type: 'string' },
+      'keep-samples': { type: 'boolean' },
+      screenshots: { type: 'string', default: 'false' },
       help: { type: 'boolean', short: 'h' }
     }
   });
@@ -49,7 +61,68 @@ function options(args) {
   if (values.mode === 'manual' && values.streamer !== undefined) {
     throw new Error('--streamer é usado com --mode=automatic.');
   }
-  return { ...values, streamer, duration };
+  const fastMs = Number(values['player-interval']) * 1000;
+  const slowMs = Number(values['chat-interval'] ?? '30') * 1000;
+  const rafMs = Number(values['raf-window']) * 1000;
+  if (![fastMs, slowMs].every(n => Number.isSafeInteger(n) && n >= 1000 && n <= 60_000) || slowMs < fastMs) {
+    throw new Error('Informe intervalos de 1 a 60 segundos, com o intervalo do chat pelo menos igual ao do player.');
+  }
+  if (![0, 1000, 5000].includes(rafMs)) throw new Error('--raf-window aceita 0, 1 ou 5 segundos.');
+  if (!['true', 'false'].includes(values.screenshots)) throw new Error('--screenshots aceita true ou false.');
+  return { ...values, streamer, duration, fastMs, slowMs, rafMs, screenshots: values.screenshots === 'true' };
+}
+
+function comparePackageFiles(expected, stdout) {
+  const actual = new Map();
+  for (const line of stdout.split(/\r?\n/)) {
+    if (!line || line.startsWith('[Info] Set target device : ')) continue;
+    const match = /^([a-f0-9]{64})  (usr\/palm\/[^\r\n]+)$/.exec(line);
+    if (!match || actual.has(match[2])) throw new Error('Inventário inválido dos arquivos instalados na TV.');
+    actual.set(match[2], match[1]);
+  }
+  return [
+    ...Object.keys(expected).filter(name => actual.get(name) !== expected[name]),
+    ...[...actual.keys()].filter(name => !Object.hasOwn(expected, name))
+  ];
+}
+
+async function checkPackage(device, signal) {
+  const root = path.resolve(__dirname, '..');
+  const filename = `${APP}_${VERSION}_all.ipk`;
+  const ipk = path.join(root, 'dist', 'releases', filename);
+  let expected;
+  try {
+    const { stdout } = await exec('python3', [path.join(__dirname, 'verify-package.py'), ipk, '--hashes'], {
+      timeout: IO_MS, signal, env: cliEnv
+    });
+    expected = JSON.parse(stdout);
+  } catch (error) {
+    signal.throwIfAborted();
+    const reason = error.stderr?.trim() || error.code || error.message;
+    throw new Error(`IPK local indisponível ou incompatível com o código atual. Gere com npm run package. ${reason}`);
+  }
+
+  console.log(`Conferindo os arquivos do KickTV instalado em ${device}.`);
+  const novacom = require.resolve('@webos-tools/cli/bin/ares-novacom.js');
+  const paths = [`usr/palm/applications/${APP}`, `usr/palm/services/${SERVICE}`, `usr/palm/packages/${APP}`].join(' ');
+  const command = `cd /media/developer/apps && find ${paths} -type f -exec sha256sum {} + -o ! -type d -print`;
+  let installed;
+  try {
+    ({ stdout: installed } = await exec(process.execPath, [novacom, '--device', device, '--run', command], {
+      timeout: IO_MS, signal, env: cliEnv
+    }));
+  } catch {
+    signal.throwIfAborted();
+    throw new Error(`Não foi possível ler a instalação em ${device}. Confira a conexão, o Developer Mode e a instalação de ${filename}.`);
+  }
+  const differences = comparePackageFiles(expected, installed);
+  if (differences.length) {
+    const examples = differences.slice(0, 3).map(name => name.split('/').slice(2).join('/')).join(', ');
+    throw new Error(`O KickTV instalado diverge do IPK local em ${differences.length} arquivo(s) (${examples}). Instale dist/releases/${filename} na TV e tente novamente.`);
+  }
+  const sha256 = createHash('sha256').update(JSON.stringify(expected)).digest('hex');
+  console.log(`Pacote confirmado em ${device} (${VERSION}, ${Object.keys(expected).length} arquivos).`);
+  return sha256;
 }
 
 async function isRunning(device, signal) {
@@ -112,9 +185,15 @@ async function inspectorUrl(port, signal) {
       if (!endpoint) continue;
       const remote = new URL(endpoint.startsWith('ws://') ? endpoint : `ws://${endpoint}`);
       if (remote.protocol === 'ws:' && remote.pathname.startsWith('/devtools/page/')) {
-        const base = `http://localhost:${port}`;
-        const browser = frontend ? new URL(new URL(frontend, base).pathname, base) : new URL(base);
-        if (frontend) browser.searchParams.set('ws', `localhost:${port}${remote.pathname}`);
+        const browserHost = `${INSPECTOR_BROWSER_HOST}:${port}`;
+        const base = `http://${browserHost}`;
+        const browser = new URL(base);
+        if (frontend) {
+          const frontendUrl = new URL(frontend, base);
+          browser.pathname = frontendUrl.pathname;
+          browser.search = frontendUrl.search;
+          browser.searchParams.set('ws', `${browserHost}${remote.pathname}`);
+        }
         return { websocket: `ws://localhost:${port}${remote.pathname}`, browser: browser.href };
       }
     } catch {
@@ -137,7 +216,11 @@ async function openInspector(port, signal) {
 function command(socket, method, params, signal, timeout = IO_MS) {
   return new Promise((resolve, reject) => {
     const id = ++nextRequestId;
-    const timer = setTimeout(() => fail('consulta_expirada'), timeout);
+    const timer = setTimeout(() => {
+      fail('consulta_expirada');
+      // A timed-out Inspector command may still be running in the target.
+      socket.close();
+    }, timeout);
     function cleanup() {
       clearTimeout(timer);
       socket.removeEventListener('open', send);
@@ -204,7 +287,7 @@ async function writeJson(folder, filename, value) {
   await rename(file + '.tmp', file);
 }
 
-function recordEvents(socket, binding) {
+function recordEvents(socket, binding, onEvent) {
   const pending = [];
   let file;
   let writing = Promise.resolve();
@@ -217,6 +300,7 @@ function recordEvents(socket, binding) {
       pending.push(entry);
       return;
     }
+    onEvent?.(entry);
     writing = writing.then(() => appendFile(file, JSON.stringify(entry) + '\n')).catch(failure => {
       error ??= failure;
     });
@@ -315,7 +399,9 @@ async function waitForPlayback(read, control, config, signal) {
     }
     if (advancing && (!automatic || (sample.chat.state === 'Connected' && await control(chatBound)))) return sample;
     if (automatic && advancing && !chatRequested) {
-      if (!await control(enableChat)) throw new Error('Não foi possível abrir o chat da transmissão.');
+      if (!await control(enableChat)) {
+        throw new Error('Não foi possível abrir o chat da transmissão.');
+      }
       chatRequested = true;
     }
     previous = sample;
@@ -324,53 +410,11 @@ async function waitForPlayback(read, control, config, signal) {
   throw new Error('O vídeo e o chat não ficaram prontos dentro de 60 segundos.');
 }
 
-function streamMetadata(channel, token) {
-  let retryAt = 0;
-  let refusal;
-  return async signal => {
-    if (!token) return { status: 'sem_token' };
-    if (refusal) return { status: refusal };
-    if (!channel) return { status: 'canal_indisponivel' };
-    if (Date.now() < retryAt) return { status: 'aguardando_retry_after' };
-    try {
-      const url = new URL('https://api.kick.com/public/v1/channels');
-      url.searchParams.set('slug', channel);
-      const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
-        redirect: 'error', signal: AbortSignal.any([signal, AbortSignal.timeout(4000)])
-      });
-      if (!response.ok) {
-        if ([401, 403].includes(response.status)) refusal = `http_${response.status}`;
-        if (response.status === 429) {
-          const header = response.headers.get('retry-after');
-          const seconds = Number(header);
-          retryAt = header && Number.isFinite(seconds) ? Date.now() + seconds * 1000 : Date.parse(header);
-          if (!Number.isFinite(retryAt) || retryAt <= Date.now()) retryAt = Date.now() + SLOW_MS * 2;
-        }
-        await response.body?.cancel();
-        return { status: `http_${response.status}` };
-      }
-      const body = await response.json();
-      const info = Array.isArray(body.data) && body.data.find(item => item.slug === channel);
-      if (!info) return { status: 'canal_indisponivel' };
-      return {
-        status: 'ok', viewers: info.stream?.viewer_count ?? null, title: info.stream_title ?? null,
-        category: info.category?.name ?? null, live: info.stream?.is_live ?? null,
-        started_at: info.stream?.start_time ?? null, language: info.stream?.language ?? null
-      };
-    } catch {
-      return { status: signal.aborted ? 'cancelado' : 'api_indisponivel' };
-    }
-  };
-}
-
-async function collect({ folder, duration, start, started, read, slowRead, metadata, events, signal,
-  fastMs = FAST_MS, slowMs = SLOW_MS }) {
+async function collect({ folder, duration, start, started, read, slowRead, events, signal,
+  fastMs = FAST_MS, slowMs = SLOW_MS, screenshots, continueOnTimeout = false }) {
   let result = 'completa';
   let slowFailure = false;
-  let metadataWrite;
   let nextSlow = 0;
-  let lastMetadataAt = -Infinity;
   const history = new Set();
   const elapsed = () => Math.round(performance.now() - started);
   async function checkpoint(name, scheduled, readSample, reused = false) {
@@ -387,6 +431,11 @@ async function collect({ folder, duration, start, started, read, slowRead, metad
       utc: new Date().toISOString(), scheduled_ms: scheduled, elapsed_ms: elapsed(),
       inspector_ms: reused ? null : Math.round(performance.now() - readStarted), sample, error
     };
+    row.late_ms = Math.max(0, Math.round(readStarted - started - scheduled));
+    const period = name.startsWith('chat-') ? slowMs : fastMs;
+    if (row.inspector_ms >= period) events.record({
+      kind: 'consulta_acima_intervalo', scheduled_ms: scheduled, duration_ms: row.inspector_ms, interval_ms: period
+    });
     await writeJson(folder, name, row);
     return row;
   }
@@ -407,24 +456,19 @@ async function collect({ folder, duration, start, started, read, slowRead, metad
         return fields;
       }, scheduled === 0);
       if (signal.aborted) return 'interrompida pelo operador';
-      if (['pagina_reiniciada', 'reproducao_encerrada_ou_trocada', 'inspector_desconectado'].includes(fast.error)) {
+      if (['pagina_reiniciada', 'reproducao_encerrada_ou_trocada', 'inspector_desconectado', 'consulta_expirada'].includes(fast.error)) {
         events.record({ kind: fast.error });
-        return `incompleta (${fast.error})`;
+        if (fast.error === 'reproducao_encerrada_ou_trocada') await screenshots?.checkpoint(elapsed(), true);
+        if (fast.error !== 'consulta_expirada' || !continueOnTimeout) return `incompleta (${fast.error})`;
       }
       if (fast.error) result = 'incompleta (lacunas de coleta)';
-      if (scheduled >= nextSlow || scheduled === duration) {
+      if ((scheduled >= nextSlow || scheduled === duration) && !(fast.error === 'consulta_expirada' && continueOnTimeout)) {
         nextSlow = scheduled + slowMs;
-        if (scheduled - lastMetadataAt >= slowMs) {
-          if (metadataWrite) await metadataWrite;
-          lastMetadataAt = scheduled;
-          metadataWrite = (async () => {
-            const sample = await metadata(signal);
-            await writeJson(folder, `metadados-${key}.json`, {
-              scheduled_ms: scheduled, elapsed_ms: elapsed(), utc: new Date().toISOString(), sample
-            });
-          })().catch(error => { events.record({ kind: 'erro_gravacao_metadados', code: error.code }); slowFailure = true; });
-        }
         const slow = await checkpoint(`chat-${key}.json`, scheduled, slowRead);
+        if (['consulta_expirada', 'inspector_desconectado'].includes(slow.error)) {
+          events.record({ kind: slow.error });
+          if (slow.error !== 'consulta_expirada' || !continueOnTimeout) return `incompleta (${slow.error})`;
+        }
         if (slow.error) slowFailure = true;
         for (const event of slow.sample?.history ?? []) {
           const id = `${event.session_id}:${event.at}:${event.kind}`;
@@ -439,28 +483,31 @@ async function collect({ folder, duration, start, started, read, slowRead, metad
         }
       }
       if (signal.aborted) return 'interrompida pelo operador';
+      if (!fast.error) await screenshots?.checkpoint(elapsed(), scheduled === duration);
       if (scheduled === duration) break;
       // Preserve planned timestamps and skip missed slots instead of sending bursts.
       if (elapsed() >= scheduled + 2 * fastMs) {
-        scheduled = Math.min(Math.floor(elapsed() / fastMs) * fastMs - fastMs, duration - fastMs);
+        const resume = Math.min(Math.floor(elapsed() / fastMs) * fastMs, duration);
+        const missed = Math.max(0, Math.ceil((resume - scheduled) / fastMs) - 1);
+        if (missed) events.record({ kind: 'amostras_puladas', count: missed, scheduled_ms: scheduled });
+        scheduled = resume - fastMs;
       }
     }
   } catch (error) {
     if (!signal.aborted) throw error;
     return 'interrompida pelo operador';
-  } finally {
-    if (metadataWrite) await metadataWrite;
   }
   return slowFailure ? 'incompleta (lacunas de coleta)' : result;
 }
 
-async function capture(config, signal) {
+async function capture(config, signal, packageSha256) {
   if (!await prepareTv(config, signal)) return;
   const child = startTunnel(config.device);
   const key = '__kicktvProbe_' + randomBytes(6).toString('hex');
   const binding = key + '_event';
   let socket;
   let events;
+  let screenshots;
   let installed = false;
   let eventStreaming = false;
   let runtimeEvents = false;
@@ -470,10 +517,10 @@ async function capture(config, signal) {
   try {
     const port = await tunnelPort(child, signal);
     const target = await openInspector(port, signal);
-    console.log(`Inspector (mesmo computador) ${target.browser}`);
-    console.log('A conexão simultânea pelo navegador ainda precisa ser confirmada na C3.');
+    console.log('Inspector na rede local');
+    console.log(target.browser);
     socket = new WebSocket(target.websocket);
-    events = recordEvents(socket, binding);
+    events = recordEvents(socket, binding, event => screenshots?.observe(event));
     try {
       await command(socket, 'Runtime.enable', {}, signal);
       runtimeEvents = true;
@@ -483,7 +530,7 @@ async function capture(config, signal) {
     const control = (fn, ...args) => evaluate(socket, call(fn, ...args), signal);
     const setupDeadline = performance.now() + IO_MS;
     while (!installed) {
-      installed = await control(installProbe, key, eventStreaming ? binding : null);
+      installed = await control(installProbe, key, eventStreaming ? binding : null, config.rafMs, config.fastMs);
       if (installed) break;
       if (performance.now() >= setupDeadline) throw new Error('Diagnósticos do KickTV indisponíveis na página.');
       await delay(250, undefined, { signal });
@@ -503,22 +550,34 @@ async function capture(config, signal) {
     const root = path.resolve(config.output);
     await mkdir(root, { recursive: true });
     folder = await mkdtemp(path.join(root, folderPrefix(start.channel || config.streamer, date)));
+    if (config.screenshots) screenshots = createScreenshots(folder, async () => {
+      const clip = await evaluate(socket, call(screenshotClip), signal, 2000);
+      if (!clip) return null;
+      const result = await command(socket, 'Page.captureScreenshot', {
+        format: 'jpeg', quality: 65, clip
+      }, signal, 4000);
+      if (typeof result.data !== 'string') throw new Error('jpeg_indisponivel');
+      return result.data;
+    }, events.record);
     events.start(folder);
     events.record({ kind: 'inicio_coleta', tv_ms: start.tv_ms });
     console.log(`Coletando por ${config.duration / 60_000} min em ${folder}`);
     meta = {
-      schema: 2, app: APP, expected_version: VERSION, channel: start.channel || config.streamer,
-      mode: config.mode, duration_ms: config.duration, started_utc: date.toISOString(), fast_ms: FAST_MS, slow_ms: SLOW_MS,
+      schema: 3, app: APP, expected_version: VERSION, package_payload_sha256: packageSha256,
+      channel: start.channel || config.streamer,
+      mode: config.mode, duration_ms: config.duration, started_utc: date.toISOString(), fast_ms: config.fastMs, slow_ms: config.slowMs,
+      raf_window_ms: config.rafMs, thresholds: config.detection,
       event_delivery: eventStreaming ? 'inspector' : 'buffer_em_amostras',
-      runtime_events: runtimeEvents, api_configured: Boolean(apiToken),
+      runtime_events: runtimeEvents, api_configured: false, screenshots: config.screenshots,
+      ...(config['continue-on-timeout'] && { continue_on_timeout: true }),
       result: 'interrompida sem conclusão'
     };
     await writeJson(folder, 'execucao.json', meta);
     result = await collect({
       folder, duration: config.duration, start, started, signal, events,
       read,
-      slowRead: () => control(readSlow, 'luna://' + SERVICE),
-      metadata: streamMetadata(meta.channel, apiToken)
+      slowRead: () => control(readSlow, 'luna://' + SERVICE), fastMs: config.fastMs, slowMs: config.slowMs, screenshots,
+      continueOnTimeout: config['continue-on-timeout']
     });
   } finally {
     if (installed && socket?.readyState === WebSocket.OPEN) {
@@ -536,9 +595,15 @@ async function capture(config, signal) {
       events.record({ kind: 'fim_coleta', result: result || 'incompleta (falha operacional)' });
       let eventFailure;
       try { await events.flush(); } catch (error) { eventFailure = error; }
+      let archiveFailure;
+      try { await archive(folder, config['keep-samples']); }
+      catch (error) { archiveFailure = error; }
+      if (archiveFailure) {
+        console.error('Consolidação incompleta. As amostras disponíveis foram preservadas:', archiveFailure.message);
+      }
       await writeJson(folder, 'execucao.json', {
         ...meta, result: result || 'incompleta (falha operacional)', finished_utc: new Date().toISOString(),
-        event_write_error: Boolean(eventFailure)
+        event_write_error: Boolean(eventFailure), archive_error: archiveFailure?.code ?? (archiveFailure ? 'verification_failed' : null)
       });
       await summarize(folder);
       console.log(`Relatório salvo em ${path.join(folder, 'resumo.md')}`);
@@ -552,19 +617,23 @@ async function main() {
   if (config.help) {
     console.log('node scripts/collect-tv.cjs [--device=lgc3] [--length=10] [--output=coletas]\n' +
       'node scripts/collect-tv.cjs --mode=automatic --streamer=baianotv --length=20\n' +
+      '--continue-on-timeout registra consultas expiradas e continua a coleta.\n' +
+      'node scripts/collect-tv.cjs --device=lgc3 --check-package\n' +
       'node scripts/collect-tv.cjs --summarize CAMINHO_DA_EXECUCAO\n' +
       '--length define a duração em minutos. Ctrl+C encerra a coleta.\n' +
-      'KICK_API_TOKEN habilita metadados da API oficial da Kick no computador.');
+      '--player-interval=5 --chat-interval=30 --raf-window=1 (segundos; 0 desativa rAF) --thresholds=arquivo.json --keep-samples --screenshots=true');
     return;
   }
-  if (config.summarize) return summarize(config.summarize);
-  if (typeof WebSocket !== 'function') throw new Error('Use Node.js 22 ou mais recente.');
+  if (config.thresholds) config.detection = await readThresholds(config.thresholds);
+  if (config.summarize) return summarize(config.summarize, config.detection);
+  if (!config['check-package'] && typeof WebSocket !== 'function') throw new Error('Use Node.js 22 ou mais recente.');
   const controller = new AbortController();
   const stop = () => controller.abort();
   process.on('SIGINT', stop);
   process.on('SIGTERM', stop);
   try {
-    await capture(config, controller.signal);
+    const packageSha256 = await checkPackage(config.device, controller.signal);
+    if (!config['check-package']) await capture(config, controller.signal, packageSha256);
   } catch (error) {
     if (!controller.signal.aborted) throw error;
     console.log('Coletor encerrado.');
@@ -579,4 +648,4 @@ if (require.main === module) main().catch(error => {
   process.exitCode = 1;
 });
 
-module.exports = { collect, options, summarize, folderPrefix, streamMetadata };
+module.exports = { collect, options, summarize, folderPrefix, inspectorUrl, comparePackageFiles };

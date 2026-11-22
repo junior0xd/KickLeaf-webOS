@@ -11,7 +11,7 @@ const controller=new Controller({consumers:()=>consumers.size,makeSession:emit=>
 }});
 function allowed(m){if(m.sender===APP)return true;m.respond({returnValue:false,errorText:'caller_not_allowed'});return false;}
 function supported(){return process.version==='v16.20.2'&&require('ws/package.json').version==='8.22.2';}
-function diagnostics(){return {app_id:APP,service_id:ID,version:VERSION,instance,node:process.version,ws:require('ws/package.json').version,supported_runtime:supported(),snapshot:controller.snapshot(),consumers:consumers.size};}
+function diagnostics(){return {app_id:APP,service_id:ID,version:VERSION,instance,node:process.version,ws:require('ws/package.json').version,supported_runtime:supported(),snapshot:controller.snapshot(true),consumers:consumers.size};}
 service.register('capabilities',m=>{if(allowed(m))m.respond({returnValue:true,capabilities:diagnostics()});});
 service.register('status',m=>{if(allowed(m))m.respond({returnValue:true,capabilities:diagnostics(),history:history.slice()});});
 const events=service.register('events');

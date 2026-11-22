@@ -40,11 +40,16 @@ test('normalizer treats rich content as text, limits fields and distinguishes mo
 class FakeSocket extends EventEmitter{
  static sockets=[];
  constructor(url,opts){super();this.url=url;this.options=opts;this.readyState=0;this.bufferedAmount=0;this.sent=[];FakeSocket.sockets.push(this);setImmediate(()=>{if(this.readyState===3)return;this.emit('upgrade',{statusCode:101,socket:{authorized:true,getProtocol:()=> 'TLSv1.2',bytesWritten:1,bytesRead:1}});this.readyState=1;this.emit('open');});}
- send(s,cb){this.sent.push(s);if(s!=='{}'){const c=JSON.parse(s);const kind=Object.keys(c).find(k=>k!=='id');setImmediate(()=>{if(this.readyState===1)this.emit('message',Buffer.from(JSON.stringify({id:c.id,[kind]:kind==='connect'?{version:'6.9.7 PRO'}:{}})),false);});}if(cb)cb();}
+ send(s,cb){this.sent.push(s);if(s!=='{}'){const c=JSON.parse(s);const kind=Object.keys(c).find(k=>k!=='id');setImmediate(()=>{if(this.readyState===1&&!(kind==='refresh'&&FakeSocket.refreshReply===null))this.emit('message',Buffer.from(JSON.stringify({id:c.id,[kind]:kind==='connect'?{version:'6.9.7 PRO',...FakeSocket.lease}:kind==='refresh'?FakeSocket.refreshReply:{}})),false);});}if(cb)cb();}
  close(code){this.readyState=3;this.emit('close',code);}terminate(){this.close(1006);}
 }
-function sessionSetup({refuse=false,pending=false}={}){FakeSocket.sockets=[];const calls=[],events=[];let consumers=1,rejectPending;
- const s=new Session({Socket:FakeSocket,emit:e=>{events.push(e);if(e.kind==='delivery')queueMicrotask(()=>s.ack({identity:e.delivery.identity,ticket:e.delivery.ticket,seq:e.delivery.items.at(-1).seq,credit:{items:512,bytes:1048576}}));return true;},consumers:()=>consumers,httpFactory:metrics=>({active:new Set(),cancel(){if(rejectPending)rejectPending(new Error('cancelled'));},async request(url,body,phase){calls.push({url,body});metrics.add(phase,'http_requests');if(pending)return new Promise((_,reject)=>{rejectPending=reject;});if(refuse)throw new Error('http_403');if(url.endsWith('/auth/connection'))return {data:{token:'synthetic-token'}};if(url.includes('/api/v2/'))return {id:10,slug:'xqc',chatroom:{id:20}};return {data:{connections:[{provider:'centrifugo',credentials:{url:'wss://realtime.sa-east-1.platform.kick.com/connection/websocket'}}]}};}})});
+function sessionSetup({refuse=false,pending=false,lease,refreshReply={},renewalAuth}={}){
+ FakeSocket.sockets=[];FakeSocket.lease=lease;FakeSocket.refreshReply=refreshReply;
+ const calls=[],events=[];let consumers=1,rejectPending,authCalls=0;
+ const s=new Session({Socket:FakeSocket,emit:e=>{events.push(e);if(e.kind==='delivery')queueMicrotask(()=>s.ack({identity:e.delivery.identity,ticket:e.delivery.ticket,seq:e.delivery.items.at(-1).seq,credit:{items:512,bytes:1048576}}));return true;},consumers:()=>consumers,httpFactory:metrics=>({active:new Set(),cancel(){if(rejectPending)rejectPending(new Error('cancelled'));},async request(url,body,phase){calls.push({url,body});metrics.add(phase,'http_requests');if(pending)return new Promise((_,reject)=>{rejectPending=reject;});if(refuse)throw new Error('http_403');if(url.endsWith('/auth/connection')){
+  if(++authCalls>1&&renewalAuth)return renewalAuth();
+  return {data:{token:authCalls===1?'synthetic-token':'synthetic-renewed-token'}};
+ }if(url.includes('/api/v2/'))return {id:10,slug:'xqc',chatroom:{id:20}};return {data:{connections:[{provider:'centrifugo',credentials:{url:'wss://realtime.sa-east-1.platform.kick.com/connection/websocket'}}]}};}})});
  return {s,calls,events,consumers:n=>{consumers=n;}};
 }
 async function ready(t){for(let i=0;i<20&&t.s.state.status!=='reading';i++)await wait();assert.equal(t.s.state.status,'reading');t.s.attach({context:'unit-context',credit:{items:512,bytes:1048576}});}
@@ -53,6 +58,23 @@ test('session performs three HTTP calls and one socket, ignores duplicate start 
  const w=FakeSocket.sockets[0];assert.equal(w.options.headers.Origin,undefined);assert.match(w.options.headers['User-Agent'],/independent/);assert.equal(w.options.rejectUnauthorized,true);
  t.s.publication({event:'App\\Events\\ChatMessageEvent',data:{id:'1',sender:{username:'test'},content:'test'}});t.s.publication({event:'App\\Events\\ChatMessageEvent',data:{id:'1',sender:{username:'test'},content:'test'}});assert.equal(t.s.state.messages,1);assert.equal(t.s.metrics.phases.F.duplicates,1);
  await t.s.stop('test_end');const r=t.s.snapshot().resources;assert.equal(r.socket,false);assert.equal(r.pending_commands,0);assert.deepEqual(r.session_timers,[]);assert.equal(r.queue,0);assert.equal(t.s.start({channel:'xqc',activityConfirmed:true}).errorText,'attempt_already_completed');assert.equal(JSON.stringify(t.s.snapshot()).includes('synthetic-token'),false);
+});
+test('chat timing diagnostics use service monotonic durations without changing delivery envelopes',async()=>{
+ const t=sessionSetup();
+ try {
+  t.s.start({channel:'xqc',activityConfirmed:true});await ready(t);
+  t.s.publication({event:'App\\Events\\ChatMessageEvent',data:{id:'timed',sender:{username:'test'},content:'test'}});
+  await t.s.stop('test_end');
+  const detail=t.s.snapshot(true).delivery;
+  assert.equal(detail.latency.receive_normalized_ms.n,1);
+  assert.equal(detail.latency.receive_admitted_ms.n,1);
+  assert.equal(detail.latency.receive_ack_ms.n,1);
+  assert.ok(detail.latency.receive_ack_ms.sum>=detail.latency.receive_admitted_ms.sum);
+  assert.deepEqual(detail.load.peaks[0],[1,1,1]);
+  assert.equal(t.s.snapshot().delivery.latency,undefined);
+  const envelope=t.events.find(event=>event.kind==='delivery').delivery;
+  assert.equal('received_mono' in envelope.items[0],false);
+ } finally { await t.s.stop('test_end'); }
 });
 test('HTTP 403 ends progression before auth, metadata or WSS; no retry',async()=>{const t=sessionSetup({refuse:true});t.s.start({channel:'xqc',activityConfirmed:true});await wait();await t.s.stopping;assert.equal(t.calls.length,1);assert.equal(FakeSocket.sockets.length,0);assert.equal(t.s.state.error,'http_403');assert.equal(t.s.state.reconnects,0);});
 test('last consumer and cancel during pending HTTP prevent late network work',async()=>{
@@ -234,4 +256,103 @@ test('chat stays active beyond the former publication, frame and byte budgets',a
  } finally {
   await t.s.stop('test_end');
  }
+});
+
+test('automatic lease refresh keeps the socket, subscription and FIFO active past the old deadline',async t=>{
+ t.mock.timers.enable({apis:['Date','setTimeout']});
+ const fixture=sessionSetup({lease:{expires:true,ttl:2700},refreshReply:{expires:true,ttl:3600}});
+ try {
+  fixture.s.start({channel:'xqc',activityConfirmed:true});await ready(fixture);
+  const socket=FakeSocket.sockets[0];
+  const oldDeadline=fixture.s.protocol.leaseDeadline;
+  const fifo=fixture.s.delivery;
+  const ticket=fifo.consumer.ticket;
+  t.mock.timers.tick(2639000);
+  assert.equal(fixture.calls.length,3);
+  t.mock.timers.tick(2000);
+  for(let index=0;index<10&&!fixture.s.state.renewal?.confirmed;index++)await wait();
+  assert.equal(fixture.s.state.renewal.confirmed,1);
+  assert.equal(fixture.s.state.renewal.ttl_seconds,3600);
+  assert.deepEqual(fixture.s.snapshot(true).connection_authorization,{
+   ttl_seconds:3600,renewal_required:true,active:true,
+   expires_at_ms:fixture.s.protocol.leaseDeadline+5000
+  });
+  assert.ok(fixture.s.protocol.leaseDeadline>oldDeadline);
+  const auth=fixture.calls.filter(call=>call.url.endsWith('/auth/connection'));
+  assert.equal(auth.length,2);
+  assert.deepEqual(auth[1].body,auth[0].body);
+  assert.equal(JSON.parse(socket.sent.at(-1)).refresh.token,'synthetic-renewed-token');
+  assert.equal(FakeSocket.sockets.length,1);
+  assert.equal(fixture.s.delivery,fifo);
+  assert.equal(fifo.consumer.ticket,ticket);
+  assert.equal(fixture.s.protocol.subscribed,'chatrooms.20.v2');
+  t.mock.timers.tick(60000);
+  assert.equal(fixture.s.state.status,'reading');
+  socket.emit('message',Buffer.from(JSON.stringify({push:{channel:'chatrooms.20.v2',pub:{data:{
+   event:'App\\Events\\ChatMessageEvent',data:{id:'new',sender:{username:'fixture'},content:'after refresh'}
+  }}}})),false);
+  fifo.lastFlush=-Infinity;fixture.s.flushSamples();await wait();
+  assert.equal(fifo.counts.confirmed,1);
+  assert.equal(JSON.stringify(fixture.s.snapshot(true)).includes('synthetic-renewed-token'),false);
+ } finally {await fixture.s.stop('test_end');}
+});
+
+test('automatic renew retries once after Retry-After when the old lease permits it',async t=>{
+ t.mock.timers.enable({apis:['Date','setTimeout']});
+ let attempts=0;
+ const fixture=sessionSetup({lease:{expires:true,ttl:2700},refreshReply:{expires:true,ttl:2700},
+  renewalAuth:()=>{if(++attempts===1)throw Object.assign(new Error('http_429'),{retryAfterMs:4000});return {data:{token:'synthetic-renewed-token'}};}});
+ try {
+  fixture.s.start({channel:'xqc',activityConfirmed:true});await ready(fixture);
+  t.mock.timers.tick(2640000);await wait();
+  assert.equal(fixture.s.state.renewal.status,'retry_wait');
+  t.mock.timers.tick(3999);assert.equal(attempts,1);
+  t.mock.timers.tick(1);
+  for(let index=0;index<10&&!fixture.s.state.renewal.confirmed;index++)await wait();
+  assert.equal(attempts,2);
+  assert.equal(fixture.s.state.renewal.confirmed,1);
+ } finally {await fixture.s.stop('test_end');}
+});
+
+test('renewal refusal closes with its own reason without opening a replacement socket',async t=>{
+ t.mock.timers.enable({apis:['Date','setTimeout']});
+ const fixture=sessionSetup({lease:{expires:true,ttl:2700},
+  renewalAuth:()=>{throw new Error('http_403');}});
+ try {
+  fixture.s.start({channel:'xqc',activityConfirmed:true});await ready(fixture);
+  t.mock.timers.tick(2640000);await wait();await fixture.s.stopping;
+  assert.equal(fixture.s.state.reason,'refresh_http_403');
+  assert.equal(FakeSocket.sockets.length,1);
+  assert.equal(fixture.calls.length,4);
+  assert.ok(!FakeSocket.sockets[0].sent.some(frame=>JSON.parse(frame).refresh));
+ } finally {await fixture.s.stop('test_end');}
+});
+
+test('closing chat while fetching a renewal prevents late network commands',async t=>{
+ t.mock.timers.enable({apis:['Date','setTimeout']});
+ let resolve;
+ const fixture=sessionSetup({lease:{expires:true,ttl:2700},renewalAuth:()=>new Promise(done=>{resolve=done;})});
+ try {
+  fixture.s.start({channel:'xqc',activityConfirmed:true});await ready(fixture);
+  t.mock.timers.tick(2640000);await wait();
+  assert.equal(fixture.s.state.renewal.status,'attempting');
+  await fixture.s.stop('manual_stop');
+  resolve({data:{token:'synthetic-late-token'}});await wait();
+  assert.equal(fixture.s.state.reason,'manual_stop');
+  assert.ok(!FakeSocket.sockets[0].sent.some(frame=>JSON.parse(frame).refresh));
+  assert.deepEqual(fixture.s.snapshot().resources.session_timers,[]);
+ } finally {await fixture.s.stop('test_end');}
+});
+
+test('an unanswered refresh closes cleanly and does not resend an ambiguous command',async t=>{
+ t.mock.timers.enable({apis:['Date','setTimeout']});
+ const fixture=sessionSetup({lease:{expires:true,ttl:2700},refreshReply:null});
+ try {
+  fixture.s.start({channel:'xqc',activityConfirmed:true});await ready(fixture);
+  t.mock.timers.tick(2640000);await wait();
+  t.mock.timers.tick(8000);await wait();await fixture.s.stopping;
+  assert.equal(fixture.s.state.reason,'refresh_command_timeout');
+  assert.equal(FakeSocket.sockets[0].sent.filter(frame=>JSON.parse(frame).refresh).length,1);
+  assert.equal(fixture.s.snapshot().resources.pending_commands,0);
+ } finally {await fixture.s.stop('test_end');}
 });

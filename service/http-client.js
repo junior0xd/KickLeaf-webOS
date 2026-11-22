@@ -49,10 +49,15 @@ class HttpClient {
             this.request(target.href, body, phase, redirects + 1).then(resolve, reject); return;
           }
           if (res.statusCode !== 200) {
-            const retry = Number(res.headers['retry-after']);
-            if (Number.isFinite(retry) && retry >= 0 && retry <= 86400) record.retry_after_seconds = retry;
+            const header = res.headers['retry-after'];
+            const retry = /^\d+$/.test(header ?? '') ? Number(header) * 1000 : Date.parse(header) - Date.now();
+            const error = new Error('http_' + res.statusCode);
+            if (Number.isFinite(retry)) {
+              error.retryAfterMs = Math.max(0, retry);
+              record.retry_after_seconds = error.retryAfterMs / 1000;
+            }
             // Never retain a raw error body: it may include credentials or request context.
-            finish(new Error('http_' + res.statusCode)); return;
+            finish(error); return;
           }
           try { finish(null, JSON.parse(Buffer.concat(chunks).toString('utf8'))); }
           catch (_) { finish(new Error('http_invalid_json')); }
