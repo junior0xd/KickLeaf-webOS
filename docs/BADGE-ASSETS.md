@@ -1,4 +1,4 @@
-# Distintivos locais da Kick
+# Distintivos do chat
 
 Os SVGs foram extraídos estaticamente dos três arquivos de frontend fornecidos pelo usuário; esses bundles não são executados ou incluídos no app. O registro [BADGE-ASSETS.json](BADGE-ASSETS.json) documenta hashes, componentes e módulos de origem para cada um dos 140 SVGs incorporados. Os desenhos são ativos de marca da Kick; a licença MIT preservada em `app/badge-icons/LICENSE` corresponde apenas ao fallback Phosphor `question.svg`. Os controles do player continuam usando Phosphor.
 
@@ -20,7 +20,7 @@ Os SVGs foram extraídos estaticamente dos três arquivos de frontend fornecidos
 | chat_identity | IdentityBadge |
 | trainwreckstv | TrainwreckstvBadge |
 
-Os três últimos tipos passam a ser reconhecidos quando recebidos. Sua inclusão no mapa não atribui distintivos a usuários nem comprova observação em sessão. O serviço mantém `count` validado no badgeSet; o seletor usa esse campo para os presentes. Valor ausente, inválido ou zero usa Gift1, como o fallback `count || 1` do frontend. Tipos desconhecidos continuam com o fallback, sem criar caminhos a partir de texto remoto.
+O serviço mantém `count` validado no badgeSet; o seletor usa esse campo para os presentes. Valor ausente, inválido ou zero usa Gift1, como o fallback `count || 1` do frontend. Tipos desconhecidos continuam com o fallback, sem criar caminhos a partir de texto remoto.
 
 | Quantidade | SVG |
 |---|---|
@@ -57,4 +57,16 @@ Badges v2 selecionadas cujo nome exato é `level` e metadata.level é inteiro va
 
 O Founder usa o SVG sólido escolhido pelo usuário: 987 bytes, numeral #3b2a08, sem PNG embutido e sem filtro. É uma derivação intencional do desenho original, preservado no workspace de análise. IdentityBadge recebe color=#fff no elemento raiz para resolver os paths currentColor no contexto escuro. Os demais bodies permanecem como extraídos. SubGifterBadge básico também é preservado como ativo de referência, mas a renderização normal usa as 28 faixas Gift.
 
-Os arquivos são incluídos explicitamente em packaging.json, sem fetch de SVGs oficiais ou execução dos bundles. Os testes verificam associação após normalização, ambos os lados de cada limite Gift, níveis válidos/fora da faixa, fallback e decodificação real de 139 arquivos alcançáveis pelo seletor no navegador em 20×20. Não houve sessão nova ou instalação na TV.
+## Renderização CSS na v0.2.8
+
+A interface usa caixas de 20 × 20 px, com uma classe por ícone local e uma por imagem remota validada, compartilhadas entre linhas. O fallback Phosphor `question.svg` fica visível durante a espera e em caso de rejeição. Uma imagem remota só é aplicada se a linha ainda estiver no DOM e pertencer à sessão atual. A inversão de cor é restrita ao fallback. Ao encerrar, a interface remove as regras remotas, cancela requisições e revoga as URLs dos objetos.
+
+## Imagens remotas
+
+A URL original deve ser HTTPS, de `files.kick.com` ou `ext.cdn.kick.com`, sem credenciais, porta explícita fora do padrão, query ou fragmento. Para o caminho exato `/chat/badges/{id}.png` em `ext.cdn.kick.com`, a URL de transporte recebe parâmetros de WebP a 72 px e qualidade 50. O teto do corpo é de 64 KiB nesse caso e de 128 KiB nos demais. O formato aceito depende do MIME e da assinatura real. SVG passa por restrições de conteúdo e a decodificação exige dimensões naturais positivas até 512 × 512.
+
+O fetch recusa redirecionamentos e tem prazo de 8 s. A decodificação tem prazo de 2 s. Há duas cargas simultâneas e um orçamento de 2 MiB por sessão. O cache compartilha promessas pela URL original até 64 entradas, incluindo falhas. Esgotamento ou falha mantém o fallback, sem repetir o download com a URL original.
+
+## Verificação
+
+Os SVGs locais entram no IPK pela lista explícita de [empacotamento](../packaging.json). Os testes cobrem limites Gift, níveis válidos e inválidos, fallback, decode e reutilização de regras CSS. A telemetria conta ícones locais inseridos, excluindo o fallback, e imagens remotas aplicadas enquanto a linha ainda existe. Veja [coleta na LG C3](TESTES-DE-CHAT-NA-TV.md).

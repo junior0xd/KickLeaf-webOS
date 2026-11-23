@@ -1,8 +1,8 @@
-# Etapa A — investigação e decisão
+# Investigação histórica da PoC v0.1.0
 
-Data: 08/11/2026. Prioridade: obter reprodução autorizada diretamente no aplicativo da TV.
+Registro de 08/11/2026, anterior à implementação de Direct HLS. Consulte o [guia do player](PLAYER.md) para a arquitetura da v0.2.8.
 
-**Resultado da validação posterior:** o usuário instalou e testou o aplicativo na LG OLED C3 e declarou a prova de conceito bem-sucedida. Foram confirmados teclado, reprodução de canal online em tela cheia, exibição de offline e retorno à entrada. O [relato de validação](TESTES.md) registra os canais utilizados e o comportamento de um canal inexistente. Esta atualização é somente documental; a aplicação permanece inalterada.
+**Resultado da validação posterior:** o usuário instalou e testou o aplicativo na LG OLED C3 e declarou a prova de conceito bem-sucedida. Foram confirmados teclado, reprodução de canal online em tela cheia, exibição de offline e retorno à entrada. O [relato de validação](TESTES.md#evidências-históricas) registra os canais utilizados e o comportamento de um canal inexistente.
 
 ## Kick: metadados e acesso à mídia são interfaces diferentes
 

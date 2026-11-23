@@ -1,66 +1,24 @@
 # KickTV for webOS — Agent Instructions
 
-## Purpose and scope
+These instructions apply to the repository unless a more specific `AGENTS.md` overrides them. KickTV is an independent Kick viewing app for LG webOS TVs. The functional baseline for these instructions is v0.2.8. Check the source and manifests before changing behavior.
 
-KickTV is a third-party Kick live-stream viewing application for LG webOS TVs. Prioritize reliable playback, remote-control usability, responsive UI, and maintainable code. Follow the repository's actual implementation over assumptions in this document; if they conflict, inspect and report the discrepancy before changing architecture.
+## Runtime architecture
 
-These instructions apply to the entire repository unless a more specific `AGENTS.md` overrides them.
+- `app/appinfo.json` defines the application ID `com.kicktv.alpha`. The packaged JavaScript service is `com.kicktv.alpha.service`. Target the LG OLED C3 with webOS 25 and verify API compatibility on the device when needed.
+- Direct HLS is the default. The web app discovers the stream and the native video element receives media from the CDN. The current discovery makes ordinary requests and has no JavaScript challenge handler. Preserve its origin, TLS, and request restrictions.
+- `native-hls` uses the optional Python discovery backend. The official iframe is an explicit fallback with its own limitations. Keep the HLS diagnostic independent of Kick playback. See the [player guide](docs/PLAYER.md).
+- Theater and fullscreen are the two HLS viewing layouts. Theater starts public, read-only chat through the packaged Luna service. Centrifugo transport and the local FIFO/DOM ACK are independent. Keep video playback independent of chat and preserve queue admission, credit, deduplication, draining, and cleanup. See the [chat guide](docs/CHAT.md).
+- Get explicit approval before adding a backend, proxy, runtime dependency, or external service. Treat external URLs, credentials, cookies, images, and message content as untrusted. Keep secrets, signed URLs, raw chat data, and private captures out of logs and commits.
 
-## Architecture
+## UI and performance
 
-- The current target architecture is **direct HLS on the TV** (`direct-hls`): the webOS app performs stream discovery and any necessary JavaScript challenge handling, obtains the HLS URL, and plays media from the provider/CDN directly.
-- **Do not assume a Python, Streamlink, proxy, or self-hosted server is required.** Legacy server-related code or documentation may exist; verify whether it is active before touching it.
-- Do not introduce a backend, proxy, external runtime service, or new network dependency without explicit approval and a clear technical justification.
-- Keep stream discovery/challenge handling, playback, UI controls, settings, and (future) chat logically separated. Avoid unnecessary coupling.
-- Treat URLs, tokens, cookies, and responses from external services as untrusted. Do not log or commit secrets or session data. Do not weaken browser/webOS security protections to make a feature work.
+- Design for television viewing and Magic Remote navigation. Preserve visible focus, accessible labels, arrow/OK/Back behavior, and the priority of the virtual keyboard. Hidden or disabled controls must be excluded from navigation.
+- Use locally bundled Phosphor icons for player controls. Keep transient controls and gradients linked, and avoid persistent overlays or excessive polling. Layout changes must preserve the video instance and its buffer.
+- The code supports pause and limited resume inside the accessible HLS window. Manual live seeking and DVR remain future work. Avoid exposing controls for capabilities the current runtime cannot provide.
 
-## Platform and performance
+## Changes and verification
 
-- Target LG OLED C3 with webOS 25; verify compatibility with the actual webOS browser/runtime and the project's existing APIs before adopting features.
-- Prefer lightweight, locally bundled assets and broadly supported web standards. Avoid CDN dependencies for core UI assets and unnecessary frameworks.
-- Minimize expensive layout/repaint work, excessive polling, and persistent overlays. Hidden controls and gradients must actually disappear to avoid unnecessary static OLED elements.
-- Preserve HLS playback stability, buffer behavior, reconnection handling, and resource cleanup. Do not restart playback merely to update layout or show/hide controls.
-
-## Interface and navigation
-
-- Design for a television viewed from a distance, not a desktop browser. Keep controls compact but focus/activation targets comfortably sized.
-- Use **Phosphor Icons** as the consistent icon family. Prefer official, locally bundled assets; do not hand-draw replacement icons, mix icon families, or use emoji as control icons.
-- The visual direction is a minimal Twitch-like control bar and settings hierarchy, with a smooth black-to-transparent gradient behind lower controls.
-- Support directional navigation, OK/Enter, and Back using the project's existing focus-management conventions. Focus must remain visible and predictable; hidden or disabled elements must not receive focus.
-- Preserve accessible labels and visible states (focused, selected, disabled). Do not rely on color alone to communicate state.
-- Controls and their gradient should share visibility transitions and not obstruct video or remote interactions when hidden.
-- The product has **exactly two intended viewing modes**: theater (video with chat alongside) and fullscreen (video without chat). Do not invent a third viewing mode.
-- Keep the player controls independent of screen dimensions and chat layout so switching modes will not recreate the media player or interrupt playback.
-
-## Feature boundaries and roadmap
-
-Implement only the requested step. The intended order is:
-
-1. Visual refresh: Phosphor Icons and compact controls, preserving existing actions.
-2. Settings UI: submenus, switches, and radio selection for available qualities.
-3. Essential playback controls: play/pause, volume/mute, theater/fullscreen behavior.
-4. Investigate and, if feasible, implement live DVR/seeking based on the actual accessible HLS window or provider capabilities.
-5. Integrate Kick chat, including remote navigation and theater layout.
-6. Refine diagnostics, animations, stability, and performance.
-
-This is a **roadmap, not authorization** to implement future steps. Do not add nonfunctional controls that appear actionable. If a planned control has no implementation, clearly disable it or omit it from focus until it works.
-
-For live playback, distinguish pausing the HTML media element from DVR/time-shift support. Never claim that the stream supports arbitrary seeking without verifying the available media timeline. Do not add server-side recording as a shortcut without approval.
-
-## Change discipline
-
-- Inspect relevant source files, existing conventions, and available tests before editing. Make the smallest coherent change that satisfies the request.
-- Preserve working features: direct HLS discovery/playback, existing quality selection, reload, official-player fallback, statistics, remote navigation, and visibility behavior where present.
-- Avoid speculative refactors, unrelated dependency upgrades, generated custom SVGs, and architecture changes outside the task.
-- Reuse existing components and styles. Keep UI state, playback state, and network state distinct.
-- Handle failures explicitly and provide a usable recovery path; avoid silent failures and infinite retries.
-- Never hardcode credentials, tokens, cookies, private URLs, or personal data. Keep sensitive values out of commits and logs.
-- If requirements are ambiguous or conflict with existing behavior, explain the tradeoff and ask before making a consequential change.
-
-## Validation and delivery
-
-- Run the repository's relevant lint, build, and tests when available; do not invent test commands or claim tests were run when they were not.
-- Check focus movement, OK/Back behavior, visibility transitions, disabled controls, and that controls cannot capture input when hidden.
-- For playback-related changes, check startup, stream changes, recovery, cleanup, and no unexpected reloads. State clearly what still requires on-device testing.
-- At completion, summarize: changes made, files changed, tests/checks actually run and their results, remaining limitations, and any manual webOS validation needed.
-- Do not start the next roadmap phase without explicit authorization.
+- Keep scope to the requested change. Reuse existing boundaries among discovery, playback, controls, transport, and rendering. Preserve behavior of optional modes and cleanup on channel changes, reload, and exit.
+- Use the [test guide](docs/TESTES.md) and [telemetry guide](docs/TELEMETRIA-FASE-2.md). Report simulated tests separately from on-device results. For UI changes, verify focus and visibility. For playback or chat changes, verify recovery and release of prior resources.
+- Check packaging with the repository's existing scripts when runtime files change. The explicit allowlist in `packaging.json` governs the IPK. Keep experimental sources, untracked documents, and raw captures out of Git unless publication is explicitly requested.
+- Preserve experimental reports R001–R040 and their provenance. Attribute historical results to the tested version and scope. Follow the [changelog](CHANGELOG.md) for released behavior and keep installation instructions aligned with the current manifest.
