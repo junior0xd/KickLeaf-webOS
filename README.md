@@ -1,4 +1,8 @@
+<div align="center">
+
 # KickTV Alpha para LG webOS
+
+</div>
 
 <p align="center">Português | <a href="README.en.md">English</a></p>
 
