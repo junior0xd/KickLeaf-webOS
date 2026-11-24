@@ -109,7 +109,7 @@ for (const mode of ['direct-hls', 'iframe']) {
         });
         expect(gradient.pointer).toBe('none');
         expect(gradient.z).toBe('-1');
-        expect(gradient.width).toBe(width);
+        expect(gradient.width).toBe(mode === 'direct-hls' ? width * .75 : width);
         expect(gradient.bottom).toBe('0px');
         expect(gradient.background).toBe('rgba(0, 0, 0, 0)');
         expect(gradient.image).toContain('linear-gradient');

@@ -83,6 +83,7 @@ test('APIs ausentes e valores inválidos exibem N/D sem lançar erros',async({pa
 test('saída/troca de canal e recarga desligam polling, removem listeners e não reaproveitam valores',async({page})=>{
   await start(page);await enable(page);await page.locator('video').evaluate(v=>window.releasedStatsVideo=v);
   await page.keyboard.press('Escape');await expect(page.locator('#native-controls')).toBeHidden();await expect(page.locator('#video-statistics')).toBeVisible();
+  await page.keyboard.press('Escape');await expect(page.locator('#native-playback')).toHaveAttribute('data-view-mode','fullscreen');
   await page.keyboard.press('Escape');await expect(page.locator('#video-statistics')).toBeHidden();
   expect(await page.evaluate(()=>releasedStatsVideo.testAdds===releasedStatsVideo.testRemoves)).toBe(true);
   const reads=await page.evaluate(()=>testQualityReads);await page.clock.fastForward(10000);expect(await page.evaluate(()=>testQualityReads)).toBe(reads);
@@ -98,6 +99,9 @@ test('pode abrir durante descoberta; não faz requisições extras nem expõe UR
   let resolve,arrived=false;await page.route(API+'**',async r=>{arrived=true;await new Promise(done=>{resolve=done;});await r.fulfill({json:{data:{playback_url:MASTER}},headers:{'Access-Control-Allow-Origin':'*'}});});
   await page.locator('#channel').fill('yetz');await page.locator('#watch').click();await expect.poll(()=>arrived).toBe(true);await enable(page);
   await expect(field(page,'state')).toHaveText('Descobrindo transmissão');await expect(field(page,'resolution')).toHaveText('N/D');resolve();await expect(page.locator('video')).toHaveCount(1);
+  await expect.poll(()=>page.locator('#native-play-pause img').evaluate(icon=>
+    icon.src.endsWith('/phosphor-pause-fill.svg')&&icon.complete&&icon.naturalWidth>0
+  )).toBe(true);
   const requests=[];page.on('request',r=>requests.push(r.url()));await page.clock.fastForward(6000);expect(requests).toEqual([]);
   await expect(page.locator('#video-statistics')).not.toContainText(/PRIVATE_TEST|https:/);
 });

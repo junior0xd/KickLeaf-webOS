@@ -6,62 +6,96 @@
   <title>KickLeaf — HLS e chat</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="chat.css">
+  <link rel="stylesheet" href="native-playback.css">
+  <link rel="stylesheet" href="discovery-home.css">
 </head>
 <body tabindex="-1">
   <main id="home" class="home">
+    <div id="home-brand" hidden><img src="icon.png" alt="">KickLeaf</div>
     <form id="native-form" novalidate>
       <input id="channel" type="text" placeholder="Nome do canal da Kick" aria-label="Nome do canal da Kick" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="256">
       <button id="watch" type="submit">Assistir</button>
       <p id="message" role="status" aria-live="polite"></p>
     </form>
-  </main>
-  <div id="native-video-host"></div>
-  <p id="notice" class="notice" role="status" hidden></p>
-  <section id="native-controls" class="player-controls" tabindex="-1" aria-label="Controles HLS" hidden>
-    <div class="control-group" role="group" aria-label="Reprodução">
-      <button id="native-play-pause" class="icon-control" type="button" aria-label="Reproduzir" title="Reproduzir" disabled><img src="phosphor-play-fill.svg" alt="" aria-hidden="true"></button>
-      <span id="native-live" hidden class="live-indicator"><img src="phosphor-broadcast-fill.svg" alt="" aria-hidden="true">AO VIVO</span>
-    </div>
-    <div class="control-group" role="group" aria-label="Visualização e configurações">
-      <button id="native-theater" class="icon-control" type="button" aria-label="Ativar chat no modo teatro" title="Ativar chat no modo teatro" aria-pressed="false"><img src="phosphor-rectangle.svg" alt="" aria-hidden="true"></button>
-      <button id="native-settings" class="icon-control" type="button" aria-label="Configurações" title="Configurações" aria-haspopup="dialog" aria-controls="native-settings-panel" aria-expanded="false"><img src="phosphor-gear-six.svg" alt="" aria-hidden="true"></button>
-      <button id="native-fullscreen" class="icon-control" type="button" aria-label="Tela cheia: ocultar chat" title="Tela cheia: ocultar chat"><img src="phosphor-corners-out.svg" alt="" aria-hidden="true"></button>
-    </div>
-    <section id="native-settings-panel" class="player-settings" role="dialog" aria-modal="true" aria-labelledby="native-settings-title" hidden>
-      <h2 id="native-settings-title">Ações da transmissão</h2>
-      <button id="native-quality" type="button">Qualidade: Auto</button>
-      <button id="native-reload" type="button">Recarregar transmissão</button>
-      <button id="official-player" type="button">Usar player oficial</button>
-      <button id="video-statistics-toggle" type="button" aria-pressed="false" aria-controls="video-statistics">Estatísticas do vídeo</button>
-      <button id="native-close-settings" type="button">Fechar</button>
+    <section id="browse" aria-labelledby="browse-title" hidden>
+      <h1 id="browse-title">Procurar</h1>
+      <div id="browse-scroll">
+        <div id="browse-grid"></div>
+        <p id="browse-status" role="status" aria-live="polite"></p>
+        <button id="browse-retry" type="button" hidden>Tentar novamente</button>
+      </div>
     </section>
-  </section>
+  </main>
+  <main id="native-playback" data-view-mode="complete" aria-label="Reprodução da transmissão" hidden>
+    <div class="native-stage">
+      <div id="native-video-host"></div>
+      <p id="notice" class="notice" role="status" hidden></p>
+      <section id="native-controls" class="player-controls" tabindex="-1" aria-label="Controles HLS" hidden>
+        <div class="control-group" role="group" aria-label="Reprodução">
+          <button id="native-play-pause" class="icon-control" type="button" aria-label="Reproduzir" title="Reproduzir" disabled><img src="phosphor-play-fill.svg" alt="" aria-hidden="true"></button>
+          <span id="native-live" hidden class="live-indicator"><img src="phosphor-broadcast-fill.svg" alt="" aria-hidden="true">AO VIVO</span>
+        </div>
+        <div class="control-group" role="group" aria-label="Visualização e configurações">
+          <button id="native-theater" class="icon-control" type="button" aria-label="Modo teatro" title="Modo teatro" aria-pressed="false" disabled><img src="phosphor-rectangle.svg" alt="" aria-hidden="true"></button>
+          <button id="native-settings" class="icon-control" type="button" aria-label="Configurações" title="Configurações" aria-haspopup="dialog" aria-controls="native-settings-panel" aria-expanded="false"><img src="phosphor-gear-six.svg" alt="" aria-hidden="true"></button>
+          <button id="native-fullscreen" class="icon-control" type="button" aria-label="Tela cheia" title="Tela cheia" aria-pressed="false" disabled><img src="phosphor-corners-out.svg" alt="" aria-hidden="true"></button>
+        </div>
+        <section id="native-settings-panel" class="player-settings" role="dialog" aria-modal="true" aria-labelledby="native-settings-title" hidden>
+          <h2 id="native-settings-title">Ações da transmissão</h2>
+          <button id="native-quality" type="button">Qualidade: Auto</button>
+          <button id="native-reload" type="button">Recarregar transmissão</button>
+          <button id="official-player" type="button">Usar player oficial</button>
+          <button id="video-statistics-toggle" type="button" aria-pressed="false" aria-controls="video-statistics">Estatísticas do vídeo</button>
+          <button id="native-close-settings" type="button">Fechar</button>
+        </section>
+      </section>
+      <aside id="video-statistics" class="video-statistics" aria-label="Estatísticas do vídeo" hidden>
+        <h2>Estatísticas do vídeo</h2>
+        <h3>Vídeo</h3>
+        <dl>
+          <div><dt>Resolução efetiva</dt><dd data-stat="resolution">N/D</dd></div>
+          <div><dt>FPS apresentados (estim.)</dt><dd data-stat="fps">N/D</dd></div>
+          <div><dt>FPS declarados</dt><dd data-stat="nominalFPS">N/D</dd></div>
+          <div><dt>Codec vídeo declarado</dt><dd data-stat="videoCodec">N/D</dd></div>
+          <div><dt>Codec áudio declarado</dt><dd data-stat="audioCodec">N/D</dd></div>
+          <div><dt>Qualidade selecionada</dt><dd data-stat="quality">N/D</dd></div>
+        </dl>
+        <h3>Reprodução</h3>
+        <dl>
+          <div><dt>Bitrate declarado</dt><dd data-stat="bitrate">N/D</dd></div>
+          <div><dt>Buffer à frente</dt><dd data-stat="buffer">N/D</dd></div>
+          <div><dt>Frames perdidos / totais</dt><dd data-stat="frames">N/D</dd></div>
+          <div><dt>Distância da borda acessível</dt><dd data-stat="edge">N/D</dd></div>
+          <div><dt>Latência real</dt><dd data-stat="latency">N/D</dd></div>
+        </dl>
+        <h3>Estado</h3>
+        <dl>
+          <div><dt>Reprodução</dt><dd data-stat="state">N/D</dd></div>
+          <div><dt>Interrupções / tempo</dt><dd data-stat="interruptions">N/D</dd></div>
+        </dl>
+      </aside>
+    </div>
+    <section id="stream-info" aria-label="Informações da transmissão" hidden>
+      <div class="stream-avatar">
+        <span data-info="initial" aria-hidden="true"></span>
+        <img data-info="avatar" alt="" referrerpolicy="no-referrer" hidden>
+      </div>
+      <div class="stream-details">
+        <h2 data-info="title" hidden></h2>
+        <div class="stream-byline">
+          <span data-info="name"></span>
+          <span data-info="category" hidden></span>
+        </div>
+        <p data-info="description" hidden></p>
+        <div class="stream-metrics">
+          <span class="stream-live" data-info="live" hidden>Ao vivo</span>
+          <time data-info="elapsed" aria-label="Tempo de transmissão" hidden></time>
+          <span data-info="viewers" hidden></span>
+        </div>
+      </div>
+    </section>
+  </main>
   <section id="native-quality-menu" class="quality-menu" role="dialog" aria-modal="true" aria-label="Qualidades disponíveis" hidden></section>
-  <aside id="video-statistics" class="video-statistics" aria-label="Estatísticas do vídeo" hidden>
-    <h2>Estatísticas do vídeo</h2>
-    <h3>Vídeo</h3>
-    <dl>
-      <div><dt>Resolução efetiva</dt><dd data-stat="resolution">N/D</dd></div>
-      <div><dt>FPS apresentados (estim.)</dt><dd data-stat="fps">N/D</dd></div>
-      <div><dt>FPS declarados</dt><dd data-stat="nominalFPS">N/D</dd></div>
-      <div><dt>Codec vídeo declarado</dt><dd data-stat="videoCodec">N/D</dd></div>
-      <div><dt>Codec áudio declarado</dt><dd data-stat="audioCodec">N/D</dd></div>
-      <div><dt>Qualidade selecionada</dt><dd data-stat="quality">N/D</dd></div>
-    </dl>
-    <h3>Reprodução</h3>
-    <dl>
-      <div><dt>Bitrate declarado</dt><dd data-stat="bitrate">N/D</dd></div>
-      <div><dt>Buffer à frente</dt><dd data-stat="buffer">N/D</dd></div>
-      <div><dt>Frames perdidos / totais</dt><dd data-stat="frames">N/D</dd></div>
-      <div><dt>Distância da borda acessível</dt><dd data-stat="edge">N/D</dd></div>
-      <div><dt>Latência real</dt><dd data-stat="latency">N/D</dd></div>
-    </dl>
-    <h3>Estado</h3>
-    <dl>
-      <div><dt>Reprodução</dt><dd data-stat="state">N/D</dd></div>
-      <div><dt>Interrupções / tempo</dt><dd data-stat="interruptions">N/D</dd></div>
-    </dl>
-  </aside>
   <aside id="chat-panel" hidden aria-label="Chat público somente leitura">
     <header><h2 id="chat-channel">Chat</h2><span id="chat-state" role="status">Desabilitado</span></header>
     <div id="chat-messages" role="log" aria-label="Mensagens recentes" aria-live="off"></div>
@@ -78,9 +112,13 @@
   <script src="channel.js"></script>
   <script src="native-api.js"></script>
   <script src="hls-manifest.js"></script>
+  <script src="kick-http.js"></script>
+  <script src="discovery-api.js"></script>
+  <script src="discovery-home.js"></script>
   <script src="direct-api.js"></script>
   <script src="video-stats.js"></script>
   <script src="video-stats-panel.js"></script>
+  <script src="stream-info.js"></script>
   <script src="native-hls.js"></script>
 </body>
 </html>

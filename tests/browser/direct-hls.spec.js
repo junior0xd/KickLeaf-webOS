@@ -84,7 +84,7 @@ test('timeout só do manifesto continua com Auto',async({page})=>{
 });
 test('troca canal/recarrega/libera vídeo, e pode retornar ao iframe sem loop',async({page})=>{
   await ready(page);await page.locator('video').evaluate(v=>window.oldVideo=v);
-  await back(page);expect(await page.evaluate(()=>!oldVideo.isConnected&&!oldVideo.hasAttribute('src')&&oldVideo.paused)).toBe(true);
+  await back(page);await back(page);expect(await page.evaluate(()=>!oldVideo.isConnected&&!oldVideo.hasAttribute('src')&&oldVideo.paused)).toBe(true);
   await submit(page,'minerva');await expect(page.locator('video')).toHaveCount(1);
   await action(page,1);await expect(page.locator('video')).toHaveCount(1);
   await action(page,2);
@@ -248,7 +248,7 @@ test('motor que insiste em saltar encerra tentativa sem loop de busca',async({pa
 test('liberação durante play pendente ignora rejeição e eventos tardios',async({page})=>{
   await timeline(page);await toggle(page);
   await page.locator('video').evaluate(v=>{v.play=function(){return new Promise((resolve,reject)=>{window.rejectOldPlay=reject;});};});
-  await toggle(page);await back(page);await back(page);
+  await toggle(page);await back(page);await back(page);await back(page);
   await expect(page.locator('#home')).toBeVisible();
   await page.evaluate(()=>{rejectOldPlay(new Error('late'));originalVideo.dispatchEvent(new Event('playing'));});
   await expect(page.locator('#message')).toBeEmpty();

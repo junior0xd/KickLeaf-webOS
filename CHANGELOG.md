@@ -2,7 +2,17 @@
 
 Os resultados abaixo pertencem às versões, aos dispositivos e aos cenários descritos. Os [relatórios experimentais sanitizados](experiments/reports/README.md) guardam os hashes dos originais e incluem resultados negativos. Os pacotes experimentais 0.3.x citados nesses relatórios têm identidades próprias. Os documentos completos anteriores à consolidação permanecem disponíveis na árvore da tag `v0.2.8`.
 
-## v0.2.9 (em desenvolvimento)
+## v0.3.0
+
+- Adiciona a tela inicial experimental **Procurar**, com quatro cards por linha, imagens sob demanda, navegação pelo controle remoto e retorno ao card selecionado. O adaptador consulta a listagem anônima, deduplica páginas e reaproveita metadados no card da reprodução. A ativação requer `experimentalDiscovery: true`. [Descoberta experimental](docs/DESCOBERTA.md)
+- A reprodução HLS abre em modo Completo, com chat e card de informações. Teatro recolhe o card e Tela cheia retorna ao modo anterior. Todas as transições preservam a instância do player. [Player](docs/PLAYER.md)
+
+### Release Notes
+
+- Added an experimental Browse screen for live Kick streams, with remote-friendly navigation that restores your place after playback. Enable it with `experimentalDiscovery: true`. You can still open a channel directly by slug.
+- Added a stream information card and made Complete the default playback layout. Switch between Complete, Theater, and Fullscreen without restarting the video.
+
+## v0.2.9
 
 - KickTV Alpha passa a se chamar **KickLeaf**, com novo ícone. O IPK usa `com.kickleaf.client` e inclui o serviço Luna `com.kickleaf.client.service`. O webOS instala o KickLeaf como um aplicativo separado.
 

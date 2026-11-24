@@ -7,13 +7,23 @@
   var home = document.getElementById('home');
   var input = document.getElementById('channel');
   var watch = document.getElementById('watch');
+  var discovery = params.experimentalDiscovery === true ? window.KickDiscovery.create() : null;
+  var homeUI = discovery ? window.KickDiscoveryHome.create({api: discovery, home: home, input: input, watch: watch, open: open}) : null;
+  var audienceAllowed = null;
   var message = document.getElementById('message');
+  var screen = document.getElementById('native-playback');
   var host = document.getElementById('native-video-host');
+  var streamInfo = window.KickStreamInfo.create(document.getElementById('stream-info'));
+  var ViewMode = { COMPLETE: 'complete', THEATER: 'theater', FULLSCREEN: 'fullscreen' };
+  var viewMode = null;
+  var previousViewMode = ViewMode.COMPLETE;
   var notice = document.getElementById('notice');
   var controls = document.getElementById('native-controls');
   var menu = document.getElementById('native-quality-menu');
   var settingsPanel = document.getElementById('native-settings-panel');
   var settingsButton = document.getElementById('native-settings');
+  var theaterButton = document.getElementById('native-theater');
+  var fullscreenButton = document.getElementById('native-fullscreen');
   var playPauseButton = document.getElementById('native-play-pause');
   var closeSettingsButton = document.getElementById('native-close-settings');
   var qualityButton = document.getElementById('native-quality');
@@ -39,10 +49,30 @@
   function later(name, action, ms) { clear(name); timers[name] = setTimeout(action, ms); }
   function hint(text) { notice.textContent = text; notice.hidden = false; }
   function hideHint() { notice.hidden = true; }
+  function syncLayout() {
+    screen.hidden = !viewMode;
+    if (viewMode) screen.dataset.viewMode = viewMode;
+    theaterButton.setAttribute('aria-pressed', String(viewMode === ViewMode.THEATER));
+    fullscreenButton.setAttribute('aria-pressed', String(viewMode === ViewMode.FULLSCREEN));
+    streamInfo.setVisible(!!metadata && viewMode === ViewMode.COMPLETE);
+    if (window.KickChatUI) {
+      window.KickChatUI.setVisible(!!metadata && !!viewMode && viewMode !== ViewMode.FULLSCREEN);
+    }
+  }
+  function setViewMode(next, source) {
+    if (next === viewMode) { syncLayout(); return; }
+    var from = viewMode;
+    if (next === ViewMode.FULLSCREEN) previousViewMode = from;
+    viewMode = next;
+    syncLayout();
+    var transition = { from: from, to: next, source: source };
+    log('view_mode', transition);
+    window.dispatchEvent(new CustomEvent('kicktv-view-mode', { detail: transition }));
+  }
   function syncPlayback(busy) {
     var paused = !video || video.paused;
     var label = paused ? 'Reproduzir' : 'Pausar';
-    playPauseButton.disabled = !video;
+    playPauseButton.disabled = theaterButton.disabled = fullscreenButton.disabled = !video;
     playPauseButton.setAttribute('aria-label', label);
     playPauseButton.title = label;
     playPauseButton.setAttribute('aria-busy', String(!!busy));
@@ -79,18 +109,23 @@
   }
   function showHome(text) {
     window.dispatchEvent(new CustomEvent('kicktv-channel-left'));
-    stop(); metadata = null; home.hidden = false; message.textContent = text || ''; watch.focus();
+    stop(); metadata = null; setViewMode(null, 'leave'); streamInfo.reset('', false);
+    home.hidden = false; message.textContent = text || '';
+    if (homeUI) homeUI.resume(true); else watch.focus();
   }
   function fail(text, stage) { log('failed', { stage: stage || 'playback', mode: mode }); showHome(text); }
   function fallback() {
     var value = input.value;
     window.dispatchEvent(new CustomEvent('kicktv-channel-left'));
-    stop();
+    stop(); metadata = null; setViewMode(null, 'leave'); streamInfo.reset('', false);
     var suffix = '';
     try { suffix = '&channel=' + encodeURIComponent(window.KickChannel.normalizeChannel(value)); } catch (error) { /* Entrada vazia não impede voltar ao iframe. */ }
     window.location.replace('index.html?iframe' + suffix);
   }
-  function snapshot() { return statistics.snapshot(); }
+  function snapshot() {
+    var sample = statistics.snapshot();
+    return sample && Object.assign(sample, { view_mode: viewMode });
+  }
   function play(selection) {
     releaseVideo(); hideControls();
     var item = selection === 'auto' ? null : metadata.playback.qualities.find(function (q) { return q.id === selection && q.selectable; });
@@ -228,8 +263,15 @@
     var settings, next;
     try { next = window.KickChannel.normalizeChannel(input.value); settings = provider.config(params); }
     catch (error) { message.textContent = error.message; return; }
+    var newSelection = !home.hidden || channel !== next;
     stop(); channel = next; selected = 'auto';
-    window.dispatchEvent(new CustomEvent('kicktv-channel-selected',{detail:{channel:channel}})); home.hidden = true; document.body.focus();
+    if (homeUI) homeUI.suspend();
+    home.hidden = true; document.body.focus();
+    if (newSelection) {
+      metadata = null; audienceAllowed = null;
+      setViewMode(ViewMode.COMPLETE, 'start');
+    }
+    window.dispatchEvent(new CustomEvent('kicktv-channel-selected', { detail: { channel: channel } }));
     var ticket = generation;
     var controller = new AbortController(); request = controller;
     statistics.setPhase('discovering');
@@ -241,12 +283,23 @@
       if (ticket !== generation) return;
       clear('request'); request = null;
       if (!data.online) { showHome('Canal offline ou sem transmissão disponível.'); return; }
-      metadata = data; play('auto');
+      if (!metadata) streamInfo.reset(channel, data.playback.live);
+      var seed = discovery && data.playback.live ? discovery.metadata(channel) : null;
+      var stream = window.KickDiscovery.merge(seed, data.stream);
+      if (stream && stream.showViewerCount !== null) audienceAllowed = stream.showViewerCount;
+      metadata = data;
+      streamInfo.update(window.KickDiscovery.cardInfo(stream));
+      play('auto');
+      if (video) syncLayout();
     } catch (error) {
       if (ticket === generation) fail(error.message, 'discovery');
     }
   }
-  document.getElementById('native-form').addEventListener('submit', function (event) { event.preventDefault(); open(); });
+  document.getElementById('native-form').addEventListener('submit', function (event) {
+    event.preventDefault();
+    if (homeUI) homeUI.clearSelection();
+    open();
+  });
   buttons[1].addEventListener('click', open);
   playPauseButton.addEventListener('click', function () { if (playback) playback.toggle(); idleControls(); });
   settingsButton.addEventListener('click', function () {
@@ -293,12 +346,15 @@
       if (!menu.hidden) { menu.hidden = true; setSettingsVisible(true); qualityButton.focus(); }
       else if (!settingsPanel.hidden) closeSettings();
       else if (!controls.hidden) hideControls();
-      else if (window.KickChatUI && window.KickChatUI.visible()) { window.KickChatUI.hide(); document.body.focus(); }
+      else if (video && viewMode !== ViewMode.FULLSCREEN) { setViewMode(ViewMode.FULLSCREEN, 'back'); document.body.focus(); }
       else if (home.hidden) showHome();
+      else if (homeUI && document.activeElement.closest('#browse')) watch.focus();
       else fallback();
       return;
     }
-    var targets = !home.hidden ? [input, watch] : (!menu.hidden ? Array.from(menu.querySelectorAll('button:not(:disabled)')) : (!settingsPanel.hidden ? buttons.concat([closeSettingsButton]) : (video ? [playPauseButton, document.getElementById('native-theater'), settingsButton, document.getElementById('native-fullscreen')] : [settingsButton])));
+    if (!home.hidden && homeUI && (homeUI.arrow(code) ||
+        (code === 13 && homeUI.activate(event.repeat)))) { event.preventDefault(); return; }
+    var targets = !home.hidden ? [input, watch] : (!menu.hidden ? Array.from(menu.querySelectorAll('button:not(:disabled)')) : (!settingsPanel.hidden ? buttons.concat([closeSettingsButton]) : (video ? [playPauseButton, theaterButton, settingsButton, fullscreenButton] : [settingsButton])));
     if ([37, 38, 39, 40].indexOf(code) !== -1 || (code === 9 && home.hidden)) {
       if (!home.hidden && (code === 37 || code === 39)) return;
       event.preventDefault();
@@ -314,10 +370,37 @@
       else hideControls();
     }
   });
-  document.getElementById('native-theater').addEventListener('click',function(){if(window.KickChatUI)window.KickChatUI.toggle();idleControls();});
-  document.getElementById('native-fullscreen').addEventListener('click',function(){if(window.KickChatUI)window.KickChatUI.hide();idleControls();});
-  document.addEventListener('visibilitychange', function () { if (document.hidden) showHome('Reprodução encerrada ao sair do aplicativo.'); });
+  theaterButton.addEventListener('click', function () {
+    if (!video) return;
+    setViewMode(viewMode === ViewMode.THEATER ? ViewMode.COMPLETE : ViewMode.THEATER, 'theater');
+    idleControls();
+  });
+  fullscreenButton.addEventListener('click', function () {
+    if (!video) return;
+    setViewMode(viewMode === ViewMode.FULLSCREEN ? previousViewMode : ViewMode.FULLSCREEN, 'fullscreen');
+    idleControls();
+  });
+  window.addEventListener('kicktv-stream-info', function (event) {
+    if (metadata && event.detail.channel === channel) {
+      var info = event.detail.info;
+      streamInfo.update(audienceAllowed === false ? Object.assign({},info,{viewers:null}) : info);
+    }
+  });
+  window.addEventListener('pagehide', function () {
+    streamInfo.setVisible(false);
+    if (homeUI) homeUI.suspend();
+  });
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) {
+      if (homeUI) homeUI.suspend();
+      if (!homeUI || home.hidden) showHome('Reprodução encerrada ao sair do aplicativo.');
+    } else if (homeUI) homeUI.resume(true);
+  });
   window.KickNativeDiagnostics = { snapshot: snapshot };
   log('mode_selected', { mode: mode, origin: window.location.origin, protocol: window.location.protocol });
-  input.focus();
+  if (homeUI) {
+    watch.focus();
+    window.KickHomeDiagnostics = {snapshot: homeUI.snapshot};
+    homeUI.resume();
+  } else input.focus();
 }());

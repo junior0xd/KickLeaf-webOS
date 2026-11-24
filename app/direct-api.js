@@ -2,44 +2,24 @@
   'use strict';
   function log(stage, details) { console.info('[KickLeaf direct-hls]', stage, details); }
   function failure(code, message) { var error = new Error(message); error.code = code; return error; }
-  // A browser intentionally exposes CORS, DNS, TLS and many network failures as TypeError.
-  // Do not claim that JavaScript alone can distinguish them.
-  function networkError() { return failure('network_or_cors', 'Falha na descoberta: rede, TLS ou CORS impediu a consulta direta à Kick. Consulte o Inspector.'); }
   async function request(url, type, signal, timeout, stage) {
-    var controller = new AbortController();
-    var expired = false;
-    function cancel() { controller.abort(); }
-    if (signal.aborted) cancel();
-    signal.addEventListener('abort', cancel, { once: true });
-    var timer = setTimeout(function () { expired = true; controller.abort(); }, timeout);
     try {
-      var response = await fetch(url, { signal: controller.signal, credentials: 'omit', mode: 'cors', cache: 'no-store', redirect: 'error' });
-      log(stage, { http_status: response.status });
-      if (!response.ok) {
-        var messages = { 401: 'A Kick exige autenticação; descoberta direta encerrada.', 403: 'A Kick recusou o acesso (403); nenhum contorno será tentado.', 404: 'Canal não encontrado (404).', 429: 'A Kick limitou as consultas. Tente mais tarde.' };
-        throw failure('http_' + response.status, 'Falha na descoberta: ' + (messages[response.status] || 'HTTP ' + response.status + '.'));
-      }
-      // Bound response bodies, including chunked responses. Never log their contents.
-      var reader = response.body.getReader(), size = 0, chunks = [], decoder = new TextDecoder();
-      try {
-        while (true) {
-          var part = await reader.read();
-          if (part.done) break;
-          size += part.value.byteLength;
-          if (size > 524288) throw failure('body_too_large', 'Resposta excedeu o limite de tamanho.');
-          chunks.push(decoder.decode(part.value, { stream: true }));
-        }
-      } finally { await reader.cancel().catch(function () {}); reader.releaseLock(); }
-      var text = chunks.join('') + decoder.decode();
-      if (type === 'text') return text;
-      try { return JSON.parse(text); } catch (error) { throw failure('invalid_json', 'Falha na descoberta: a Kick retornou JSON inválido.'); }
+      return await root.KickHTTP.request(url, {type: type, signal: signal, timeout: timeout,
+        onStatus: function (status) { log(stage, {http_status: status}); }});
     } catch (error) {
-      if (expired) throw failure('timeout', 'Falha na descoberta: tempo limite da consulta direta à Kick.');
-      if (signal.aborted) throw failure('cancelled', 'Consulta direta cancelada.');
-      if (typeof error.code === 'string') throw error;
-      throw networkError();
-    } finally {
-      clearTimeout(timer); signal.removeEventListener('abort', cancel);
+      var messages = {
+        http_401: 'A Kick exige autenticação; descoberta direta encerrada.',
+        http_403: 'A Kick recusou o acesso (403); nenhum contorno será tentado.',
+        http_404: 'Canal não encontrado (404).',
+        http_429: 'A Kick limitou as consultas. Tente mais tarde.',
+        network_or_cors: 'rede, TLS ou CORS impediu a consulta direta à Kick. Consulte o Inspector.',
+        invalid_json: 'a Kick retornou JSON inválido.',
+        timeout: 'tempo limite da consulta direta à Kick.'
+      };
+      if (messages[error.code] || /^http_/.test(error.code)) {
+        error.message = 'Falha na descoberta: ' + (messages[error.code] || error.message + '.');
+      }
+      throw error;
     }
   }
   async function resolve(channel, settings, signal) {
@@ -68,7 +48,8 @@
         analysis = { status: 'unavailable', code: error.code || 'invalid_manifest' };
         log('manifest_unavailable', { code: analysis.code, fallback: 'master_auto' });
       }
-      return { channel: channel, online: true, source: 'direct-hls', playback: playback, analysis: analysis };
+      var stream = root.KickDiscovery.normalize(json.data, channel);
+      return { channel: channel, online: true, source: 'direct-hls', playback: playback, analysis: analysis, stream: stream };
     } catch (error) {
       log('discovery_failed', { code: error.code || 'invalid_contract' });
       throw error;

@@ -1,6 +1,6 @@
 # Chat do KickLeaf
 
-Referência funcional: v0.2.9. Durante uma reprodução HLS, abra os controles com OK e selecione **Modo teatro**. O vídeo ocupa 75% da tela e o chat público, somente leitura, ocupa 25%. **Tela cheia**, ocultar o chat, trocar de canal ou sair encerram a sessão. A abertura do app e a reprodução em tela cheia deixam o chat desligado.
+O chat público, somente leitura, abre no modo **Completo** durante a reprodução HLS. Em **Completo** e **Teatro**, ele ocupa 25% da tela e usa a mesma sessão ao alternar entre os dois modos. Entrar em **Tela cheia**, trocar de canal ou sair encerra a sessão e drena as mensagens já admitidas. Voltar de **Tela cheia** para um modo com chat abre uma nova sessão.
 
 ## Arquitetura e renovação
 

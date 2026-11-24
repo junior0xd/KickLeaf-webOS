@@ -1,7 +1,3 @@
-body.theater #native-video-host .screen { width: 75%; height: 100%; right: 25%; object-fit: contain; }
-body.theater #native-controls { right: 25%; }
-body.theater #notice { left: 5%; width: 65%; }
-body.theater #video-statistics { right: 27%; max-width: 40vw; }
 #chat-panel { position: fixed; top: 0; right: 0; bottom: 0; width: 25%; padding: 24px 20px 16px; background: #111318; color: #e7e9ec; display: flex; flex-direction: column; border-left: 1px solid #292c32; }
 #chat-panel header { padding-bottom: 18px; border-bottom: 1px solid #292c32; }
 #chat-channel { margin: 0 0 6px; font-size: 25px; font-weight: 600; overflow-wrap: anywhere; }

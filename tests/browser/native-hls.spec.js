@@ -36,7 +36,8 @@ test('inicializa vídeo nativo com autenticação só no backend e usa Auto', as
   await expect(page.locator('video')).toHaveAttribute('src',MASTER);
   await expect(page.locator('iframe')).toHaveCount(0);
   expect(await page.evaluate(()=>window.KickNativeDiagnostics.snapshot().quality)).toBe('auto');
-  await expect(page.locator('video')).toHaveCSS('width','1920px');
+  await expect(page.locator('#native-playback')).toHaveAttribute('data-view-mode','complete');
+  await expect(page.locator('video')).toHaveCSS('width','1440px');
 });
 
 test('troca qualidade real, bloqueia variante com áudio externo e libera vídeo anterior', async ({ page }) => {

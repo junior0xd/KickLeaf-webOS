@@ -67,6 +67,7 @@ function installProbe(key, binding, rafWindowMs = 1000, fastMs = 5000) {
     chatReady = null;
     emit('channel_selected');
   });
+  listen(window, 'kicktv-view-mode', event => emit('view_mode', event.detail));
   listen(window, 'kicktv-channel-left', () => emit('channel_left'));
   const mediaEvents = ['playing', 'pause', 'waiting', 'stalled', 'seeking', 'seeked', 'error', 'ended'];
   for (const kind of mediaEvents) {
@@ -186,7 +187,7 @@ function installProbe(key, binding, rafWindowMs = 1000, fastMs = 5000) {
       const gaps = dropped;
       dropped = 0;
       return {
-        page: performance.timeOrigin, stream, channel, playback_mode: playbackMode, tv_ms: performance.now(), home: !home.hidden,
+        page: performance.timeOrigin, stream, channel, playback_mode: playbackMode, view_mode: p?.view_mode ?? null, tv_ms: performance.now(), home: !home.hidden,
         home_message: !home.hidden ? document.getElementById('message')?.textContent : null,
         selected_ms: selected, first_video_ms: firstVideo, chat_ready_ms: chatReady,
         player: p && {
@@ -232,10 +233,14 @@ function startStream(channel) {
 }
 
 function enableChat() {
-  const button = document.getElementById('native-theater');
-  if (!button || button.disabled || !window.KickChatUI) return false;
-  if (!window.KickChatUI.visible()) button.click();
-  return window.KickChatUI.visible();
+  const chat = window.KickChatUI;
+  if (!chat) return false;
+  if (chat.visible()) return true;
+  const fullscreen = window.KickNativeDiagnostics?.snapshot()?.view_mode === 'fullscreen';
+  const button = document.getElementById(fullscreen ? 'native-fullscreen' : 'native-theater');
+  if (!button || button.disabled) return false;
+  button.click();
+  return chat.visible();
 }
 
 function chatBound() {

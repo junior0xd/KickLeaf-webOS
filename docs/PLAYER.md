@@ -11,7 +11,9 @@ Referência funcional: v0.2.9. O [manifesto](../app/appinfo.json) define o ID `c
 | `iframe` | O documento pai incorpora o player oficial da Kick. | Parâmetro de abertura ou opção **Usar player oficial** durante o HLS. |
 | `hls-test` | Página de diagnóstico com a amostra pública Apple Bip Bop. | Verificação independente de áudio, vídeo e decodificação HLS. |
 
-O app aceita nome de canal ou URL da Kick e normaliza a entrada. `app.js` direciona a abertura e `native-hls.js` coordena os dois modos HLS. A reprodução usa o pipeline nativo do webOS, sem hls.js, MSE ou retransmissão de mídia pelo KickLeaf. **Tela cheia** e **teatro** são layouts dos modos HLS. Teatro reserva 25% para o [chat](CHAT.md) e mantém a mesma instância do vídeo.
+O app aceita nome de canal ou URL da Kick e normaliza a entrada. `app.js` direciona a abertura e `native-hls.js` coordena os dois modos HLS. A reprodução usa o pipeline nativo do webOS, sem hls.js, MSE ou retransmissão de mídia pelo KickLeaf. A reprodução HLS começa no modo **Completo**, com o card abaixo do vídeo e 25% da tela reservados ao chat. **Teatro** recolhe o card e mantém o chat. **Tela cheia** amplia a área do player e encerra o chat. Os três modos usam a mesma instância do vídeo e preservam sua proporção. [Chat](CHAT.md)
+
+O card usa os dados disponíveis na descoberta HLS direta e na resolução da sala do chat. A contagem de espectadores recebe atualizações pela consulta de canal, em intervalos de pelo menos 60 s enquanto o chat está ativo. O tempo decorrido é calculado localmente a partir do horário de início fornecido pela Kick. Campos indisponíveis ficam ocultos.
 
 ## Direct HLS
 
@@ -60,8 +62,8 @@ Depois de 25 s sem confirmação de navegação, o app orienta a recarga manual.
 ## Controles, foco e ciclo de vida
 
 - OK ou as setas abrem a barra, com foco inicial em **Configurações**. As setas navegam pelos controles visíveis e pulam opções desabilitadas. Com o teclado virtual aberto na entrada, ele recebe as teclas.
-- No HLS, a barra oferece reprodução/pausa, teatro, configurações e tela cheia. Configurações reúne qualidade, recarga, player oficial e estatísticas. Trocar qualidade recria o vídeo com os metadados atuais. Recarregar refaz a descoberta e volta a Auto. Uma recarga bem-sucedida do mesmo canal preserva o chat ativo. A TV controla o volume.
-- A barra e o gradiente somem após 5 s sem interação quando os menus estão fechados. Voltar fecha nesta ordem: submenu de qualidade, configurações, barra, chat e reprodução. Voltar na entrada HLS leva ao formulário do iframe, onde um segundo Voltar confirmado sai do app. No iframe, Voltar fecha submenu, configurações, barra e reprodução antes da confirmação de saída.
+- No HLS, a barra oferece reprodução/pausa, teatro, configurações e tela cheia. Configurações reúne qualidade, recarga, player oficial e estatísticas. Trocar qualidade recria o vídeo com os metadados atuais. Recarregar refaz a descoberta e volta a Auto. Uma recarga bem-sucedida do mesmo canal preserva o chat ativo. O botão Teatro alterna entre Completo e Teatro e, em Tela cheia, abre Teatro diretamente. O botão Tela cheia volta ao modo anterior ao sair. A TV controla o volume.
+- A barra e o gradiente somem após 5 s sem interação quando os menus estão fechados. Voltar fecha nesta ordem: submenu de qualidade, configurações e barra. Na reprodução sem controles abertos, Voltar entra em Tela cheia e, se já estiver nesse modo, retorna ao formulário. Voltar na entrada HLS leva ao formulário do iframe, onde um segundo Voltar confirmado sai do app. No iframe, Voltar fecha submenu, configurações, barra e reprodução antes da confirmação de saída.
 - Troca de canal, saída e perda de visibilidade encerram a reprodução anterior. Falha de mídia ou espera de 25 s na partida ou durante buffering pode retornar à entrada com aviso. O player oficial pode ser escolhido explicitamente.
 
 ## Pausa e retomada em HLS

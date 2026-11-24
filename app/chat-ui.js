@@ -1,10 +1,9 @@
 (function(){'use strict';
- var URI='luna://com.kickleaf.client.service',panel=document.getElementById('chat-panel'),list=document.getElementById('chat-messages'),label=document.getElementById('chat-state'),button=document.getElementById('native-theater');
+ var URI='luna://com.kickleaf.client.service',panel=document.getElementById('chat-panel'),list=document.getElementById('chat-messages'),label=document.getElementById('chat-state');
  var channel=null,wanted=false,epoch=0,active=null,chain=Promise.resolve();
  var stats={state:'Idle',presented:0,batches:0,discarded:0,pruned:0,queue_peak:0,session_count:0,last:null,error:null,received:0,render_ms_total:0,render_ms_max:0};
  var names={Idle:'Desabilitado',Negotiating:'Conectando',Connecting:'Conectando',Subscribing:'Assinando sala',Connected:'Conectado',Closing:'Encerrando',Closed:'Encerrado',Error:'Chat indisponível'};
  function state(value){stats.state=value;label.textContent=names[value];}
- function layout(){panel.hidden=!wanted;document.body.classList.toggle('theater',wanted);button.setAttribute('aria-pressed',String(wanted));button.setAttribute('aria-label',wanted?'Ocultar chat e voltar à tela cheia':'Ativar chat no modo teatro');}
  function request(method,parameters){return new Promise(function(resolve,reject){var h,settled=false;
   function finish(ok,r){if(settled)return;settled=true;clearTimeout(timer);if(ok&&r&&r.returnValue===true)resolve(r);else reject(Error('luna_failed'));}
   var timer=setTimeout(function(){if(settled)return;settled=true;if(h)h.cancel();reject(Error('luna_timeout'));},method==='stop'?65000:12000);
@@ -39,6 +38,9 @@
  function receive(c,e){if(active!==c||c.released||e.session_id!==c.id||!e.snapshot)return;
   if(e.kind==='delivery'&&e.delivery){delivery(c,e.delivery);return;}
   if(e.snapshot.sequence<=c.lastSequence)return;c.lastSequence=e.snapshot.sequence;stats.last=e.snapshot;var s=e.snapshot;
+  if(wanted&&!c.closing&&s.channel===channel&&e.kind==='stream_info'&&e.stream_info){
+   window.dispatchEvent(new CustomEvent('kicktv-stream-info',{detail:{channel:s.channel,info:e.stream_info}}));
+  }
   if(!c.closing){if(s.status==='starting')state(s.phase==='B'?'Negotiating':s.phase==='C'||s.phase==='D'?'Connecting':'Subscribing');if(s.status==='reading')state('Connected');}
   if(s.status==='closing'){state('Closing');if(c.consumer&&s.delivery&&s.delivery.ticket===null&&s.delivery.queue.items>0&&!c.recovering&&c.recoveryAttempts===0)void recover(c);}
   if(s.status==='stopped'){stats.error=s.error||null;release(c,!!c.consumer&&c.consumer.queue.length>0);state(s.error?'Error':'Closed');if(/^delivery_(items|bytes|item_bytes)/.test(s.error||''))label.textContent='Chat interrompido por sobrecarga';}
@@ -63,11 +65,18 @@
   }).catch(function(){stats.error='cleanup_failed';state('Error');});
  }
  function valid(value){return typeof value==='string'&&/^[a-z0-9][a-z0-9_]{0,24}$/.test(value);}
- function hide(){wanted=false;layout();state('Closing');schedule();}
- function toggle(){if(wanted){hide();return;}if(!valid(channel))return;wanted=true;layout();schedule();}
+ function setVisible(visible){
+  if(wanted===visible)return;
+  wanted=visible;panel.hidden=!wanted;
+  if(wanted&&!channel){state('Error');return;}
+  if(!wanted)state('Closing');
+  schedule();
+ }
+ function hide(){setVisible(false);}
+ function toggle(){setVisible(!wanted);}
  window.addEventListener('kicktv-channel-selected',function(e){var next=e.detail&&e.detail.channel;if(next===channel)return;channel=valid(next)?next:null;document.getElementById('chat-channel').textContent=channel?'Chat · '+channel:'Chat';if(wanted)schedule();});
  window.addEventListener('kicktv-channel-left',function(){hide();channel=null;});
  document.addEventListener('visibilitychange',function(){if(document.hidden)hide();});window.addEventListener('pagehide',function(){hide();if(active)release(active,true);});
- window.KickChatUI={toggle:toggle,hide:hide,visible:function(){return wanted;},snapshot:function(){var c=active&&active.consumer,n=c?c.counts:{},images=window.KickEmotes?KickEmotes.snapshot():null;return {state:stats.state,enabled:wanted,channel:channel,session_id:active?active.id:null,consumer:!!active&&active.subscribed,presented:stats.presented+(n.inserted||0),batches:stats.batches,discarded:stats.discarded+(n.discarded||0),pruned:stats.pruned+(n.pruned||0),queue_peak:stats.queue_peak,queue:c?c.queue.length:0,dom_rows:list.children.length,dom_nodes:list.querySelectorAll('*').length,session_count:stats.session_count,last:stats.last,error:stats.error,received:stats.received+(n.received_unique||0),render_ms_total:stats.render_ms_total,render_ms_max:stats.render_ms_max,delivery:c?c.snapshot():null,images:images,badges:window.KickBadges?KickBadges.snapshot():null};}};
- layout();state('Idle');
+ window.KickChatUI={setVisible:setVisible,toggle:toggle,hide:hide,visible:function(){return wanted;},snapshot:function(){var c=active&&active.consumer,n=c?c.counts:{},images=window.KickEmotes?KickEmotes.snapshot():null;return {state:stats.state,enabled:wanted,channel:channel,session_id:active?active.id:null,consumer:!!active&&active.subscribed,presented:stats.presented+(n.inserted||0),batches:stats.batches,discarded:stats.discarded+(n.discarded||0),pruned:stats.pruned+(n.pruned||0),queue_peak:stats.queue_peak,queue:c?c.queue.length:0,dom_rows:list.children.length,dom_nodes:list.querySelectorAll('*').length,session_count:stats.session_count,last:stats.last,error:stats.error,received:stats.received+(n.received_unique||0),render_ms_total:stats.render_ms_total,render_ms_max:stats.render_ms_max,delivery:c?c.snapshot():null,images:images,badges:window.KickBadges?KickBadges.snapshot():null};}};
+ state('Idle');
 }());

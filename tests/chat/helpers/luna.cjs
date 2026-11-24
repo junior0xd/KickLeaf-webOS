@@ -11,7 +11,7 @@ async function installSDK(page){
  let callback=null,seq=0,id=null,snapshot=null,serial=0,engine=null,timer=null;const calls=[];
  function post(kind,extra={}){if(!snapshot||!callback)return;snapshot={...snapshot,sequence:++seq,last_event:kind,delivery:engine?.snapshot()};callback(JSON.parse(JSON.stringify({returnValue:true,event:{kind,session_id:id,snapshot,...extra}})));}
  window.fixture={calls,fetches:[],hold:false,dropACK:false,late:null,get delivery(){return engine;},emit(kind='samples',samples){
-  if(kind==='samples'){for(const m of samples||[]){const number=++serial;engine.publication({id:String(number),type:'message',...m},number,Date.now());}engine.flush();}else post(kind);
+  if(kind==='samples'){for(const m of samples||[]){const number=++serial;engine.publication({id:String(number),type:'message',...m},number,Date.now());}engine.flush();}else post(kind,samples);
  },failChat(){if(engine)engine.finish(true);clearInterval(timer);snapshot={...snapshot,status:'stopped',error:'socket_closed_1006'};post('stopped');},failConsumer(){const cb=this.failure;if(cb)cb();}};
  window.webOS={service:{request(uri,o){if(uri!==${JSON.stringify('luna://'+serviceId)})throw new Error('Unexpected Luna service: '+uri);calls.push({method:o.method,parameters:o.parameters});let cancelled=false;const h={cancel(){if(cancelled)return;cancelled=true;calls.push({method:'cancel'});if(o.method==='events'){callback=null;if(engine?.consumer)engine.disconnect(engine.consumer.ticket);}}};setTimeout(async()=>{if(cancelled)return;
   if(o.method==='events'){callback=o.onSuccess;fixture.failure=o.onFailure;fixture.late=()=>{if(!cancelled)o.onSuccess({returnValue:true,subscribed:true});};if(!fixture.hold)fixture.late();}

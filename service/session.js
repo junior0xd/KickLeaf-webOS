@@ -6,6 +6,7 @@ const LEASE_RENEWAL_LEAD_MS=55000;
 const RENEWAL_ATTEMPT_BUDGET_MS=18000;
 const MAX_TIMER_DELAY_MS=2**31-1;
 const DELIVERY_TIMER_MS=100;
+const STREAM_INFO_INTERVAL_MS=60000;
 const STEP_KEYS=['service','negotiation','guest','wss','centrifugo','subscription','heartbeat','publication','message'];
 class Session {
   constructor({Socket,emit,consumers,httpFactory,transportFactory,deliveryConfig={}}){
@@ -29,9 +30,48 @@ class Session {
       }
     }:{}),steps:{...this.state.steps},connection_seconds:this.state.opened_at?(now-this.state.opened_at)/1000:0,subscription_seconds:this.state.reading_at?Math.max(0,(now-this.state.reading_at)/1000):0,
       metrics:this.metrics.snapshot(),delivery:this.delivery.snapshot(detailed),memory:{rss:process.memoryUsage().rss,heap_used:process.memoryUsage().heapUsed},cpu:process.cpuUsage(this.cpuStart),event_loop_lag_max_ms:this.loopLagMax,
-      resources:{socket:!!(this.transport&&this.transport.ws),http_requests:this.http?this.http.active.size:0,pending_commands:this.protocol?this.protocol.pending.size:0,session_timers:Object.keys(this.timers),heartbeat:!!(this.protocol&&this.protocol.heartbeat),lease_timer:!!(this.protocol&&this.protocol.expiry),queue:this.queue.length,consumers:this.consumers(),closing:!!this.stopping&&!this.stopped}};
+      resources:{socket:!!(this.transport&&this.transport.ws),http_requests:(this.http?.active.size||0)+(this.streamInfoHttp?.active.size||0),pending_commands:this.protocol?this.protocol.pending.size:0,session_timers:Object.keys(this.timers),heartbeat:!!(this.protocol&&this.protocol.heartbeat),lease_timer:!!(this.protocol&&this.protocol.expiry),queue:this.queue.length,consumers:this.consumers(),closing:!!this.stopping&&!this.stopped}};
   }
-  event(kind,details){this.state.sequence++;this.state.last_event=kind;this.emit({kind,at:Date.now(),snapshot:this.snapshot(),details:details||null});}
+  event(kind,details,streamInfo){this.state.sequence++;this.state.last_event=kind;this.emit({kind,at:Date.now(),snapshot:this.snapshot(),details:details||null,...(streamInfo?{stream_info:streamInfo}:{})});}
+  channelMetadataURL(){return 'https://kick.com/api/v2/channels/'+this.state.channel;}
+  publishStreamInfo(meta){
+    const live=meta.livestream;
+    if(!live||typeof live!=='object')return;
+    const category=Array.isArray(live.categories)?live.categories[0]:live.category;
+    const text=(value,max)=>typeof value==='string'?value.trim().slice(0,max):undefined;
+    this.event('stream_info',null,{
+      name:text(meta.user?.username,80),
+      avatar:text(meta.user?.profile_pic||meta.user?.profile_picture||meta.user?.profilepic,2048),
+      title:text(live.session_title||live.stream_title,1000),
+      category:text(category?.name,120),
+      description:text(live.description,1000),
+      channelDescription:text(meta.channel_description||meta.user?.bio,1000),
+      viewers:Number.isSafeInteger(live.viewer_count)&&live.viewer_count>=0?live.viewer_count:live.viewer_count===null?null:undefined,
+      startedAt:text(live.start_time||live.created_at,48)
+    });
+  }
+  async refreshStreamInfo(){
+    // Keep optional refreshes independent of the chat HTTP client and its lease renewals.
+    const metrics=new Metrics(), channel=this.state.channel;
+    const client=this.httpFactory?this.httpFactory(metrics,channel):new HttpClient(metrics,undefined,channel);
+    this.streamInfoHttp=client;
+    this.nextStreamInfoAt=Date.now()+STREAM_INFO_INTERVAL_MS;
+    try{
+      const meta=await client.request(this.channelMetadataURL(),undefined,'stream_info');
+      if(!this.wanted||meta?.slug!==channel)return;
+      if(!meta.livestream||(this.streamInfoID!=null&&meta.livestream.id!=null&&this.streamInfoID!==meta.livestream.id)){
+        this.nextStreamInfoAt=Infinity;
+        return;
+      }
+      this.publishStreamInfo(meta);
+    }catch(error){
+      if(/^http_(401|403|404)$/.test(error.message))this.nextStreamInfoAt=Infinity;
+      if(error.retryAfterMs>STREAM_INFO_INTERVAL_MS)this.nextStreamInfoAt=Date.now()+error.retryAfterMs;
+    }finally{
+      client.cancel();
+      this.streamInfoHttp=null;
+    }
+  }
   step(key,status){this.state.steps[key]=status;}
   start(parameters){
     let channel;
@@ -69,11 +109,14 @@ class Session {
       this.protocol=new Protocol({send:(t,p)=>this.transport.send(t,p),metrics:this.metrics,notify:(k,d)=>this.protocolEvent(k,d),onPublication:v=>this.publication(v),onDisconnect:code=>this.fail(code)});
       await this.transport.open(endpoint.href);this.alive();this.state.opened_at=Date.now();this.state.transport_accepted=true;this.step('wss','confirmed');this.state.phase='D';this.step('centrifugo','running');this.event('connecting_centrifugo');this.alive();
       const connecting=this.protocol.connect(token);token=null;await connecting;this.alive();this.state.phase='E';this.step('subscription','running');this.event('resolving_public_room');this.alive();
-      const meta=await this.http.request('https://kick.com/api/v2/channels/'+this.state.channel,undefined,'E');this.alive();if(this.http.releaseIdle)this.http.releaseIdle();
+      const meta=await this.http.request(this.channelMetadataURL(),undefined,'E');this.alive();if(this.http.releaseIdle)this.http.releaseIdle();
       this.state.channel_live=meta&&meta.livestream===undefined?null:!!(meta&&meta.livestream);if(this.state.channel_live===false)throw new Error('channel_offline');
       const channelId=meta&&meta.id,roomId=meta&&meta.chatroom&&meta.chatroom.id;
       if(!Number.isSafeInteger(channelId)||channelId<=0||!Number.isSafeInteger(roomId)||roomId<=0||meta.slug!==this.state.channel)throw new Error('invalid_channel_metadata');
       this.state.channel_id=channelId;this.state.chatroom_id=roomId;this.state.room='chatrooms.'+roomId+'.v2';this.event('subscribing_room');this.alive();
+      this.streamInfoID=meta.livestream?.id;
+      this.nextStreamInfoAt=Date.now()+STREAM_INFO_INTERVAL_MS;
+      this.publishStreamInfo(meta);
       await this.protocol.subscribe(this.state.room);this.alive();
       this.state.phase='F';this.state.status='reading';this.state.reading_at=Date.now();this.tickAt=Date.now();clearTimeout(this.timers.deadline);delete this.timers.deadline;
       this.timers.tick=setInterval(()=>this.tick(),1000);this.event('reading');this.scheduleRenewal(clientId);
@@ -181,6 +224,7 @@ class Session {
     this.loopLagMax=Math.max(this.loopLagMax,Math.max(0,Date.now()-this.tickAt-1000));this.tickAt=Date.now();
     if(!this.consumers()){this.stop('last_consumer');return;}
     if(process.memoryUsage().rss>128*1024*1024){this.fail('memory_budget');return;}
+    if(!this.streamInfoHttp&&Date.now()>=this.nextStreamInfoAt)void this.refreshStreamInfo();
     this.event('status');
   }
   stop(reason,abort=reason==='memory_budget'){
@@ -190,7 +234,7 @@ class Session {
     this.abortDrain=abort;this.delivery.close(reason);this.delivery.draining();
     this.wanted=false;this.state.status='closing';this.state.reason=reason;this.state.ended_at=Date.now();
     for(const key of STEP_KEYS)if(['waiting','running'].includes(this.state.steps[key]))this.step(key,'not_observed');
-    Object.values(this.timers).forEach(t=>{clearTimeout(t);clearInterval(t);});this.timers={};this.ids.clear();if(this.http)this.http.cancel();
+    Object.values(this.timers).forEach(t=>{clearTimeout(t);clearInterval(t);});this.timers={};this.ids.clear();if(this.http)this.http.cancel();if(this.streamInfoHttp)this.streamInfoHttp.cancel();
     this.stopping=Promise.resolve().then(async()=>{
       if(this.protocol&&this.protocol.subscribed&&this.transport&&this.transport.ws&&this.transport.ws.readyState===1){
         let timer;try{await Promise.race([this.protocol.unsubscribe(),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('unsubscribe_deadline')),1000);})]);}catch(_){this.metrics.add('cleanup','unsubscribe_incomplete');}finally{clearTimeout(timer);}
