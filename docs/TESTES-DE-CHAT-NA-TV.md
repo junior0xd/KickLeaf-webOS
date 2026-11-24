@@ -1,6 +1,6 @@
 # Coletar o chat na LG C3
 
-Referência funcional: v0.2.8. Use Node.js 22 ou mais recente, [instale o IPK do checkout a testar](TESTES.md#instalar-e-testar-na-lg-c3) e feche o app antes de iniciar. O dispositivo precisa estar pareado e com Developer Mode ativo.
+Referência funcional: v0.2.9. Use Node.js 22 ou mais recente, [instale o IPK do checkout a testar](TESTES.md#instalar-e-testar-na-lg-c3) e feche o app antes de iniciar. O dispositivo precisa estar pareado e com Developer Mode ativo.
 
 ```bash
 node scripts/collect-tv.cjs --device=lgc3 --check-package

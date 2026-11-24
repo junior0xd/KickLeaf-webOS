@@ -242,7 +242,7 @@ async function summarize(folder, overrides) {
   await graphs(folder, analysis, lastTime, events.filter(event => event.kind === 'screenshot_salvo'));
   const formatRange = value => value ? `${show(value.lower)}–${value.upper === null ? 'sem teto' : show(value.upper)}` : 'indisponível';
   const report = [
-    '# Coleta KickTV', '', '## Identificação da sessão', '',
+    '# Coleta KickLeaf', '', '## Identificação da sessão', '',
     `- Canal · ${cell(meta.channel)}`,
     ...(meta.live_emote_assets ? [`- Renderização dos emotes no chat real · ${cell(meta.live_emote_assets)}`] : []),
     ...(meta.live_badge_assets ? [`- Renderização dos distintivos no chat real · ${cell(meta.live_badge_assets)}`] : []),

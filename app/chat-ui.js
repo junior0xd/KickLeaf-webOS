@@ -1,5 +1,5 @@
 (function(){'use strict';
- var URI='luna://com.kicktv.alpha.service',panel=document.getElementById('chat-panel'),list=document.getElementById('chat-messages'),label=document.getElementById('chat-state'),button=document.getElementById('native-theater');
+ var URI='luna://com.kickleaf.client.service',panel=document.getElementById('chat-panel'),list=document.getElementById('chat-messages'),label=document.getElementById('chat-state'),button=document.getElementById('native-theater');
  var channel=null,wanted=false,epoch=0,active=null,chain=Promise.resolve();
  var stats={state:'Idle',presented:0,batches:0,discarded:0,pruned:0,queue_peak:0,session_count:0,last:null,error:null,received:0,render_ms_total:0,render_ms_max:0};
  var names={Idle:'Desabilitado',Negotiating:'Conectando',Connecting:'Conectando',Subscribing:'Assinando sala',Connected:'Conectado',Closing:'Encerrando',Closed:'Encerrado',Error:'Chat indisponível'};

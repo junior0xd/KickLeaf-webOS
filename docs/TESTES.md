@@ -1,6 +1,6 @@
-# Testes e validação do KickTV
+# Testes e validação do KickLeaf
 
-Referência funcional: v0.2.8. Registre commit, versão, dispositivo, firmware, modo de reprodução e cenários executados. Identifique separadamente resultados simulados, observações de mídia pública e testes físicos.
+Referência funcional: v0.2.9. Registre commit, versão, dispositivo, firmware, modo de reprodução e cenários executados. Identifique separadamente resultados simulados, observações de mídia pública e testes físicos.
 
 ## Verificações locais
 
@@ -10,7 +10,7 @@ Na raiz do projeto, com Node.js 22, npm, Python 3 e `ar` do pacote Ubuntu `binut
 npm ci
 npm ci --prefix service --omit=dev --ignore-scripts --no-audit --no-fund
 npx --no-install playwright install chromium
-npm run validate -- --tag v0.2.8
+npm run validate -- --tag v0.2.9
 npm test
 npm run package
 npm run package:info
@@ -33,6 +33,8 @@ APP_VERSION=$(node -p "require('./app/appinfo.json').version")
 npx ares-install --device lgc3 "dist/releases/${APP_ID}_${APP_VERSION}_all.ipk"
 npx ares-launch --device lgc3 "$APP_ID"
 ```
+
+O IPK instala `com.kickleaf.client` ao lado de uma instalação existente de `com.kicktv.alpha`. Canal, qualidade e layout são mantidos em memória durante a sessão, e o serviço guarda o estado do chat em memória. O app não usa `localStorage`, `sessionStorage` ou IndexedDB para preferências, portanto não há dados de preferências do app para migrar. Os arquivos de configuração do backend opcional ficam no computador que hospeda o backend e continuam usando as variáveis `KICKTV_*`.
 
 Feche o app antes de reabrir com parâmetros diferentes. Para o diagnóstico Apple, use `--params '{"mode":"hls-test"}'` e confirme **Iniciar teste HLS**. Para o player oficial, use `--params '{"mode":"iframe"}'` ou a ação durante HLS. O [guia do player](PLAYER.md#native-hls-com-backend-local) descreve os parâmetros do backend local. Para observar logs use `npx ares-inspect --device lgc3 --app "$APP_ID"`.
 

@@ -59,7 +59,7 @@ test('manifesto inacessível não impede Auto e é diagnosticado separadamente',
   await expect(page.locator('video')).toHaveAttribute('src',MASTER);
   await action(page,0);
   await expect(page.locator('#native-quality-menu')).toContainText('não foi possível ler o manifesto');
-  expect(logs.join('\n')).toContain('manifest_unavailable');expect(logs.filter(s=>s.startsWith('[KickTV')).join('\n')).not.toContain('SECRET_TEST');
+  expect(logs.join('\n')).toContain('manifest_unavailable');expect(logs.filter(s=>s.startsWith('[KickLeaf')).join('\n')).not.toContain('SECRET_TEST');
 });
 test('áudio externo impede variante manual, mantendo Auto',async({page})=>{
   await page.route('https://test.playback.live-video.net/**',r=>r.fulfill({body:'#EXTM3U\n#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",URI="audio.m3u8"\n#EXT-X-STREAM-INF:RESOLUTION=1920x1080,AUDIO="audio"\n1080.m3u8',headers:{'Access-Control-Allow-Origin':'*'}}));
@@ -94,7 +94,7 @@ test('falha de reprodução é separada da descoberta e mensagem técnica não v
   const logs=[];page.on('console',m=>logs.push(m.text()));await ready(page);
   await page.locator('video').evaluate(v=>{Object.defineProperty(v,'error',{value:{code:3,message:'secret https://cdn.test/?token=SECRET_TEST'}});v.dispatchEvent(new Event('error'));});
   await expect(page.locator('#message')).toContainText('decodificar');await expect(page.locator('video')).toHaveCount(0);
-  expect(logs.filter(s=>s.startsWith('[KickTV')).join('\n')).toContain('playback');expect(logs.filter(s=>s.startsWith('[KickTV')).join('\n')).not.toContain('SECRET_TEST');
+  expect(logs.filter(s=>s.startsWith('[KickLeaf')).join('\n')).toContain('playback');expect(logs.filter(s=>s.startsWith('[KickLeaf')).join('\n')).not.toContain('SECRET_TEST');
 });
 test('configuração antiga é ignorada: nenhum método do backend é chamado',async({page})=>{
   await page.evaluate(()=>{KickNativeAPI.config=()=>{throw new Error('backend config called');};KickNativeAPI.resolve=()=>{throw new Error('backend resolve called');};});

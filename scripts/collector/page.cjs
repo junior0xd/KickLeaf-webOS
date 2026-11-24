@@ -1,6 +1,6 @@
 'use strict';
 
-// These functions are serialized and evaluated in the KickTV document.
+// These functions are serialized and evaluated in the KickLeaf document.
 function installProbe(key, binding, rafWindowMs = 1000, fastMs = 5000) {
   if (window[key]) return true;
   if (!window.KickNativeDiagnostics || !window.KickChatUI) return false;
@@ -14,7 +14,7 @@ function installProbe(key, binding, rafWindowMs = 1000, fastMs = 5000) {
   let playbackMode = 'direct-hls';
   try {
     if (JSON.parse(window.PalmSystem?.launchParams || '{}').mode === 'native-hls') playbackMode = 'native-hls';
-  } catch { /* KickTV falls back to Direct HLS. */ }
+  } catch { /* KickLeaf falls back to Direct HLS. */ }
   const buffered = [];
   const unsubscribe = [];
   let dropped = 0;

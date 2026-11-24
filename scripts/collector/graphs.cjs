@@ -23,7 +23,7 @@ async function graphs(folder, analysis, elapsed, screenshots = []) {
   }).replace(/</g, '\\u003c');
   await writeFile(path.join(folder, 'graficos.html'), `<!doctype html>
 <html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width">
-<title>KickTV · Telemetria</title>
+<title>KickLeaf · Telemetria</title>
 <style>
 body{font:16px system-ui;max-width:1050px;margin:2rem auto;padding:0 1rem;color:#182523;background:#f3f6f4}
 h1{margin-bottom:.4rem} section{background:#fff;border:1px solid #ccd8d4;margin:.6rem 0;padding:.65rem 1rem}
@@ -33,7 +33,7 @@ input{width:100%}small{color:#4a625b}#cursor{font-variant-numeric:tabular-nums}
 #capture-grid figure{margin:0;min-width:0}#capture-grid img{width:100%;aspect-ratio:4/3;object-fit:contain;background:#182523}
 #capture-grid figcaption{display:grid;gap:.2rem}#capture-grid button{justify-self:start}
 </style>
-<h1>Telemetria KickTV</h1><p>As séries compartilham o tempo decorrido. Lacunas representam leituras ausentes.</p>
+<h1>Telemetria KickLeaf</h1><p>As séries compartilham o tempo decorrido. Lacunas representam leituras ausentes.</p>
 <label for="time">Posição <output id="cursor"></output></label><input id="time" type="range" min="0" step="1" value="0">
 <p id="nearby"></p><a id="capture-link" href="#captures" hidden>Ir para as capturas</a><main id="charts"></main>
 <section id="captures" aria-labelledby="capture-title" hidden><h2 id="capture-title">Capturas</h2><div id="capture-grid"></div></section>

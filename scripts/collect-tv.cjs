@@ -7,10 +7,9 @@ const path = require('node:path');
 const { setTimeout: delay } = require('node:timers/promises');
 const { parseArgs, promisify } = require('node:util');
 
-const APP = 'com.kicktv.alpha';
+const { id: APP, version: VERSION } = require('../app/appinfo.json');
 const SERVICE = APP + '.service';
 const INSPECTOR_BROWSER_HOST = '192.168.3.8';
-const { version: VERSION } = require('../app/appinfo.json');
 const { installProbe, startStream, enableChat, chatBound, readSlow } = require('./collector/page.cjs');
 const { summarize } = require('./collector/report.cjs');
 const { archive } = require('./collector/archive.cjs');
@@ -56,7 +55,7 @@ function options(args) {
   }
   const streamer = values.streamer?.trim().toLowerCase();
   if (values.mode === 'automatic' && !/^[a-z0-9][a-z0-9_]{0,24}$/.test(streamer ?? '')) {
-    throw new Error('Informe --streamer com um nome de canal aceito pelo chat do KickTV.');
+    throw new Error('Informe --streamer com um nome de canal aceito pelo chat do KickLeaf.');
   }
   if (values.mode === 'manual' && values.streamer !== undefined) {
     throw new Error('--streamer é usado com --mode=automatic.');
@@ -102,7 +101,7 @@ async function checkPackage(device, signal) {
     throw new Error(`IPK local indisponível ou incompatível com o código atual. Gere com npm run package. ${reason}`);
   }
 
-  console.log(`Conferindo os arquivos do KickTV instalado em ${device}.`);
+  console.log(`Conferindo os arquivos do KickLeaf instalado em ${device}.`);
   const novacom = require.resolve('@webos-tools/cli/bin/ares-novacom.js');
   const paths = [`usr/palm/applications/${APP}`, `usr/palm/services/${SERVICE}`, `usr/palm/packages/${APP}`].join(' ');
   const command = `cd /media/developer/apps && find ${paths} -type f -exec sha256sum {} + -o ! -type d -print`;
@@ -118,7 +117,7 @@ async function checkPackage(device, signal) {
   const differences = comparePackageFiles(expected, installed);
   if (differences.length) {
     const examples = differences.slice(0, 3).map(name => name.split('/').slice(2).join('/')).join(', ');
-    throw new Error(`O KickTV instalado diverge do IPK local em ${differences.length} arquivo(s) (${examples}). Instale dist/releases/${filename} na TV e tente novamente.`);
+    throw new Error(`O KickLeaf instalado diverge do IPK local em ${differences.length} arquivo(s) (${examples}). Instale dist/releases/${filename} na TV e tente novamente.`);
   }
   const sha256 = createHash('sha256').update(JSON.stringify(expected)).digest('hex');
   console.log(`Pacote confirmado em ${device} (${VERSION}, ${Object.keys(expected).length} arquivos).`);
@@ -140,7 +139,7 @@ function startTunnel(device) {
   const code = `
     const { Inspector } = require(process.argv[1]);
     Inspector.inspect({ device: process.argv[2], appId: process.argv[3], running: true, open: false })
-      .then(({ session }) => console.log('KICKTV_PORT=' + session.getLocalPortByName(process.argv[3])))
+      .then(({ session }) => console.log('KICKLEAF_PORT=' + session.getLocalPortByName(process.argv[3])))
       .catch(() => process.exit(1));
   `;
   return spawn(process.execPath, ['-e', code, inspector, device, APP], {
@@ -155,7 +154,7 @@ async function tunnelPort(child, signal) {
   child.stdout.setEncoding('utf8');
   child.stdout.on('data', chunk => {
     output = (output + chunk).slice(-4096);
-    const match = output.match(/KICKTV_PORT=(\d+)\r?\n/);
+    const match = output.match(/KICKLEAF_PORT=(\d+)\r?\n/);
     if (match) port = Number(match[1]);
   });
   child.on('error', () => { failed = true; });
@@ -210,7 +209,7 @@ async function openInspector(port, signal) {
     if (url) return url;
     await delay(WAIT_MS, undefined, { signal });
   }
-  throw new Error('O Inspector não encontrou native-hls.html do KickTV Alpha.');
+  throw new Error('O Inspector não encontrou native-hls.html do KickLeaf.');
 }
 
 function command(socket, method, params, signal, timeout = IO_MS) {
@@ -360,7 +359,7 @@ async function prepareTv(config, signal) {
       continue;
     }
     if (!checked && running) {
-      console.log('O KickTV Alpha já está aberto. Feche o app e execute o coletor novamente.');
+      console.log('O KickLeaf já está aberto. Feche o app e execute o coletor novamente.');
       return false;
     }
     if (running) return true;
@@ -371,7 +370,7 @@ async function prepareTv(config, signal) {
       });
       return true;
     }
-    if (!checked) console.log('Aguardando abrir o KickTV Alpha na TV...');
+    if (!checked) console.log('Aguardando abrir o KickLeaf na TV...');
     checked = true;
     await delay(WAIT_MS, undefined, { signal });
   }
@@ -392,7 +391,7 @@ async function waitForPlayback(read, control, config, signal) {
       previous?.page === sample.page && previous.stream === sample.stream &&
       previous.player?.state === 'playing' && player.media_time_seconds > previous.player.media_time_seconds;
     if (automatic && sample?.home && sample.home_message) {
-      throw new Error(`KickTV voltou à tela inicial: ${sample.home_message}`);
+      throw new Error(`KickLeaf voltou à tela inicial: ${sample.home_message}`);
     }
     if (automatic && chatRequested && ['Error', 'Closed'].includes(sample?.chat?.state)) {
       throw new Error('O chat não ficou disponível.');
@@ -503,7 +502,7 @@ async function collect({ folder, duration, start, started, read, slowRead, event
 async function capture(config, signal, packageSha256) {
   if (!await prepareTv(config, signal)) return;
   const child = startTunnel(config.device);
-  const key = '__kicktvProbe_' + randomBytes(6).toString('hex');
+  const key = '__kickleafProbe_' + randomBytes(6).toString('hex');
   const binding = key + '_event';
   let socket;
   let events;
@@ -532,7 +531,7 @@ async function capture(config, signal, packageSha256) {
     while (!installed) {
       installed = await control(installProbe, key, eventStreaming ? binding : null, config.rafMs, config.fastMs);
       if (installed) break;
-      if (performance.now() >= setupDeadline) throw new Error('Diagnósticos do KickTV indisponíveis na página.');
+      if (performance.now() >= setupDeadline) throw new Error('Diagnósticos do KickLeaf indisponíveis na página.');
       await delay(250, undefined, { signal });
     }
     const read = async (measure = true) => {

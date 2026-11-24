@@ -1,6 +1,6 @@
 'use strict';
-const VERSION = '0.2.8';
-const AGENT = 'KickTV/' + VERSION + ' (webOS TV; independent experimental client)';
+const { version: VERSION } = require('./package.json');
+const AGENT = 'KickLeaf/' + VERSION + ' (webOS TV; independent experimental client)';
 const DEFAULT_CHANNEL = null;
 function slug(value) {
   if (typeof value !== 'string' || value.length > 25 || !/^[a-zA-Z0-9][a-zA-Z0-9_]{0,24}$/.test(value)) throw new Error('invalid_slug');

@@ -1,10 +1,10 @@
-# KickTV for webOS — Agent Instructions
+# KickLeaf for webOS — Agent Instructions
 
-These instructions apply to the repository unless a more specific `AGENTS.md` overrides them. KickTV is an independent Kick viewing app for LG webOS TVs. The functional baseline for these instructions is v0.2.8. Check the source and manifests before changing behavior.
+These instructions apply to the repository unless a more specific `AGENTS.md` overrides them. KickLeaf is an independent Kick viewing app for LG webOS TVs. The functional baseline for these instructions is v0.2.9. Check the source and manifests before changing behavior.
 
 ## Runtime architecture
 
-- `app/appinfo.json` defines the application ID `com.kicktv.alpha`. The packaged JavaScript service is `com.kicktv.alpha.service`. Target the LG OLED C3 with webOS 25 and verify API compatibility on the device when needed.
+- `app/appinfo.json` defines the application ID `com.kickleaf.client`. The packaged JavaScript service is `com.kickleaf.client.service`. Target the LG OLED C3 with webOS 25 and verify API compatibility on the device when needed.
 - Direct HLS is the default. The web app discovers the stream and the native video element receives media from the CDN. The current discovery makes ordinary requests and has no JavaScript challenge handler. Preserve its origin, TLS, and request restrictions.
 - `native-hls` uses the optional Python discovery backend. The official iframe is an explicit fallback with its own limitations. Keep the HLS diagnostic independent of Kick playback. See the [player guide](docs/PLAYER.md).
 - Theater and fullscreen are the two HLS viewing layouts. Theater starts public, read-only chat through the packaged Luna service. Centrifugo transport and the local FIFO/DOM ACK are independent. Keep video playback independent of chat and preserve queue admission, credit, deduplication, draining, and cleanup. See the [chat guide](docs/CHAT.md).

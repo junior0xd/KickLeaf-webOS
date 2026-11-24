@@ -1,12 +1,29 @@
 <div align="center">
 
-# KickTV Alpha para LG webOS
+# KickLeaf
+
+<img src="assets/kickleaf-icon.png" alt="Ícone do KickLeaf" width="130">
+
+A lightweight, unofficial Kick client for webOS.<br>
+Built for the big screen.
 
 </div>
 
 <p align="center">Português | <a href="README.en.md">English</a></p>
 
-KickTV Alpha é um aplicativo independente para assistir a transmissões da Kick em TVs LG. A reprodução usa HLS nativo por padrão. Você pode assistir em tela cheia ou usar o modo teatro com chat público somente leitura. O alvo do projeto é a LG OLED C3 com webOS 25.
+KickLeaf é um aplicativo independente para assistir a transmissões da Kick em TVs LG. A reprodução usa HLS nativo por padrão. Você pode assistir em tela cheia ou usar o modo teatro com chat público somente leitura. O alvo do projeto é a LG OLED C3 com webOS 25.
+
+## Aviso importante
+
+KickLeaf é um projeto independente, não oficial e de código aberto. Não possui afiliação, parceria, autorização formal ou endosso da Kick Streaming ou da LG Electronics.
+
+O aplicativo utiliza mecanismos não oficiais para descobrir e reproduzir transmissões públicas da Kick e para acompanhar mensagens do chat em modo somente leitura. Essas integrações não são garantidas pela plataforma e podem deixar de funcionar caso seus serviços, protocolos ou mecanismos de acesso sejam modificados.
+
+O objetivo do projeto é oferecer uma experiência de reprodução de transmissões da Kick diretamente em televisores LG com webOS, sem depender de espelhamento de tela ou servidores externos de retransmissão.
+
+O desenvolvimento prioriza o uso responsável da infraestrutura da Kick, procurando minimizar requisições desnecessárias, evitar tráfego excessivo e não impor carga indevida aos serviços da plataforma.
+
+Este projeto é disponibilizado para fins pessoais, educacionais e experimentais. Seu funcionamento não é garantido, e o usuário é responsável por observar os termos aplicáveis aos serviços acessados.
 
 ## Conectar, instalar e executar na LG C3
 
@@ -14,7 +31,7 @@ KickTV Alpha é um aplicativo independente para assistir a transmissões da Kick
 
 1. Baixe e instale o [webOS Dev Manager para Windows](https://github.com/webosbrew/dev-manager-desktop/releases/latest).
 2. Ative o **Developer Mode** e o **Key Server** na TV. No Dev Manager, adicione a TV usando o IP e a senha exibidos na tela. O PC e a TV precisam estar na mesma rede.
-3. Obtenha o IPK do KickTV em [Releases](https://github.com/junior0xd/kicktv-for-webOS/releases), se disponível, ou gere-o seguindo os passos do Ubuntu abaixo. No Dev Manager, selecione a TV, instale o arquivo `.ipk` e abra o KickTV na TV.
+3. Obtenha o IPK do KickLeaf em [Releases](https://github.com/junior0xd/KickLeaf-webOS/releases), se disponível, ou gere-o seguindo os passos do Ubuntu abaixo. No Dev Manager, selecione a TV, instale o arquivo `.ipk` e abra o KickLeaf na TV.
 
 ### Ubuntu
 
@@ -40,6 +57,8 @@ npx ares-launch --device lgc3 "$APP_ID"
 ```
 
 No app, digite o nome ou a URL do canal e selecione **Assistir**. Durante a reprodução, pressione **OK** para abrir os controles.
+
+Se você já tem o KickTV Alpha instalado, o webOS instala o KickLeaf (`com.kickleaf.client`) como outro aplicativo. O KickLeaf começa com as configurações padrão.
 
 ## Executar os testes
 

@@ -1,12 +1,29 @@
 <div align="center">
 
-# KickTV Alpha for LG webOS
+# KickLeaf
+
+<img src="assets/kickleaf-icon.png" alt="KickLeaf icon" width="130">
+
+A lightweight, unofficial Kick client for webOS.<br>
+Built for the big screen.
 
 </div>
 
 <p align="center"><a href="README.md">Português</a> | English</p>
 
-KickTV Alpha is an independent app for watching Kick livestreams on LG TVs. It uses native HLS playback by default and offers fullscreen viewing or theater mode with read-only public chat. The project targets the LG OLED C3 running webOS 25.
+KickLeaf is an independent app for watching Kick livestreams on LG TVs. It uses native HLS playback by default and offers fullscreen viewing or theater mode with read-only public chat. The project targets the LG OLED C3 running webOS 25.
+
+## Important notice
+
+KickLeaf is an independent, unofficial, open-source project. It has no affiliation, partnership, formal authorization, or endorsement from Kick Streaming or LG Electronics.
+
+The app uses unofficial mechanisms to discover and play public Kick livestreams and to display chat messages in read-only mode. The platform does not guarantee these integrations, and they may stop working if its services, protocols, or access mechanisms change.
+
+The project aims to let people watch Kick livestreams directly on LG webOS TVs without relying on screen mirroring or external relay servers.
+
+Development prioritizes responsible use of Kick’s infrastructure by seeking to minimize unnecessary requests, avoid excessive traffic, and prevent undue load on the platform’s services.
+
+This project is available for personal, educational, and experimental use. Its operation is not guaranteed, and users are responsible for complying with the applicable terms of the services they access.
 
 ## Install and run on the LG C3
 
@@ -14,7 +31,7 @@ KickTV Alpha is an independent app for watching Kick livestreams on LG TVs. It u
 
 1. Download and install [webOS Dev Manager for Windows](https://github.com/webosbrew/dev-manager-desktop/releases/latest).
 2. Enable **Developer Mode** and **Key Server** on the TV. In Dev Manager, add the TV using the IP address and passphrase shown on its screen. The PC and TV must be on the same network.
-3. Get the KickTV IPK from [Releases](https://github.com/junior0xd/kicktv-for-webOS/releases) if available, or build it using the Ubuntu steps below. In Dev Manager, select the TV, install the `.ipk` file, and open KickTV on the TV.
+3. Get the KickLeaf IPK from [Releases](https://github.com/junior0xd/KickLeaf-webOS/releases) if available, or build it using the Ubuntu steps below. In Dev Manager, select the TV, install the `.ipk` file, and open KickLeaf on the TV.
 
 ### Ubuntu
 
@@ -40,6 +57,8 @@ npx ares-launch --device lgc3 "$APP_ID"
 ```
 
 In the app, enter a channel name or URL and select **Assistir** (Watch). Press **OK** during playback to open the controls.
+
+If you already have KickTV Alpha installed, webOS installs KickLeaf (`com.kickleaf.client`) as a separate app. KickLeaf starts with its default settings.
 
 ## Run the tests
 

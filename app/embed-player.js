@@ -24,7 +24,7 @@
 
     function log(state, details) {
       // Somente estados e números locais; nunca URL, evento remoto ou exceção bruta.
-      console.info('[KickTV player]', state, details || '');
+      console.info('[KickLeaf player]', state, details || '');
     }
     function cancel(name) {
       clearTimeout(timers[name]);

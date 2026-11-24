@@ -110,5 +110,5 @@ test('URL/credenciais de mídia inválidas são rejeitadas e logs locais não co
   await page.route(BASE+'/api/streams/**',route=>route.fulfill({json:data,headers:{'Access-Control-Allow-Origin':'*'}}));
   await page.locator('#channel').fill('yoda'); await page.keyboard.press('Enter');
   await expect(page.locator('#message')).toContainText('sem credenciais');
-  expect(logs.filter(s=>s.startsWith('[KickTV native]')).join('\n')).not.toMatch(/FAKE_TOKEN|password|test-token|https:\/\//);
+  expect(logs.filter(s=>s.startsWith('[KickLeaf native]')).join('\n')).not.toMatch(/FAKE_TOKEN|password|test-token|https:\/\//);
 });

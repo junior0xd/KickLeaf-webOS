@@ -2,7 +2,7 @@
   'use strict';
   var params = {};
   try { params = JSON.parse((window.PalmSystem && window.PalmSystem.launchParams) || '{}'); }
-  catch (error) { console.warn('[KickTV] Parâmetros de abertura inválidos.'); }
+  catch (error) { console.warn('[KickLeaf] Parâmetros de abertura inválidos.'); }
   var mode = params.mode || 'direct-hls';
   var query = new URLSearchParams(window.location.search);
   if ((mode === 'native-hls' || mode === 'direct-hls') && !query.has('iframe')) {
@@ -32,7 +32,7 @@
     exitPending = false;
     message.textContent = text || '';
     watch.focus();
-    console.info('[KickTV] home');
+    console.info('[KickLeaf] home');
   }
 
   form.addEventListener('submit', function (event) {

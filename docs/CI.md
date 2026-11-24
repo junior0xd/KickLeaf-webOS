@@ -1,6 +1,6 @@
 # Validação e publicação do IPK
 
-Referência funcional: v0.2.8. O CI usa Ubuntu 24.04, Node 22.22.3, CLI webOS e Playwright fixados pelos lockfiles. A validação local equivalente está no [roteiro de testes](TESTES.md).
+Referência funcional: v0.2.9. O CI usa Ubuntu 24.04, Node 22.22.3, CLI webOS e Playwright fixados pelos lockfiles. A validação local equivalente está no [roteiro de testes](TESTES.md).
 
 | Workflow | Disparo | Resultado |
 | --- | --- | --- |

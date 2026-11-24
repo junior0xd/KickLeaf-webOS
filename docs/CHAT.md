@@ -1,10 +1,10 @@
-# Chat do KickTV Alpha
+# Chat do KickLeaf
 
-Referência funcional: v0.2.8. Durante uma reprodução HLS, abra os controles com OK e selecione **Modo teatro**. O vídeo ocupa 75% da tela e o chat público, somente leitura, ocupa 25%. **Tela cheia**, ocultar o chat, trocar de canal ou sair encerram a sessão. A abertura do app e a reprodução em tela cheia deixam o chat desligado.
+Referência funcional: v0.2.9. Durante uma reprodução HLS, abra os controles com OK e selecione **Modo teatro**. O vídeo ocupa 75% da tela e o chat público, somente leitura, ocupa 25%. **Tela cheia**, ocultar o chat, trocar de canal ou sair encerram a sessão. A abertura do app e a reprodução em tela cheia deixam o chat desligado.
 
 ## Arquitetura e renovação
 
-A página chama o serviço JavaScript local `com.kicktv.alpha.service` pelo barramento Luna. O serviço empacota `ws` 8.22.2 e usa `webos-service` do runtime da TV. Ele negocia uma credencial de convidado, abre um WebSocket Centrifugo, assina a sala do canal e normaliza as publicações. A reprodução de vídeo tem seu próprio ciclo de vida. O chat funciona sem proxy ou backend remoto do KickTV.
+A página chama o serviço JavaScript local `com.kickleaf.client.service` pelo barramento Luna. O serviço empacota `ws` 8.22.2 e usa `webos-service` do runtime da TV. Ele negocia uma credencial de convidado, abre um WebSocket Centrifugo, assina a sala do canal e normaliza as publicações. A reprodução de vídeo tem seu próprio ciclo de vida. O chat funciona sem proxy ou backend remoto do KickLeaf.
 
 Desde v0.2.8, quando o servidor informa TTL, o protocolo calcula a expiração e mantém um prazo interno com margem de 5 s. Em autorizações longas, o serviço tenta renovar cerca de 60 s antes da expiração. Solicita outra credencial de convidado para o mesmo ID de cliente e envia `refresh` no WebSocket já aberto. O novo prazo só passa a valer após resposta válida. Erro temporário pode ter uma retentativa se houver tempo, respeitando `Retry-After` quando aplicável. Recusa definitiva ou falta de tempo leva a fechamento e drenagem. A renovação preserva a assinatura e o contexto da FIFO.
 

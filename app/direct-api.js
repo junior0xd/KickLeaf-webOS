@@ -1,6 +1,6 @@
 (function (root) {
   'use strict';
-  function log(stage, details) { console.info('[KickTV direct-hls]', stage, details); }
+  function log(stage, details) { console.info('[KickLeaf direct-hls]', stage, details); }
   function failure(code, message) { var error = new Error(message); error.code = code; return error; }
   // A browser intentionally exposes CORS, DNS, TLS and many network failures as TypeError.
   // Do not claim that JavaScript alone can distinguish them.

@@ -30,9 +30,9 @@ test('collector validates the automatic channel and names folders in local time'
 });
 
 test('package preflight checks content, even when the installed version is identical', () => {
-  const manifest = 'usr/palm/applications/com.kicktv.alpha/appinfo.json';
-  const service = 'usr/palm/services/com.kicktv.alpha.service/session.js';
-  const extra = 'usr/palm/services/com.kicktv.alpha.service/extra.js';
+  const manifest = 'usr/palm/applications/com.kickleaf.client/appinfo.json';
+  const service = 'usr/palm/services/com.kickleaf.client.service/session.js';
+  const extra = 'usr/palm/services/com.kickleaf.client.service/extra.js';
   const expected = { [manifest]: 'a'.repeat(64), [service]: 'b'.repeat(64) };
   const unchanged = `[Info] Set target device : lgc3\n${expected[manifest]}  ${manifest}\n`;
   assert.deepEqual(comparePackageFiles(expected, unchanged + `${expected[service]}  ${service}\n`), []);
@@ -254,7 +254,7 @@ test('legacy samples and consolidated files generate the same report without dup
   await summarize(folder);
   assert.equal(await readFile(path.join(folder, 'resumo.md'), 'utf8'), before);
   assert.equal(JSON.parse(await readFile(path.join(folder, 'summary.json'), 'utf8')).inspector.lost_events, 2);
-  assert.match(await readFile(path.join(folder, 'graficos.html'), 'utf8'), /Telemetria KickTV/);
+  assert.match(await readFile(path.join(folder, 'graficos.html'), 'utf8'), /Telemetria KickLeaf/);
 });
 
 test('service load peaks use second-aligned windows without retaining messages', () => {
@@ -347,7 +347,7 @@ test('Inspector browser URL uses the server IP while the collector uses its loca
   const fetch = t.mock.method(globalThis, 'fetch', async url => {
     assert.equal(url, 'http://localhost:38754/json/list');
     return Response.json([{
-      url: 'file:///apps/com.kicktv.alpha/native-hls.html',
+      url: 'file:///apps/com.kickleaf.client/native-hls.html',
       devtoolsFrontendUrl: '/devtools/inspector.html?ws=localhost:9998/devtools/page/a&panel=console'
     }]);
   });

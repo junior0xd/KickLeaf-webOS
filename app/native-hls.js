@@ -34,7 +34,7 @@
   var keyboardVisible = false;
   var errors = { 1: 'Reprodução interrompida.', 2: 'Falha de rede ao reproduzir a mídia.', 3: 'A TV não conseguiu decodificar a mídia.', 4: 'HLS indisponível ou não suportado por este dispositivo.' };
 
-  function log(state, details) { console.info('[KickTV native]', state, details || ''); }
+  function log(state, details) { console.info('[KickLeaf native]', state, details || ''); }
   function clear(name) { clearTimeout(timers[name]); delete timers[name]; }
   function later(name, action, ms) { clear(name); timers[name] = setTimeout(action, ms); }
   function hint(text) { notice.textContent = text; notice.hidden = false; }

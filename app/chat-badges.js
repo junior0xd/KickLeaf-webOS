@@ -25,8 +25,8 @@
   var legacy=b.legacy.items.slice(0,8),v2=b.v2.items.slice(0,8),count=0;
   counters.legacy+=legacy.length;counters.v2_items+=v2.length;inc(legacyDistribution,legacy.length);inc(v2Distribution,v2.length);
   legacy.forEach(function(x){if(!x||!x.fields)return;
-   if(x.fields.type==='known'&&typeof x.type==='string'&&Object.prototype.hasOwnProperty.call(catalog,x.type)){inc(known,x.type);out.push({kind:'legacy',icon:x.type==='sub_gifter'?giftIcon(x.fields.count==='valid'?x.count:1):catalog[x.type],label:'KickTV: '+x.type});}
-   else if(x.fields.type==='unknown'){unknownType(m,x);out.push({kind:'legacy',icon:'question',label:'KickTV: distintivo desconhecido'});}
+   if(x.fields.type==='known'&&typeof x.type==='string'&&Object.prototype.hasOwnProperty.call(catalog,x.type)){inc(known,x.type);out.push({kind:'legacy',icon:x.type==='sub_gifter'?giftIcon(x.fields.count==='valid'?x.count:1):catalog[x.type],label:'KickLeaf: '+x.type});}
+   else if(x.fields.type==='unknown'){unknownType(m,x);out.push({kind:'legacy',icon:'question',label:'KickLeaf: distintivo desconhecido'});}
   });
   v2.forEach(function(x){if(x&&x.selected===true){count++;var level=x.metadata&&x.metadata.level;if(x.name==='level'&&x.fields&&x.fields.level==='valid'&&Number.isSafeInteger(level)&&level>=1&&level<=99)out.push({kind:'v2-local',icon:'Level'+level,label:'Nível '+level});else out.push({kind:'v2',url:x.image_url,label:'Distintivo selecionado'});}});
   counters.v2_selected+=count;inc(selectedDistribution,count);inc(distribution,out.length);if(out.length)counters.with_badges++;if(out.length>4)counters.over_four++;return out;

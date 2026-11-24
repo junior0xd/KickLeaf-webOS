@@ -22,7 +22,7 @@
     start.focus();
   }
   function fail(text) {
-    console.warn('[KickTV HLS]', text);
+    console.warn('[KickLeaf HLS]', text);
     stop(text);
   }
   function deadline() {
@@ -46,11 +46,11 @@
   });
   video.addEventListener('playing', function () {
     if (!active) return;
-    console.info('[KickTV HLS] playing');
+    console.info('[KickLeaf HLS] playing');
     deadline();
   });
   video.addEventListener('timeupdate', function () { if (active) deadline(); });
-  video.addEventListener('waiting', function () { console.info('[KickTV HLS] waiting'); });
+  video.addEventListener('waiting', function () { console.info('[KickLeaf HLS] waiting'); });
   video.addEventListener('error', function () {
     if (!active) return;
     var code = video.error && video.error.code;
@@ -60,7 +60,7 @@
       3: 'A TV não conseguiu decodificar este vídeo.',
       4: 'Fluxo HLS indisponível ou formato não suportado.'
     };
-    console.warn('[KickTV HLS] media_error', code);
+    console.warn('[KickLeaf HLS] media_error', code);
     fail(messages[code] || 'Não foi possível reproduzir o vídeo.');
   });
   video.addEventListener('ended', function () { if (active) stop('O fluxo de teste terminou.'); });

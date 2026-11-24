@@ -1,6 +1,6 @@
-# Telemetria do KickTV na LG C3
+# Telemetria do KickLeaf na LG C3
 
-Referência funcional: v0.2.8. O [coletor](../scripts/collect-tv.cjs) observa o app e o serviço via Web Inspector. Por padrão, mede o player a cada 5 s e lê diagnósticos detalhados a cada 30 s. O monitor da página também registra eventos e agrega janelas opcionais de rAF. Veja [como iniciar a coleta e verificar o pacote](TESTES-DE-CHAT-NA-TV.md).
+Referência funcional: v0.2.9. O [coletor](../scripts/collect-tv.cjs) observa o app e o serviço via Web Inspector. Por padrão, mede o player a cada 5 s e lê diagnósticos detalhados a cada 30 s. O monitor da página também registra eventos e agrega janelas opcionais de rAF. Veja [como iniciar a coleta e verificar o pacote](TESTES-DE-CHAT-NA-TV.md).
 
 ## Metodologia
 

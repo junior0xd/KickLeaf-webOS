@@ -1,6 +1,10 @@
-# Changelog do KickTV para webOS
+# Changelog do KickLeaf para webOS
 
-Histórico até a referência funcional `v0.2.8`. Os resultados abaixo pertencem às versões, aos dispositivos e aos cenários descritos. Os [relatórios experimentais sanitizados](experiments/reports/README.md) guardam os hashes dos originais e incluem resultados negativos. Os pacotes experimentais 0.3.x citados nesses relatórios têm identidades próprias. Os documentos completos anteriores à consolidação permanecem disponíveis na árvore da tag `v0.2.8`.
+Os resultados abaixo pertencem às versões, aos dispositivos e aos cenários descritos. Os [relatórios experimentais sanitizados](experiments/reports/README.md) guardam os hashes dos originais e incluem resultados negativos. Os pacotes experimentais 0.3.x citados nesses relatórios têm identidades próprias. Os documentos completos anteriores à consolidação permanecem disponíveis na árvore da tag `v0.2.8`.
+
+## v0.2.9 (em desenvolvimento)
+
+- KickTV Alpha passa a se chamar **KickLeaf**, com novo ícone. O IPK usa `com.kickleaf.client` e inclui o serviço Luna `com.kickleaf.client.service`. O webOS instala o KickLeaf como um aplicativo separado.
 
 ## v0.2.8
 

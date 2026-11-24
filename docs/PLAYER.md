@@ -1,6 +1,6 @@
-# Player do KickTV Alpha
+# Player do KickLeaf
 
-Referência funcional: v0.2.8. O [manifesto](../app/appinfo.json) define o ID `com.kicktv.alpha` e a resolução lógica de 1920 × 1080. O alvo dos ensaios físicos é a LG OLED C3 com webOS 25. Veja [instalação e verificação na TV](TESTES.md).
+Referência funcional: v0.2.9. O [manifesto](../app/appinfo.json) define o ID `com.kickleaf.client` e a resolução lógica de 1920 × 1080. O alvo dos ensaios físicos é a LG OLED C3 com webOS 25. Veja [instalação e verificação na TV](TESTES.md).
 
 ## Modos de reprodução
 
@@ -11,7 +11,7 @@ Referência funcional: v0.2.8. O [manifesto](../app/appinfo.json) define o ID `c
 | `iframe` | O documento pai incorpora o player oficial da Kick. | Parâmetro de abertura ou opção **Usar player oficial** durante o HLS. |
 | `hls-test` | Página de diagnóstico com a amostra pública Apple Bip Bop. | Verificação independente de áudio, vídeo e decodificação HLS. |
 
-O app aceita nome de canal ou URL da Kick e normaliza a entrada. `app.js` direciona a abertura e `native-hls.js` coordena os dois modos HLS. A reprodução usa o pipeline nativo do webOS, sem hls.js, MSE ou retransmissão de mídia pelo KickTV. **Tela cheia** e **teatro** são layouts dos modos HLS. Teatro reserva 25% para o [chat](CHAT.md) e mantém a mesma instância do vídeo.
+O app aceita nome de canal ou URL da Kick e normaliza a entrada. `app.js` direciona a abertura e `native-hls.js` coordena os dois modos HLS. A reprodução usa o pipeline nativo do webOS, sem hls.js, MSE ou retransmissão de mídia pelo KickLeaf. **Tela cheia** e **teatro** são layouts dos modos HLS. Teatro reserva 25% para o [chat](CHAT.md) e mantém a mesma instância do vídeo.
 
 ## Direct HLS
 
@@ -43,10 +43,10 @@ set +a
 .tools/backend-venv/bin/python -m backend.run
 ```
 
-O provedor `public-test` aceita somente `hls-test` e retorna a amostra Apple como mídia não ao vivo. Após esse teste, use `KICKTV_PROVIDER=kick` e reinicie o processo para testar a descoberta experimental de lives. Com o KickTV instalado e fechado, inicie o app e use o canal correspondente ao provedor:
+O provedor `public-test` aceita somente `hls-test` e retorna a amostra Apple como mídia não ao vivo. Após esse teste, use `KICKTV_PROVIDER=kick` e reinicie o processo para testar a descoberta experimental de lives. Com o KickLeaf instalado e fechado, inicie o app e use o canal correspondente ao provedor:
 
 ```bash
-npx ares-launch --device lgc3 --params "$(cat .tools/native-hls.local.json)" com.kicktv.alpha
+npx ares-launch --device lgc3 --params "$(cat .tools/native-hls.local.json)" com.kickleaf.client
 ```
 
 O backend valida a origem da mídia. O cliente também valida o contrato da resposta e exige HTTPS nas URLs usadas. O token pertence à API local. O backend fica fora do IPK e roda em primeiro plano até Ctrl+C.
@@ -68,7 +68,7 @@ Depois de 25 s sem confirmação de navegação, o app orienta a recarga manual.
 
 O botão da barra e as teclas de mídia atuam sobre o elemento nativo. A pausa guarda `currentTime`. A retomada tenta preservar a posição e confirma reprodução sem busca pendente, com tolerância de 0,5 s. Se a posição expirou e `seekable` permite concluir isso, busca uma vez o ponto acessível mais próximo em `seekable` ou `buffered` e exibe um aviso. Um deslocamento do pipeline pode levar a uma tentativa de correção da posição. A espera tem prazo de 25 s e pode ganhar mais um prazo após a recuperação. Se a retomada falhar, o vídeo fica pausado com orientação para tentar novamente ou recarregar. A presença e extensão das janelas dependem da transmissão e do dispositivo.
 
-**Recurso futuro em avaliação:** busca manual na janela da live ou DVR. Na v0.2.8 o usuário pode pausar e retomar dentro da janela que o pipeline expõe.
+**Recurso futuro em avaliação:** busca manual na janela da live ou DVR. Na v0.2.9 o usuário pode pausar e retomar dentro da janela que o pipeline expõe.
 
 ## Estatísticas do vídeo
 

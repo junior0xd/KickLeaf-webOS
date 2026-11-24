@@ -1,8 +1,8 @@
 {
-  "name": "kicktv-alpha",
-  "version": "0.2.8",
+  "name": "kickleaf-webos",
+  "version": "0.2.9",
   "private": true,
-  "description": "KickTV Alpha: Direct HLS e chat somente leitura para webOS",
+  "description": "A lightweight, unofficial Kick client for webOS. Built for the big screen.",
   "scripts": {
     "validate": "node scripts/validate.cjs",
     "test": "npm run test:unit && npm run test:chat && playwright test",
