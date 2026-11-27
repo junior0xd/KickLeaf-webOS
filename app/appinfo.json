@@ -1,6 +1,6 @@
 {
   "id": "com.kickleaf.client",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "vendor": "KickLeaf independente",
   "type": "web",
   "main": "index.html",

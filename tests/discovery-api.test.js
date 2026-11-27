@@ -41,6 +41,20 @@ test('complementa a abertura por slug sem descartar campos do catálogo e sem mi
   assert.equal(merge(catalogue,normalize(entry('abc','new'),null,6)).title,null);
 });
 
+test('aceita alturas observadas somente na rota oficial de thumbnails da listagem',()=>{
+  const route='https://web.kick.com/api/v1/channels/25/thumbnail.jpeg';
+  const source=route+'?height=720';
+  const small=route+'?height=360';
+  const item=normalize({...entry('canal'),channel:{slug:'canal',profile_pic:source},thumbnail:{src:source,srcset:[
+    small+' 640w', source+' 1280w', route+'?height=999 1440w',
+    source+'&extra=x 1200w', source+'&height=480 900w', source+'#fragment 600w',
+    'https://web.kick.com/api/v1/channels/25/other.jpeg?height=360 400w'
+  ].join(', ')}});
+  assert.equal(item.avatar,null);
+  assert.equal(item.thumbnail.src,source);
+  assert.deepEqual(item.thumbnail.variants,[{width:640,url:small},{width:1280,url:source}]);
+});
+
 test('página seguinte usa after opaco, deduplica e encerra cursor repetido',async()=>{
   const urls=[];
   const api=create({request:async url=>{

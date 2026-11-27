@@ -289,6 +289,7 @@
       if (stream && stream.showViewerCount !== null) audienceAllowed = stream.showViewerCount;
       metadata = data;
       streamInfo.update(window.KickDiscovery.cardInfo(stream));
+      if (newSelection && homeUI) homeUI.recordChannel(channel, stream && stream.name);
       play('auto');
       if (video) syncLayout();
     } catch (error) {
@@ -348,7 +349,7 @@
       else if (!controls.hidden) hideControls();
       else if (video && viewMode !== ViewMode.FULLSCREEN) { setViewMode(ViewMode.FULLSCREEN, 'back'); document.body.focus(); }
       else if (home.hidden) showHome();
-      else if (homeUI && document.activeElement.closest('#browse')) watch.focus();
+      else if (homeUI && homeUI.back()) return;
       else fallback();
       return;
     }
@@ -399,7 +400,7 @@
   window.KickNativeDiagnostics = { snapshot: snapshot };
   log('mode_selected', { mode: mode, origin: window.location.origin, protocol: window.location.protocol });
   if (homeUI) {
-    watch.focus();
+    homeUI.start.focus();
     window.KickHomeDiagnostics = {snapshot: homeUI.snapshot};
     homeUI.resume();
   } else input.focus();

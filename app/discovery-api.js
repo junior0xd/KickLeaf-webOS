@@ -9,23 +9,24 @@
   const integer = value => Number.isSafeInteger(value) && value >= 0 ? value : null;
   const id = value => integer(value) ?? (typeof value === 'string' && /^[a-zA-Z0-9_-]{1,128}$/.test(value) ? value : null);
   const slug = value => typeof value === 'string' && /^[a-zA-Z0-9_-]{1,25}$/.test(value) ? value.toLowerCase() : null;
-  function imageURL(value) {
+  function imageURL(value, sizedThumbnail = false) {
     if (typeof value !== 'string' || value.length > 2048) return null;
     try {
       const url = new URL(value);
       if (url.protocol !== 'https:' || url.username || url.password || url.port || url.hash) return null;
       if (images.includes(url.hostname) || (url.hostname === 'web.kick.com' &&
-          /^\/api\/v1\/channels\/\d+\/thumbnail\.jpeg$/.test(url.pathname) && !url.search)) return url.href;
+          /^\/api\/v1\/channels\/\d+\/thumbnail\.jpeg$/.test(url.pathname) &&
+          (!url.search || (sizedThumbnail && /^\?height=(160|360|480|720|1080)$/.test(url.search))))) return url.href;
     } catch (_) { /* An unavailable image leaves the card placeholder. */ }
     return null;
   }
   function thumbnail(value) {
-    const src = imageURL(typeof value === 'string' ? value : value?.src);
+    const src = imageURL(typeof value === 'string' ? value : value?.src,true);
     const variants = new Map();
     if (typeof value?.srcset === 'string' && value.srcset.length <= 12000) {
       for (const entry of value.srcset.split(',')) {
         const match = /^\s*(\S+)\s+(\d{1,4})w\s*$/.exec(entry);
-        const url = match && imageURL(match[1]);
+        const url = match && imageURL(match[1],true);
         if (url && +match[2] > 0 && +match[2] <= 1920 && variants.size < 8) variants.set(+match[2],url);
       }
     }

@@ -11,19 +11,39 @@
 </head>
 <body tabindex="-1">
   <main id="home" class="home">
-    <div id="home-brand" hidden><img src="icon.png" alt="">KickLeaf</div>
+    <nav id="home-nav" aria-label="Navegação inicial" hidden>
+      <img id="home-brand" alt="KickLeaf" width="334" height="339">
+      <button id="home-start" type="button"><span class="home-symbol" aria-hidden="true"></span>Início</button>
+      <button id="home-live" type="button"><img src="phosphor-broadcast-fill.svg" alt=""> Ao vivo</button>
+    </nav>
     <form id="native-form" novalidate>
       <input id="channel" type="text" placeholder="Nome do canal da Kick" aria-label="Nome do canal da Kick" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="256">
       <button id="watch" type="submit">Assistir</button>
       <p id="message" role="status" aria-live="polite"></p>
     </form>
+    <section id="home-promotion" aria-label="Destaque da Kick" hidden></section>
+    <section id="home-events" aria-labelledby="events-title" hidden>
+      <h2 id="events-title">Eventos Ativos</h2>
+      <div id="events-grid"></div>
+    </section>
     <section id="browse" aria-labelledby="browse-title" hidden>
-      <h1 id="browse-title">Procurar</h1>
+      <div class="browse-heading">
+        <h1 id="browse-title">Transmissões ao vivo</h1>
+        <div id="browse-position" hidden>
+          <button id="browse-prev" type="button" aria-label="Grupo anterior" hidden>‹</button>
+          <span id="browse-group" role="status"></span>
+        </div>
+      </div>
       <div id="browse-scroll">
         <div id="browse-grid"></div>
-        <p id="browse-status" role="status" aria-live="polite"></p>
-        <button id="browse-retry" type="button" hidden>Tentar novamente</button>
+        <button id="browse-next" type="button" aria-label="Próximo grupo" hidden>›</button>
       </div>
+      <p id="browse-status" role="status" aria-live="polite"></p>
+      <button id="browse-retry" type="button" hidden>Tentar novamente</button>
+    </section>
+    <section id="home-recent" aria-labelledby="recent-title" hidden>
+      <h2 id="recent-title">Canais acessados anteriormente</h2>
+      <div id="recent-grid"></div>
     </section>
   </main>
   <main id="native-playback" data-view-mode="complete" aria-label="Reprodução da transmissão" hidden>

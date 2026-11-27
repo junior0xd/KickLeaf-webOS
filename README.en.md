@@ -2,7 +2,7 @@
 
 # KickLeaf
 
-<img src="assets/kickleaf-icon.png" alt="KickLeaf icon" width="130">
+<img src="app/kickleaf-icon-transparent.png" alt="KickLeaf icon" width="130">
 
 A lightweight, unofficial Kick client for webOS.<br>
 Built for the big screen.
@@ -59,6 +59,8 @@ npx ares-launch --device lgc3 "$APP_ID"
 In the app, enter a channel name or URL and select **Assistir** (Watch). Press **OK** during playback to open the controls.
 
 If you already have KickTV Alpha installed, webOS installs KickLeaf (`com.kickleaf.client`) as a separate app. KickLeaf starts with its default settings.
+
+To try the OLED Premium home screen, launch with `experimentalDiscovery: true`. See [how to enable or roll back the experiment](docs/DESCOBERTA.md).
 
 ## Run the tests
 

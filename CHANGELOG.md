@@ -2,6 +2,16 @@
 
 Os resultados abaixo pertencem às versões, aos dispositivos e aos cenários descritos. Os [relatórios experimentais sanitizados](experiments/reports/README.md) guardam os hashes dos originais e incluem resultados negativos. Os pacotes experimentais 0.3.x citados nesses relatórios têm identidades próprias. Os documentos completos anteriores à consolidação permanecem disponíveis na árvore da tag `v0.2.8`.
 
+## v0.3.1
+
+- Redesenha a tela inicial OLED Premium com grupos de cinco lives, imagens sob demanda, retorno ao foco anterior e histórico da sessão. A descoberta permanece disponível com `experimentalDiscovery: true`. [Descoberta experimental](docs/DESCOBERTA.md)
+- Atualiza o ícone do KickLeaf no launcher da TV.
+
+### Release Notes
+
+- Redesigned the OLED Premium home screen with groups of five live streams, remote navigation that restores your place after playback, and recently opened channels. Enable it with `experimentalDiscovery: true`.
+- Updated the KickLeaf icon on the webOS launcher.
+
 ## v0.3.0
 
 - Adiciona a tela inicial experimental **Procurar**, com quatro cards por linha, imagens sob demanda, navegação pelo controle remoto e retorno ao card selecionado. O adaptador consulta a listagem anônima, deduplica páginas e reaproveita metadados no card da reprodução. A ativação requer `experimentalDiscovery: true`. [Descoberta experimental](docs/DESCOBERTA.md)

@@ -1,12 +1,14 @@
 # Descoberta experimental de transmissões
 
-A tela inicial experimental do KickLeaf tem a seção **Procurar**, com quatro cards por linha, e mantém o formulário de abertura por slug. Ela roda na mesma página da reprodução HLS e usa as interfaces anônimas observadas na investigação na LG C3. O IPK exige o parâmetro de inicialização `experimentalDiscovery: true` para exibir a grade. O player oficial e o diagnóstico HLS continuam nos seus fluxos já existentes.
+A tela inicial OLED Premium exibe cinco transmissões por grupo, com restauração do grupo e do foco na volta do player. Mantém a abertura direta por slug ou URL e os últimos cinco canais resolvidos com sucesso na sessão. O parâmetro de abertura continua sendo `experimentalDiscovery: true`.
 
 ```sh
 npx ares-launch --device lgc3 --params '{"experimentalDiscovery":true}' com.kickleaf.client
 ```
 
-O acesso técnico à interface interna da Kick não estabelece autorização para uso em produção. A integração permanece opt-in até que as condições sejam esclarecidas. Mudanças no contrato, no CORS ou na política de acesso podem indisponibilizar a grade. [Termos da Kick](https://kick.com/terms-of-service)
+Feche uma instância aberta antes de iniciar com parâmetros diferentes. Para voltar à entrada tradicional por slug, abra o app sem o parâmetro. Para voltar à grade experimental de quatro colunas, reinstale o IPK anterior e abra com o mesmo parâmetro.
+
+A integração de descoberta usa uma interface interna observada na Kick. Continua experimental e opt-in enquanto as condições para seu uso não estiverem esclarecidas. Mudanças no contrato, CORS ou política de acesso podem indisponibilizar a fileira. [Termos da Kick](https://kick.com/terms-of-service)
 
 ## Adaptador
 
@@ -16,29 +18,44 @@ O transporte HTTP reutilizado por `app/direct-api.js` e pelo adaptador limita o 
 
 O modelo normaliza IDs, slug, nome, mídias, categoria, título, idioma, audiência, início e instante da obtenção. Campos ausentes usam `null`, e audiência zero é um valor válido. Apenas registros com slug utilizável formam cards. O status ao vivo vem do contexto das rotas de listagem e de transmissão ativa. A grade mostra audiência somente com autorização explícita do campo `show_view_count`.
 
+As URLs de thumbnail observadas na LG C3 usam `web.kick.com/api/v1/channels/<id>/thumbnail.jpeg` com o único parâmetro opcional `height` nos valores 160, 360, 480, 720 ou 1080. O adaptador aceita esses parâmetros somente nas URLs de thumbnail. O limite de tamanho de URL e as regras de HTTPS e de origem continuam válidos.
+
 Ao abrir um canal, o fluxo HLS ainda resolve e valida a URL do vídeo, lê o manifesto dentro do prazo existente e usa a conexão de chat já implementada. Após a descoberta confirmar que o canal está online, o player pode semear o card com o registro ainda válido da listagem. A resposta da reprodução complementa o registro, inclusive quando a audiência chega como `viewers` em vez de `viewer_count`. IDs de fontes diferentes usam espaços distintos. Horários de início incompatíveis impedem reaproveitar a fotografia anterior. Uma negativa de exibição da audiência também vale para as atualizações do card daquela transmissão.
 
-## Limites de processamento
+## Paginação visual e tráfego
 
-| Recurso | Limite e comportamento |
+| Recurso | Comportamento |
 | --- | --- |
-| Rede de descoberta | Uma consulta em voo. Chamadas equivalentes compartilham a requisição. Uma nova consulta invalida a anterior. Entrar no player ou ocultar o aplicativo suspende a descoberta. |
-| Paginação | Até três páginas por visita, com 24 resultados por página e máximo de 72 cards. A continuação começa quando o foco entra na última linha ou a rolagem chega a 120 px do fim. |
-| Cache de páginas | Seis páginas em memória, por URL parametrizada. Validade de 60 s, com descarte do registro usado há mais tempo ao atingir o limite. |
-| Cache de canais | Até 144 slugs em memória e validade máxima de 60 s. Um registro parcial da mesma live conserva campos mais completos enquanto a amostra anterior é válida. |
-| Imagens | Até dois espaços por card. O observador carrega as imagens até 100 px antes ou depois da área rolável e retira as fontes fora desse intervalo. Ao entrar no player, todas as fontes da grade são retiradas. O navegador gerencia o cache de bytes e a memória decodificada. |
-| Resolução | Entre até oito variantes de largura validadas, a grade seleciona a menor que atenda à largura lógica do card, com fator de densidade limitado a 1,25. Usa a maior disponível quando nenhuma atinge o tamanho e o `src` quando não há variantes válidas. |
-| Atualização | Nenhum cronômetro de atualização na grade. Os cards permanecem estáveis enquanto a pessoa navega. Ao voltar da reprodução, a grade conserva páginas, foco e rolagem se a primeira página ainda estiver válida. Caso contrário, refaz a primeira página. |
+| Metadados | Uma consulta em voo. Avançar por dados já recebidos e voltar para um grupo anterior reutilizam o catálogo em memória. A próxima consulta só sai quando o avanço precisa de mais itens para completar o grupo. |
+| Limites | Até três consultas bem-sucedidas de 24 resultados, com máximo de 72 registros antes de deduplicar. Só o grupo atual fica no DOM. O grupo final pode conter menos de cinco cards. |
+| Recência | O catálogo da sessão permanece disponível para restaurar a posição mesmo depois de 60 s. Os campos exibem a fotografia da última consulta. O cache de páginas e de metadados usado pelo player conserva a validade de 60 s e a abertura continua consultando o canal. |
+| Falhas | O grupo atual e os dados recebidos ficam disponíveis. A próxima tentativa é explícita. Fim da lista ou cursor repetido encerra o avanço. |
+| Imagens | Thumbnails e avatares recebem URL somente quando o card do grupo montado entra na área visível. A grade usa a menor variante adequada, com fator de densidade limitado a 1,25. Ao abrir o player, o componente suspende a consulta em voo e retira as fontes da grade. O navegador administra a reutilização de bytes e imagens decodificadas. |
+| Frequência | A tela inicial inicia uma consulta ao abrir a descoberta. Não há atualização periódica ou prefetch de outros grupos. |
 
-As três páginas limitam o custo de DOM sem reciclagem de foco ou virtualização. A validade de 60 s cobre uma ida e volta curta ao player e evita reaproveitar por muito tempo dados sujeitos a mudança. A carga de imagens acompanha a área exposta. Falhas mantêm o espaço da mídia com o placeholder, sem redimensionar o card.
+**Navegação por controle remoto.** As setas laterais percorrem o grupo. Ultrapassar a última ou a primeira posição troca de grupo. Cima e baixo percorrem as seções com ações disponíveis. OK abre o item focado. Voltar na tela inicial retorna ao cabeçalho antes de oferecer a saída. O foco inicial é **Início**, fora do campo que aciona o teclado virtual.
 
-## Navegação
+`KickHomeDiagnostics.snapshot()` informa os cards montados em `cards`, os registros recebidos em `loaded`, o grupo atual, as páginas aceitas, as imagens com fonte, os nós da tela e o tempo até a primeira fileira. A paleta, o brilho de foco, a tipografia, os espaçamentos e a duração da transição ficam em `app/discovery-home.css`, no seletor `.discovery-home`.
 
-O foco experimental começa em **Assistir**, evitando abrir o teclado virtual ao entrar. As setas descem do cabeçalho para a grade, sobem da primeira linha ao cabeçalho e mantêm o item focado visível. OK sobre o card abre o canal. Voltar da grade leva ao cabeçalho. O fluxo de Voltar durante a reprodução continua passando pelos controles e pelo modo Tela cheia antes de voltar à entrada.
+## Banners e eventos ativos
 
-`KickHomeDiagnostics.snapshot()` fornece métricas agregadas do estado da grade, primeira apresentação, contagem de páginas, elementos e imagens com fonte. O coletor experimental lê esses dados no Inspector e não faz parte do IPK.
+O site oficial publica listas de eventos ao vivo e futuros em `/events`. A página pública observada inclui nomes, imagens de `content.kick.com`, categorias e vínculos com canais. O índice do Kick Dev documenta a listagem pública de lives e eventos de webhook, sem expor um catálogo público documentado de eventos editoriais ou dos banners da inicial. [Página de eventos](https://kick.com/events) · [Guia oficial para espectadores](https://help.kick.com/en/articles/17574493-kick-events-a-viewer-s-guide) · [Índice da documentação do Kick Dev](https://docs.kick.com/llms.txt)
 
-## Validação na LG C3
+Uma consulta HTTP comum a cada URL (`kick.com/`, `kick.com/events` e a URL inicial em `web.kick.com/api/v1/livestreams`) retornou HTTP 403 no ambiente de desenvolvimento. O HTML bruto e os dados de hidratação ficaram indisponíveis. Na LG C3 a mesma listagem retornou HTTP 200. A amostra de 24 registros trouxe somente `data.livestreams` e `data.pagination.next_cursor` no objeto `data`, sem metadados de promoções ou eventos.
+
+O componente está preparado para receber um banner e até dois eventos ativos em `setHighlights({banner, activeEvents})`, com título, imagem da lista de origens permitidas, descrição, período e slug de uma live quando disponíveis. Nesta entrega as duas seções ficam ocultas. O app faz **zero consultas adicionais** e baixa **zero imagens de promoções ou eventos**. Não há integração de autenticação, raspagem de HTML ou recursos promocionais. A autenticação e o custo de uma eventual fonte adicional dependem de um contrato permitido. Qualquer origem de mídia nova também requer validação.
+
+## Validação do OLED Premium
+
+No Chromium, com respostas simuladas, a ida do grupo 1 ao 6 e a volta ao 5 produziram duas consultas de listagem e 54 solicitações de imagens. Ao voltar do player ao grupo 5, o navegador reaproveitou essas imagens e nenhum GET de listagem adicional foi feito. Também foram verificados o fim da lista, falha e tentativa explícita, foco, retorno após o TTL de metadados, altura constante dos cards e as resoluções de 1920 × 1080 e de 3840 × 2160.
+
+Na OLED55C3PSA com firmware 33.31.68, o Inspector confirmou o viewport lógico de 1920 × 1080 com densidade de pixel 2. A ida do grupo 1 ao 5 e a volta ao 4 registraram duas requisições de listagem HTTP 200 e 50 solicitações de imagens no Resource Timing, sendo 25 thumbnails e 25 avatares. Os grupos 1 a 4 usaram a consulta inicial. O grupo 5 acrescentou a segunda. A volta ao grupo 4 não gerou novas solicitações nesse ensaio. Cada grupo exibiu cinco thumbnails e cinco avatares decodificados. O DOM da tela inicial permaneceu em 84 elementos durante esse percurso. A medição não estima bytes transferidos nem comprova redução de tráfego total.
+
+Em um teste curto na TV, OK sobre o primeiro card iniciou HLS em Completo com informações da transmissão. O chat conectou em Teatro. Tela cheia ocultou o chat e conservou a instância do vídeo. Ao voltar, o aplicativo liberou o vídeo e restaurou o grupo e o foco. A avaliação de brilho, contraste e conforto visual fica para a inspeção presencial.
+
+## Referência histórica na LG C3
+
+Os resultados a seguir correspondem à grade anterior de quatro colunas.
 
 A prova usou um IPK com ID separado, na OLED55C3PSA com firmware 33.31.68, resolução lógica de 1920 × 1080 e densidade de pixel 2. O Inspector enviou teclas para navegar e selecionar um canal real. Os resultados abaixo correspondem a uma execução curta. O ensaio não comparou a cadência com uma versão anterior.
 
