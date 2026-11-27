@@ -2,7 +2,7 @@
 
 # KickLeaf
 
-<img src="assets/kickleaf-icon.png" alt="Ícone do KickLeaf" width="130">
+<img src="assets/kickleaf-icon-github.png" alt="Ícone do KickLeaf" width="130">
 
 A lightweight, unofficial Kick client for webOS.<br>
 Built for the big screen.
