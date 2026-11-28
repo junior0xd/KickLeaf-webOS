@@ -1,17 +1,11 @@
 (function (root) {
   'use strict';
 
+  var preferenceKey = 'kickleaf.streamInfoEnabled';
+  var duration = 2000;
+
   function text(value, limit) {
     return typeof value === 'string' ? value.trim().slice(0, limit) : '';
-  }
-
-  function startTime(value) {
-    if (typeof value !== 'string') return NaN;
-    // Kick also returns UTC timestamps in SQL format.
-    if (/^\d{4}-\d\d-\d\d[ T]\d\d:\d\d:\d\d(?:\.\d+)?$/.test(value)) {
-      value = value.replace(' ', 'T') + 'Z';
-    }
-    return /^\d{4}-\d\d-\d\dT/.test(value) ? Date.parse(value) : NaN;
   }
 
   function avatarURL(value) {
@@ -24,48 +18,90 @@
     return '';
   }
 
-  function create(card) {
+  function create(card, toggle) {
     var fields = {};
     card.querySelectorAll('[data-info]').forEach(function (node) { fields[node.dataset.info] = node; });
     var number = new Intl.NumberFormat('pt-BR');
-    var avatar = '', startedAt = NaN, timer = null;
+    var avatar = '', frame = null, timer = null, enabled = true;
+    try { enabled = root.localStorage.getItem(preferenceKey) !== 'false'; }
+    catch (error) { /* Storage can be unavailable in the current web context. */ }
+    function syncToggle() {
+      toggle.setAttribute('aria-pressed', String(enabled));
+      toggle.querySelector('img').src = enabled ? 'phosphor-info-fill.svg' : 'phosphor-info.svg';
+    }
+    syncToggle();
+
     function write(key, value) {
       var field = fields[key];
       if (field.textContent !== value) field.textContent = value;
       if (field.hidden !== !value) field.hidden = !value;
     }
-    function elapsed() {
-      var seconds = Math.floor((Date.now() - startedAt) / 1000);
-      if (!(seconds >= 0)) { write('elapsed', ''); return; }
-      var hours = Math.floor(seconds / 3600);
-      var minutes = Math.floor(seconds / 60) % 60;
-      write('elapsed', [hours, minutes, seconds % 60].map(function (value) {
-        return String(value).padStart(2, '0');
-      }).join(':'));
+    function writeCategory(value) {
+      write('category', value);
+      fields['category-line'].hidden = !value;
     }
-    function syncClock() {
-      if (card.hidden || !Number.isFinite(startedAt)) {
-        clearInterval(timer);
-        timer = null;
-        if (!Number.isFinite(startedAt)) write('elapsed', '');
-        return;
+    function writeAudience(count) {
+      var valid = Number.isSafeInteger(count) && count >= 0;
+      write('viewer-count', valid ? number.format(count) : '');
+      write('viewer-label', valid ? (count === 1 ? 'espectador' : 'espectadores') : '');
+      fields.viewers.hidden = !valid;
+    }
+    function cancel() {
+      if (frame !== null) root.cancelAnimationFrame(frame);
+      if (timer !== null) root.clearTimeout(timer);
+      frame = timer = null;
+    }
+    function hide(immediate) {
+      cancel();
+      card.classList.remove('stream-info-visible');
+      card.setAttribute('aria-hidden', 'true');
+      if (immediate) card.hidden = true;
+    }
+    function loadAvatar() {
+      if (avatar && fields.avatar.getAttribute('src') !== avatar) {
+        fields.avatar.hidden = true;
+        fields.avatar.src = avatar;
       }
-      elapsed();
-      if (timer === null) timer = setInterval(elapsed, 1000);
     }
-    fields.avatar.addEventListener('load', function () { fields.avatar.hidden = false; });
+    function show() {
+      if (!enabled || !fields.name.textContent || document.hidden) return;
+      cancel();
+      loadAvatar();
+      card.hidden = false;
+      card.classList.add('stream-info-visible');
+      card.setAttribute('aria-hidden', 'false');
+      // The first frame commits visibility. Start counting on the following frame.
+      frame = root.requestAnimationFrame(function () {
+        frame = root.requestAnimationFrame(function () {
+          frame = null;
+          timer = root.setTimeout(hide, duration);
+        });
+      });
+    }
+
+    fields.avatar.addEventListener('load', function () { fields.avatar.hidden = !fields.avatar.hasAttribute('src'); });
     fields.avatar.addEventListener('error', function () { fields.avatar.hidden = true; });
+    toggle.addEventListener('click', function () {
+      enabled = !enabled;
+      syncToggle();
+      try { root.localStorage.setItem(preferenceKey, String(enabled)); }
+      catch (error) { /* The setting still works for this session. */ }
+      if (enabled) show(); else hide(true);
+    });
 
     return {
-      reset: function (name, live) {
-        startedAt = NaN; avatar = '';
+      show: show,
+      hide: function () { hide(true); },
+      reset: function (name) {
+        hide(true);
+        avatar = '';
         fields.avatar.hidden = true;
         fields.avatar.removeAttribute('src');
         write('initial', name.charAt(0).toUpperCase());
         write('name', name);
-        ['title', 'category', 'description', 'viewers'].forEach(function (key) { write(key, ''); });
-        fields.live.hidden = !live;
-        syncClock();
+        write('title', '');
+        writeCategory('');
+        writeAudience(null);
       },
       update: function (info) {
         if (!info) return;
@@ -75,27 +111,16 @@
           write('initial', name.charAt(0).toUpperCase());
         }
         var nextAvatar = avatarURL(info.avatar);
-        if (nextAvatar && nextAvatar !== avatar) {
+        if (nextAvatar) {
           avatar = nextAvatar;
-          fields.avatar.hidden = true;
-          fields.avatar.src = avatar;
+          if (card.classList.contains('stream-info-visible')) loadAvatar();
         }
-        ['title', 'category'].forEach(function (key) {
-          var value = text(info[key], 1000);
-          if (value) write(key, value);
-        });
-        var description = text(info.description, 1000);
-        if (description) write('description', description);
-        else if (fields.description.hidden) write('description', text(info.channelDescription, 1000));
-        if (info.viewers !== undefined) {
-          var count = info.viewers;
-          write('viewers', Number.isSafeInteger(count) && count >= 0
-            ? number.format(count) + (count === 1 ? ' espectador' : ' espectadores') : '');
-        }
-        var start = startTime(info.startedAt);
-        if (Number.isFinite(start) && start !== startedAt) { startedAt = start; syncClock(); }
-      },
-      setVisible: function (visible) { card.hidden = !visible; syncClock(); }
+        var title = text(info.title, 1000);
+        var category = text(info.category, 1000);
+        if (title) write('title', title);
+        if (category) writeCategory(category);
+        if (info.viewers !== undefined) writeAudience(info.viewers);
+      }
     };
   }
   root.KickStreamInfo = { create: create };

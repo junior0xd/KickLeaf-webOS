@@ -1,6 +1,6 @@
 # Chat do KickLeaf
 
-O chat público, somente leitura, abre no modo **Completo** durante a reprodução HLS. Em **Completo** e **Teatro**, ele ocupa 25% da tela e usa a mesma sessão ao alternar entre os dois modos. Entrar em **Tela cheia**, trocar de canal ou sair encerra a sessão e drena as mensagens já admitidas. Voltar de **Tela cheia** para um modo com chat abre uma nova sessão.
+O chat público, somente leitura, abre ao selecionar **Teatro** na barra do player HLS. Ele ocupa 25% da tela. Entrar em **Tela cheia**, trocar de canal ou sair encerra a sessão e drena as mensagens já admitidas. Voltar a **Teatro** abre uma sessão de chat.
 
 ## Arquitetura e renovação
 

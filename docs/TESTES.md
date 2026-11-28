@@ -34,21 +34,29 @@ npx ares-install --device lgc3 "dist/releases/${APP_ID}_${APP_VERSION}_all.ipk"
 npx ares-launch --device lgc3 "$APP_ID"
 ```
 
-O IPK instala `com.kickleaf.client` ao lado de uma instalação existente de `com.kicktv.alpha`. Canal, qualidade e layout são mantidos em memória durante a sessão, e o serviço guarda o estado do chat em memória. O app não usa `localStorage`, `sessionStorage` ou IndexedDB para preferências, portanto não há dados de preferências do app para migrar. Os arquivos de configuração do backend opcional ficam no computador que hospeda o backend e continuam usando as variáveis `KICKTV_*`.
+O IPK instala `com.kickleaf.client` ao lado de uma instalação existente de `com.kicktv.alpha`. Canal, qualidade e layout são mantidos em memória durante a sessão, e o serviço guarda o estado do chat em memória. A preferência de exibir as informações da transmissão é persistida em `localStorage` no contexto do aplicativo. Os arquivos de configuração do backend opcional ficam no computador que hospeda o backend e continuam usando as variáveis `KICKTV_*`.
 
-Feche o app antes de reabrir com parâmetros diferentes. Para o diagnóstico Apple, use `--params '{"mode":"hls-test"}'` e confirme **Iniciar teste HLS**. Para o player oficial, use `--params '{"mode":"iframe"}'` ou a ação durante HLS. O [guia do player](PLAYER.md#native-hls-com-backend-local) descreve os parâmetros do backend local. Para observar logs use `npx ares-inspect --device lgc3 --app "$APP_ID"`.
+Feche o app antes de reabrir com parâmetros diferentes. O diagnóstico Apple fica fora do IPK principal. Para desenvolvimento, sirva a pasta `app/` localmente, abra `hls-test.html` e confirme **Iniciar teste HLS**. Para o player oficial, use `--params '{"mode":"iframe"}'` ou a ação durante HLS. O [guia do player](PLAYER.md#native-hls-com-backend-local) descreve os parâmetros do backend local. Para observar logs use `npx ares-inspect --device lgc3 --app "$APP_ID"`.
 
 | Roteiro físico | O que registrar |
 | --- | --- |
 | Diagnóstico Apple | Imagem, áudio, avanço e liberação ao voltar. A amostra isola a reprodução HLS sem acesso à Kick. |
 | Direct HLS | Teclado e entrada, imagem e áudio de canal ao vivo, estado de canal offline, Auto e uma variante disponível. Registre a qualidade selecionada e a resolução efetiva. |
-| Navegação e layout | Setas, OK, Voltar, foco nas opções visíveis e ocultação após inatividade. Alternar teatro e tela cheia deve preservar o vídeo. |
+| Navegação e layout | Setas, OK, Voltar, foco nas opções visíveis e ocultação após inatividade. Iniciar em Tela cheia e alternar com Teatro preservando o vídeo. Conferir o OSD de dois segundos, renovação durante as interações na barra, ausência de sobreposição com os botões, desativação e persistência após reiniciar. |
 | Pausa e recuperação | Retomar em pausa breve, testar ponto expirado se a janela permitir, observar avisos e reação a falha. Anotar quando o dispositivo não expõe uma janela confiável. |
 | Estatísticas | Ativar/desativar, conferir valores indisponíveis, observar atualização e reset em troca de qualidade. Observar buffering separadamente da partida, pausa e busca. |
 | Chat e limpeza | Verificar texto, emotes e distintivos, fila e ACK, preservação do chat na recarga bem-sucedida da mesma live e encerramento em troca de canal, Voltar e saída. Em sessão longa, confirmar se houve renovação e novo TTL. Use o [guia de coleta](TESTES-DE-CHAT-NA-TV.md). |
 | Alternativas e rede | Comparar iframe, Direct HLS e backend local conforme o cenário. Registrar interrupções de rede, retorno à entrada e ausência de áudio residual. O evento de navegação do iframe não confirma reprodução. |
 
 Registre duração, momento, resultado e motivo de encerramento. Publique somente evidências revisadas, sem segredos, URLs assinadas, mensagens brutas ou capturas identificáveis.
+
+## Avaliação da primeira versão do player OLED Premium
+
+No IPK local de avaliação sobre a v0.3.1, a LG OLED55C3PSA com firmware 33.31.68 iniciou uma live em Teatro e conectou o chat. O Inspector registrou 2,02 s entre a apresentação automática do OSD e o início da ocultação. Abrir a barra reapresentou as informações acima dos botões. Uma atualização de audiência com o OSD oculto manteve esse estado. A alternância Teatro → Tela cheia → Teatro preservou a instância do vídeo e o tempo de reprodução. Ao voltar, o app liberou o vídeo e restaurou o grupo e o card selecionados.
+
+O teste de persistência desabilitou o OSD pelo controle de informações, fechou e abriu novamente o aplicativo. A preferência permaneceu desabilitada na partida e ao abrir a barra. Em seguida o controle reativou as informações. Nenhuma consulta adicional de metadados do canal foi observada ao usar o OSD.
+
+Com vídeo simulado no Chromium, o OSD foi comparado sobre fundo branco e preto. O contraste sRGB teórico no trecho menos opaco do gradiente foi de 8,8:1 sobre branco e 17:1 sobre preto. A avaliação presencial da legibilidade em cenas reais e da percepção de brilho na OLED permanece pendente.
 
 ## Evidências históricas
 

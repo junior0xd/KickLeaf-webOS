@@ -13,8 +13,8 @@ p { font-size: 26px; line-height: 1.45; }
 .screen { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; background: #000; object-fit: contain; }
 /* O foco fica no documento pai para receber Voltar. O embed precisa iniciar sozinho. */
 iframe.screen { pointer-events: none; }
-.notice { position: fixed; z-index: 2; top: 6%; left: 15%; width: 70%; padding: 16px; background: #161616; color: #bbb; text-align: center; font-size: 26px; }
-.player-controls { position: absolute; z-index: 3; bottom: 0; left: 0; right: 0; padding: 0 4% 32px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.notice { position: fixed; z-index: 2; top: 6%; left: 15%; width: 70%; padding: 16px; background: var(--oled-bg-secondary); color: var(--oled-text); border: 1px solid var(--oled-border); border-radius: var(--oled-radius); text-align: center; font-size: 26px; }
+.player-controls { position: absolute; z-index: 3; bottom: 0; left: 0; right: 0; padding: 0 4% var(--player-bar-inset); display: flex; align-items: center; justify-content: space-between; gap: 24px; }
 /* Shares the controls' visibility; stays behind their content within z-index: 3. */
 .player-controls::before {
   content: "";
@@ -25,31 +25,41 @@ iframe.screen { pointer-events: none; }
   bottom: 0;
   height: 220px;
   min-height: calc(100% + 120px);
-  background: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,.12) 25%, rgba(0,0,0,.4) 55%, rgba(0,0,0,.75) 100%);
+  background: linear-gradient(to bottom, transparent, var(--oled-control-shade));
   pointer-events: none;
 }
 .player-controls:focus { outline: none; }
-.player-settings button, .quality-menu button { margin: 0; font-size: 28px; background: #242424; border-color: #666; color: #fff; }
-.player-controls button:focus, .quality-menu button:focus { outline: 3px solid #aaa; outline-offset: 4px; }
+.player-settings button, .quality-menu button { margin: 0; font-size: 28px; background: var(--oled-raised); border: 1px solid var(--oled-border); border-radius: var(--oled-radius); color: var(--oled-text); }
+.player-controls button:focus, .quality-menu button:focus { outline: var(--oled-focus-width) solid var(--oled-accent); outline-offset: var(--oled-focus-offset); box-shadow: 0 0 var(--oled-focus-blur) var(--oled-focus-glow); }
 .control-group { display: flex; align-items: center; gap: 16px; }
-.icon-control { display: flex; align-items: center; justify-content: center; width: 72px; height: 72px; min-width: 72px; margin: 0; padding: 16px; border: 0; border-radius: 6px; background: transparent; color: #fff; }
+.icon-control { position: relative; display: flex; align-items: center; justify-content: center; width: var(--player-button-size); height: var(--player-button-size); min-width: var(--player-button-size); margin: 0; padding: 16px; border: 0; border-radius: var(--oled-radius); background: var(--oled-control-shade); color: var(--oled-text); }
 .icon-control img, .live-indicator img { display: block; width: 37px; height: 37px; pointer-events: none; }
-.icon-control:focus { background: rgba(255,255,255,.12); }
+.icon-control[aria-pressed="true"] { background: var(--oled-raised); }
+.icon-control[aria-pressed="true"]::after {
+  content: "";
+  position: absolute;
+  bottom: 6px;
+  width: 14px;
+  height: 3px;
+  border-radius: var(--oled-pill);
+  background: var(--oled-accent);
+}
+.icon-control[aria-pressed="false"] img { opacity: .72; }
 .icon-control:disabled { opacity: .45; cursor: default; }
-.live-indicator { display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: bold; letter-spacing: 1px; white-space: nowrap; }
-.player-settings { position: absolute; z-index: 1; bottom: calc(100% + 16px); right: 4%; width: 440px; max-width: 92%; max-height: 65vh; overflow-y: auto; padding: 24px; border-radius: 8px; background: rgba(18,18,18,.96); }
+.live-indicator { display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: bold; letter-spacing: 1px; white-space: nowrap; color: var(--oled-text); }
+.player-settings { position: absolute; z-index: 1; bottom: calc(100% + 16px); right: 4%; width: 440px; max-width: 92%; max-height: 65vh; overflow-y: auto; padding: 24px; border: 1px solid var(--oled-border); border-radius: var(--oled-radius); background: var(--oled-panel-overlay); color: var(--oled-text); }
 .player-settings h2 { margin: 0 0 20px; font-size: 24px; font-weight: normal; }
 .player-settings button { display: block; width: 100%; min-width: 0; padding: 16px; margin-top: 12px; text-align: left; font-size: 22px; }
-.quality-menu { position: fixed; z-index: 4; top: 25%; left: 20%; width: 60%; padding: 36px; background: #161616; color: #bbb; text-align: center; }
+.quality-menu { position: fixed; z-index: 4; top: 25%; left: 20%; width: 60%; padding: 36px; background: var(--oled-bg-secondary); color: var(--oled-text); border: 1px solid var(--oled-border); border-radius: var(--oled-radius); text-align: center; }
 .quality-menu h2 { font-size: 32px; font-weight: normal; }
 #native-quality-menu { max-height: 60%; overflow-y: auto; }
 #native-quality-menu button { display: block; width: 95%; margin: 12px auto; }
 #native-quality-menu button:disabled { opacity: .55; }
 
 /* Static TV overlay: no focus, animation, network access or video layout changes. */
-.video-statistics { position: fixed; z-index: 2; top: 4%; right: 4%; width: 580px; max-width: 44vw; max-height: 76vh; overflow: hidden; padding: 22px 26px; background: rgba(12, 14, 17, .86); color: #c7cbd0; border: 1px solid #44494f; border-radius: 8px; pointer-events: none; }
+.video-statistics { position: fixed; z-index: 2; top: 4%; right: 4%; width: 580px; max-width: 44vw; max-height: 76vh; overflow: hidden; padding: 22px 26px; background: var(--oled-video-shade); color: var(--oled-text); border: 1px solid var(--oled-border); border-radius: var(--oled-radius); pointer-events: none; }
 .video-statistics h2 { margin: 0 0 12px; font-size: 28px; font-weight: 500; }
-.video-statistics h3 { margin: 14px 0 7px; font-size: 21px; font-weight: normal; color: #9ca4ad; }
+.video-statistics h3 { margin: 14px 0 7px; font-size: 21px; font-weight: normal; color: var(--oled-muted); }
 .video-statistics dl { margin: 0; }
 .video-statistics dl div { display: flex; justify-content: space-between; align-items: baseline; gap: 14px; margin-top: 7px; font-size: 22px; line-height: 1.3; }
 .video-statistics dt { flex: 1; }

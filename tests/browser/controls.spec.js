@@ -40,7 +40,7 @@ for (const mode of ['direct-hls', 'iframe']) {
       await expect(gear).toBeFocused();
       await expect(controls.locator('.icon-control:disabled')).toHaveCount(mode === 'iframe' ? 3 : 0);
       if (mode === 'direct-hls') {
-        for (const [key,id] of [['ArrowLeft','native-theater'],['ArrowLeft','native-play-pause'],['ArrowLeft','native-fullscreen'],['ArrowLeft','native-settings'],['ArrowRight','native-fullscreen'],['ArrowRight','native-play-pause'],['ArrowRight','native-theater'],['ArrowRight','native-settings']]) {
+        for (const [key,id] of [['ArrowLeft','native-info'],['ArrowLeft','native-theater'],['ArrowLeft','native-play-pause'],['ArrowLeft','native-fullscreen'],['ArrowLeft','native-settings'],['ArrowRight','native-fullscreen'],['ArrowRight','native-play-pause'],['ArrowRight','native-theater'],['ArrowRight','native-info'],['ArrowRight','native-settings']]) {
           await page.keyboard.press(key); await expect(page.locator('#'+id)).toBeFocused();
         }
       } else {
@@ -88,7 +88,7 @@ for (const mode of ['direct-hls', 'iframe']) {
       await page.keyboard.press('ArrowRight');
       const controls = page.locator('#' + prefix + '-controls');
       const images = controls.locator('img');
-      await expect(images).toHaveCount(5);
+      await expect(images).toHaveCount(mode === 'direct-hls' ? 6 : 5);
       expect(await images.evaluateAll(imgs => imgs.every(img =>
         img.getAttribute('src').startsWith('phosphor-') && img.complete && img.naturalWidth > 0))).toBe(true);
       for (const [width, height] of [[1280, 720], [1920, 1080], [3840, 2160]]) {
@@ -109,7 +109,7 @@ for (const mode of ['direct-hls', 'iframe']) {
         });
         expect(gradient.pointer).toBe('none');
         expect(gradient.z).toBe('-1');
-        expect(gradient.width).toBe(mode === 'direct-hls' ? width * .75 : width);
+        expect(gradient.width).toBe(width);
         expect(gradient.bottom).toBe('0px');
         expect(gradient.background).toBe('rgba(0, 0, 0, 0)');
         expect(gradient.image).toContain('linear-gradient');

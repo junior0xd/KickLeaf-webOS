@@ -2,44 +2,8 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>KickLeaf</title>
-  <link rel="stylesheet" href="style.css">
-</head>
-<body tabindex="-1">
-  <main id="home" class="home">
-    <form id="channel-form" novalidate>
-      <input id="channel" type="text" placeholder="Nome do canal da Kick" aria-label="Nome do canal da Kick" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="256">
-      <button id="watch" type="submit">Assistir</button>
-      <p id="message" role="status" aria-live="polite"></p>
-    </form>
-  </main>
-  <div id="player-container" hidden></div>
-  <p id="notice" class="notice" role="status" hidden></p>
-  <section id="player-controls" class="player-controls" tabindex="-1" aria-label="Controles da transmissão" hidden>
-    <div class="control-group" role="group" aria-label="Reprodução">
-      <button class="icon-control" type="button" aria-label="Reproduzir ou pausar (em breve)" title="Reproduzir ou pausar (em breve)" disabled><img src="phosphor-play-fill.svg" alt="" aria-hidden="true"></button>
-      <span class="live-indicator"><img src="phosphor-broadcast-fill.svg" alt="" aria-hidden="true">KICK</span>
-    </div>
-    <div class="control-group" role="group" aria-label="Visualização e configurações">
-      <button class="icon-control" type="button" aria-label="Modo teatro (em breve)" title="Modo teatro (em breve)" disabled><img src="phosphor-rectangle.svg" alt="" aria-hidden="true"></button>
-      <button id="player-settings" class="icon-control" type="button" aria-label="Configurações" title="Configurações" aria-haspopup="dialog" aria-controls="player-settings-panel" aria-expanded="false"><img src="phosphor-gear-six.svg" alt="" aria-hidden="true"></button>
-      <button class="icon-control" type="button" aria-label="Tela cheia (em breve)" title="Tela cheia (em breve)" disabled><img src="phosphor-corners-out.svg" alt="" aria-hidden="true"></button>
-    </div>
-    <section id="player-settings-panel" class="player-settings" role="dialog" aria-modal="true" aria-labelledby="player-settings-title" hidden>
-      <h2 id="player-settings-title">Ações da transmissão</h2>
-      <button id="quality-button" type="button">Qualidade</button>
-      <button id="reload-button" type="button">Recarregar transmissão</button>
-      <button id="player-close-settings" type="button">Fechar</button>
-    </section>
-  </section>
-  <section id="quality-menu" class="quality-menu" role="dialog" aria-modal="true" aria-labelledby="quality-title" hidden>
-    <h2 id="quality-title">Qualidade gerenciada pela Kick</h2>
-    <p>O player oficial não disponibiliza a seleção de qualidade para este aplicativo.</p>
-    <button id="close-quality" type="button">Fechar</button>
-  </section>
-  <script src="channel.js"></script>
-  <script src="embed-player.js"></script>
   <script src="app.js"></script>
-</body>
+</head>
+<body></body>
 </html>

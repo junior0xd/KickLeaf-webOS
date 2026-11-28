@@ -1,14 +1,10 @@
 # Descoberta experimental de transmissões
 
-A tela inicial OLED Premium exibe cinco transmissões por grupo, com restauração do grupo e do foco na volta do player. Mantém a abertura direta por slug ou URL e os últimos cinco canais resolvidos com sucesso na sessão. O parâmetro de abertura continua sendo `experimentalDiscovery: true`.
+A tela inicial OLED Premium abre sempre e permite acesso direto por slug ou URL. Ela registra os últimos cinco canais resolvidos com sucesso na sessão. Quando a listagem está habilitada, cada grupo exibe até cinco transmissões e recupera a posição ao retornar do player.
 
-```sh
-npx ares-launch --device lgc3 --params '{"experimentalDiscovery":true}' com.kickleaf.client
-```
+Em uma instalação nova, selecione **Ao vivo** com o controle remoto para ativar a listagem. A escolha fica salva no aplicativo e a lista é carregada nas próximas aberturas, sem parâmetros de lançamento. Se a consulta falhar, a inicial mantém o acesso pelo cabeçalho e oferece nova tentativa da listagem.
 
-Feche uma instância aberta antes de iniciar com parâmetros diferentes. Para voltar à entrada tradicional por slug, abra o app sem o parâmetro. Para voltar à grade experimental de quatro colunas, reinstale o IPK anterior e abra com o mesmo parâmetro.
-
-A integração de descoberta usa uma interface interna observada na Kick. Continua experimental e opt-in enquanto as condições para seu uso não estiverem esclarecidas. Mudanças no contrato, CORS ou política de acesso podem indisponibilizar a fileira. [Termos da Kick](https://kick.com/terms-of-service)
+A seção 1.4 dos Termos da Kick estabelece restrições a acesso automatizado e a meios de acesso não autorizados. A aprovação da interface do KickLeaf é uma decisão do projeto. Uma resposta bem-sucedida da interface interna não estabelece autorização da Kick. A habilitação inicial continua explícita e seu uso depende das condições aplicáveis. [Termos da Kick](https://kick.com/terms-of-service)
 
 ## Adaptador
 
@@ -35,7 +31,7 @@ Ao abrir um canal, o fluxo HLS ainda resolve e valida a URL do vídeo, lê o man
 
 **Navegação por controle remoto.** As setas laterais percorrem o grupo. Ultrapassar a última ou a primeira posição troca de grupo. Cima e baixo percorrem as seções com ações disponíveis. OK abre o item focado. Voltar na tela inicial retorna ao cabeçalho antes de oferecer a saída. O foco inicial é **Início**, fora do campo que aciona o teclado virtual.
 
-`KickHomeDiagnostics.snapshot()` informa os cards montados em `cards`, os registros recebidos em `loaded`, o grupo atual, as páginas aceitas, as imagens com fonte, os nós da tela e o tempo até a primeira fileira. A paleta, o brilho de foco, a tipografia, os espaçamentos e a duração da transição ficam em `app/discovery-home.css`, no seletor `.discovery-home`.
+`KickHomeDiagnostics.snapshot()` informa os cards montados em `cards`, os registros recebidos em `loaded`, o grupo atual, as páginas aceitas, as imagens com fonte, os nós da tela e o tempo até a primeira fileira. A paleta, o brilho de foco e a duração da transição usam os mesmos valores aprovados, agora em `app/oled-tokens.css`. A composição e a tipografia da inicial ficam em `app/discovery-home.css`.
 
 ## Banners e eventos ativos
 
@@ -45,7 +41,7 @@ Uma consulta HTTP comum a cada URL (`kick.com/`, `kick.com/events` e a URL inici
 
 O componente está preparado para receber um banner e até dois eventos ativos em `setHighlights({banner, activeEvents})`, com título, imagem da lista de origens permitidas, descrição, período e slug de uma live quando disponíveis. Nesta entrega as duas seções ficam ocultas. O app faz **zero consultas adicionais** e baixa **zero imagens de promoções ou eventos**. Não há integração de autenticação, raspagem de HTML ou recursos promocionais. A autenticação e o custo de uma eventual fonte adicional dependem de um contrato permitido. Qualquer origem de mídia nova também requer validação.
 
-## Validação do OLED Premium
+## Validação da tela inicial OLED Premium na v0.3.1
 
 No Chromium, com respostas simuladas, a ida do grupo 1 ao 6 e a volta ao 5 produziram duas consultas de listagem e 54 solicitações de imagens. Ao voltar do player ao grupo 5, o navegador reaproveitou essas imagens e nenhum GET de listagem adicional foi feito. Também foram verificados o fim da lista, falha e tentativa explícita, foco, retorno após o TTL de metadados, altura constante dos cards e as resoluções de 1920 × 1080 e de 3840 × 2160.
 

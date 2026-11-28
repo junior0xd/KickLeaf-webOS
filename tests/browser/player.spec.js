@@ -13,7 +13,7 @@ async function start(page) {
   await page.locator('#channel').fill('yoda');
   await page.keyboard.press('Enter');
   await expect(page.locator('iframe')).toHaveCount(1);
-  await expect(page.locator('#notice')).toBeHidden();
+  await expect(page.locator('#embed-notice')).toBeHidden();
 }
 async function frameError(page) {
   await page.locator('iframe').evaluate(frame => frame.dispatchEvent(new Event('error')));
@@ -83,7 +83,7 @@ test('limita a três recuperações com backoff 2/4/8 segundos, mesmo após load
     expect(await page.evaluate(() => window.previousFrame.isConnected)).toBe(true);
     await page.clock.runFor(1);
     await expect.poll(() => page.evaluate(() => !window.previousFrame.isConnected)).toBe(true);
-    await expect(page.locator('#notice')).toBeHidden(); // load da nova navegação
+    await expect(page.locator('#embed-notice')).toBeHidden(); // load da nova navegação
   }
   await frameError(page);
   await expect(page.locator('#message')).toContainText('três tentativas');
@@ -101,7 +101,7 @@ test('Voltar cancela reconexão pendente e listeners de rede não reabrem o play
   await page.evaluate(() => { window.dispatchEvent(new Event('offline')); window.dispatchEvent(new Event('online')); });
   await page.clock.runFor(120000);
   await expect(page.locator('iframe')).toHaveCount(0);
-  await expect(page.locator('#notice')).toBeHidden();
+  await expect(page.locator('#embed-notice')).toBeHidden();
   await expect(page.locator('#home')).toBeVisible();
 });
 
@@ -110,7 +110,7 @@ test('queda de rede não reinicia um embed carregado; recuperação aguarda onli
   await page.locator('iframe').evaluate(frame => { window.previousFrame = frame; });
   await page.evaluate(() => window.dispatchEvent(new Event('offline')));
   await page.clock.runFor(10000);
-  await expect(page.locator('#notice')).toBeHidden();
+  await expect(page.locator('#embed-notice')).toBeHidden();
   await page.evaluate(() => window.dispatchEvent(new Event('online')));
   await page.clock.runFor(20000);
   expect(await page.evaluate(() => window.previousFrame.isConnected)).toBe(true);
@@ -132,7 +132,7 @@ test('não interpreta mensagens remotas não documentadas ou pausas como falha',
   });
   await page.clock.runFor(120000);
   expect(await page.evaluate(() => window.previousFrame.isConnected)).toBe(true);
-  await expect(page.locator('#notice')).toBeHidden();
+  await expect(page.locator('#embed-notice')).toBeHidden();
 });
 
 test('volume e mute não são interceptados', async ({ page }) => {
@@ -149,13 +149,13 @@ test('indicador inicial tem prazo máximo; timeout não inventa buffering nem re
   await page.route('https://player.kick.com/**', () => {}); // navegação mantida sem resposta
   await page.locator('#channel').fill('minerva');
   await page.keyboard.press('Enter');
-  await expect(page.locator('#notice')).toBeVisible();
+  await expect(page.locator('#embed-notice')).toBeVisible();
   await page.clock.runFor(6000);
-  await expect(page.locator('#notice')).toBeHidden();
+  await expect(page.locator('#embed-notice')).toBeHidden();
   await page.clock.runFor(19000);
-  await expect(page.locator('#notice')).toContainText('não foi confirmada');
+  await expect(page.locator('#embed-notice')).toContainText('não foi confirmada');
   await page.clock.runFor(6000);
-  await expect(page.locator('#notice')).toBeHidden();
+  await expect(page.locator('#embed-notice')).toBeHidden();
   await expect(page.locator('iframe')).toHaveCount(1);
   await back(page);
   await expect(page.locator('#home')).toBeVisible();

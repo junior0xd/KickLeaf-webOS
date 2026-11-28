@@ -1,6 +1,6 @@
 # Player do KickLeaf
 
-Referência funcional: v0.2.9. O [manifesto](../app/appinfo.json) define o ID `com.kickleaf.client` e a resolução lógica de 1920 × 1080. O alvo dos ensaios físicos é a LG OLED C3 com webOS 25. Veja [instalação e verificação na TV](TESTES.md).
+Player OLED Premium consolidado na v0.3.2. O [manifesto](../app/appinfo.json) define o ID `com.kickleaf.client` e a resolução lógica de 1920 × 1080. O alvo dos ensaios físicos é a LG OLED C3 com webOS 25. Veja [instalação e verificação na TV](TESTES.md).
 
 ## Modos de reprodução
 
@@ -9,11 +9,16 @@ Referência funcional: v0.2.9. O [manifesto](../app/appinfo.json) define o ID `c
 | `direct-hls` | O app consulta a Kick e entrega a URL ao elemento `<video>` nativo. A TV recebe mídia da CDN. | Padrão quando nenhum modo é informado. |
 | `native-hls` | Um backend Python local fornece metadados HLS ao mesmo player nativo. A TV recebe mídia da CDN. | Explicitamente configurado com origem e token da API local. |
 | `iframe` | O documento pai incorpora o player oficial da Kick. | Parâmetro de abertura ou opção **Usar player oficial** durante o HLS. |
-| `hls-test` | Página de diagnóstico com a amostra pública Apple Bip Bop. | Verificação independente de áudio, vídeo e decodificação HLS. |
 
-O app aceita nome de canal ou URL da Kick e normaliza a entrada. `app.js` direciona a abertura e `native-hls.js` coordena os dois modos HLS. A reprodução usa o pipeline nativo do webOS, sem hls.js, MSE ou retransmissão de mídia pelo KickLeaf. A reprodução HLS começa no modo **Completo**, com o card abaixo do vídeo e 25% da tela reservados ao chat. **Teatro** recolhe o card e mantém o chat. **Tela cheia** amplia a área do player e encerra o chat. Os três modos usam a mesma instância do vídeo e preservam sua proporção. [Chat](CHAT.md)
+O app aceita nome de canal ou URL da Kick e normaliza a entrada. O webOS abre `native-hls.html` diretamente pelo manifesto. O cabeçalho OLED está no HTML desde a primeira renderização. `native-hls.js` coordena os dois modos HLS. A reprodução usa o pipeline nativo do webOS, sem hls.js, MSE ou retransmissão de mídia pelo KickLeaf. A reprodução HLS começa em **Tela cheia**. Em **Teatro**, o chat ocupa 25% da largura. Retornar a Tela cheia encerra e drena o chat. A troca de modo preserva a instância do vídeo, sua proporção e a posição. [Chat](CHAT.md)
 
-O card usa os dados disponíveis na descoberta HLS direta e na resolução da sala do chat. A contagem de espectadores recebe atualizações pela consulta de canal, em intervalos de pelo menos 60 s enquanto o chat está ativo. O tempo decorrido é calculado localmente a partir do horário de início fornecido pela Kick. Campos indisponíveis ficam ocultos.
+## Informações sobre o vídeo
+
+A sobreposição de informações (OSD) exibe avatar, nome, título, categoria e audiência quando disponíveis. Ela usa os dados da descoberta HLS e da sessão de chat, respeita a política de exibição da audiência e aproveita o mesmo avatar já fornecido pelos metadados. Abrir o OSD reutiliza esses dados. Não há consultas adicionais de metadados nem atualização periódica própria.
+
+O OSD aparece no início da reprodução e ao interagir com os controles na barra. Fica visível por dois segundos desde a apresentação ou a interação mais recente e some com uma transição de opacidade. Atualizações de audiência e outros metadados não reabrem o OSD nem renovam o temporizador. O botão **Informações da transmissão** salva a preferência localmente. Ativar exibe o OSD, desativar o oculta imediatamente.
+
+O mesmo OSD permanece dentro da área do vídeo em ambos os modos, na parte superior, com avatar à esquerda, nome e categoria ao centro e audiência à direita. O título completo quebra em linhas e respeita a direção do texto. Os gradientes acompanham o OSD e a barra. Cada um ocupa 15% da altura do vídeo e parte de 60% de opacidade. Abrir Configurações libera essa área para o menu. Os [tokens OLED Premium](../app/oled-tokens.css) são compartilhados entre a tela inicial, o player e o chat.
 
 ## Direct HLS
 
@@ -55,15 +60,15 @@ O backend valida a origem da mídia. O cliente também valida o contrato da resp
 
 ## Player oficial em iframe
 
-**Usar player oficial** libera o HLS, encerra o chat e abre o formulário do iframe com o canal preenchido. Confirme **Assistir**. O pai mantém o foco e usa CSS para ocupar a área do app. O embed decide disponibilidade da live, qualidade e controles internos. O pai consegue observar navegação e erros do elemento, sem acesso ao estado de mídia, buffering ou qualidade.
+**Usar player oficial** libera o HLS, encerra o chat e abre o vídeo no player oficial. Voltar retorna à mesma tela inicial OLED. O pai mantém o foco e usa CSS para ocupar a área do app. O embed decide disponibilidade da live, qualidade e controles internos. O pai consegue observar navegação e erros do elemento, sem acesso ao estado de mídia, buffering ou qualidade.
 
 Depois de 25 s sem confirmação de navegação, o app orienta a recarga manual. Um `error` observável permite até três recargas automáticas, após 2, 4 e 8 s, aguardando a rede se o navegador indicar offline. Cada recarga manual reinicia esse orçamento. Um evento `load` indica fim da navegação, inclusive para algumas páginas de erro. `embed_requested` só indica que o iframe foi solicitado.
 
 ## Controles, foco e ciclo de vida
 
 - OK ou as setas abrem a barra, com foco inicial em **Configurações**. As setas navegam pelos controles visíveis e pulam opções desabilitadas. Com o teclado virtual aberto na entrada, ele recebe as teclas.
-- No HLS, a barra oferece reprodução/pausa, teatro, configurações e tela cheia. Configurações reúne qualidade, recarga, player oficial e estatísticas. Trocar qualidade recria o vídeo com os metadados atuais. Recarregar refaz a descoberta e volta a Auto. Uma recarga bem-sucedida do mesmo canal preserva o chat ativo. O botão Teatro alterna entre Completo e Teatro e, em Tela cheia, abre Teatro diretamente. O botão Tela cheia volta ao modo anterior ao sair. A TV controla o volume.
-- A barra e o gradiente somem após 5 s sem interação quando os menus estão fechados. Voltar fecha nesta ordem: submenu de qualidade, configurações e barra. Na reprodução sem controles abertos, Voltar entra em Tela cheia e, se já estiver nesse modo, retorna ao formulário. Voltar na entrada HLS leva ao formulário do iframe, onde um segundo Voltar confirmado sai do app. No iframe, Voltar fecha submenu, configurações, barra e reprodução antes da confirmação de saída.
+- No HLS, a barra oferece reprodução/pausa, chat, informações, Configurações e Tela cheia. O botão Chat alterna entre Teatro e Tela cheia, e o botão Tela cheia alterna no sentido correspondente. Os ícones distinguem os estados. O foco combina o ícone verde com um círculo translúcido, independente da área interativa. Configurações reúne qualidade, recarga, player oficial e estatísticas. Trocar qualidade recria o vídeo com os metadados atuais. Recarregar refaz a descoberta e volta a Auto. Uma recarga bem-sucedida do mesmo canal preserva o chat ativo. A TV controla o volume.
+- A barra e o gradiente somem após 5 s sem interação quando os menus estão fechados. Voltar fecha nesta ordem: submenu de qualidade, configurações e barra. Na reprodução sem controles abertos, Voltar entra em Tela cheia e, se já estiver nesse modo, retorna à tela inicial. Na inicial, Voltar retorna primeiro ao topo e confirma a saída quando o foco está em Início. No iframe, Voltar fecha submenu, configurações, barra e reprodução antes da confirmação de saída.
 - Troca de canal, saída e perda de visibilidade encerram a reprodução anterior. Falha de mídia ou espera de 25 s na partida ou durante buffering pode retornar à entrada com aviso. O player oficial pode ser escolhido explicitamente.
 
 ## Pausa e retomada em HLS

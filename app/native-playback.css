@@ -1,77 +1,128 @@
-#native-playback { --stream-info-height: clamp(152px, 20vh, 224px); position: fixed; inset: 0 25% 0 0; display: flex; flex-direction: column; background: #000; }
-#native-playback[data-view-mode="fullscreen"] { right: 0; }
-.native-stage { position: relative; flex: 1; min-height: 0; }
+#native-playback {
+  position: fixed;
+  inset: 0;
+  background: #000;
+}
+#native-playback[data-view-mode="theater"] { right: 25%; }
+.native-stage { position: relative; width: 100%; height: 100%; }
 #native-video-host, #native-video-host .screen { position: absolute; inset: 0; }
 #native-playback #notice, #native-playback #video-statistics { position: absolute; }
-#native-playback[data-view-mode="complete"] .player-settings {
-  max-height: min(65vh, calc(100vh - var(--stream-info-height) - 136px));
+#native-playback[data-view-mode="theater"] ~ #native-quality-menu { left: 15%; width: 45%; }
+
+.player-filter-defs { position: absolute; pointer-events: none; }
+.player-focus-color { flood-color: var(--oled-accent); }
+#native-controls::before {
+  height: var(--oled-player-shade-height);
+  min-height: 0;
+  background: linear-gradient(to top, var(--oled-player-shade), transparent);
 }
-#native-playback .icon-control[aria-pressed="true"] {
-  background: rgba(83,252,24,.16);
-  box-shadow: inset 0 -3px #53fc18;
+#native-controls .icon-control {
+  --player-icon-size: 37px;
+  --player-focus-diameter: calc(var(--player-icon-size) + 9px);
+  background: transparent;
+  border-radius: 0;
+  outline: none;
+  box-shadow: none;
 }
+#native-controls .icon-control::after { content: none; }
+#native-controls .icon-control::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: var(--player-focus-diameter);
+  height: var(--player-focus-diameter);
+  border-radius: 50%;
+  background: var(--oled-player-focus-fill);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--oled-player-focus-motion) ease-out;
+}
+#native-controls .icon-control:focus::before { opacity: 1; }
+#native-controls .icon-control img {
+  position: relative;
+  width: var(--player-icon-size);
+  height: var(--player-icon-size);
+  opacity: 1;
+}
+#native-controls .icon-control:focus img { filter: url(#player-icon-focus); }
+#native-controls .live-indicator, #stream-info { text-shadow: 0 1px 4px var(--oled-player-shade); }
 
 #stream-info {
-  flex: 0 0 var(--stream-info-height);
-  display: flex;
-  gap: clamp(14px, 1.5vw, 28px);
-  overflow: hidden;
-  padding: clamp(12px, 1.9vh, 24px) 4%;
-  background: #141518;
-  border-top: 1px solid #292c32;
-  color: #f4f5f6;
+  position: absolute;
+  z-index: 2;
+  isolation: isolate;
+  inset: 0 0 auto;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: clamp(12px, 1.2vw, 32px);
+  padding: clamp(20px, 3vh, 64px) 4%;
+  color: var(--oled-text);
+  pointer-events: none;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity var(--oled-motion) ease-out, visibility 0s linear var(--oled-motion);
 }
+#stream-info::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0 0 auto;
+  height: var(--oled-player-shade-height);
+  background: linear-gradient(to bottom, var(--oled-player-shade), transparent);
+}
+#stream-info.stream-info-visible {
+  opacity: 1;
+  visibility: visible;
+  transition: none;
+}
+/* Keep the optional statistics panel clear of the audience while the OSD is visible. */
+#stream-info.stream-info-visible ~ #video-statistics { top: max(4%, 120px); }
 .stream-avatar {
   position: relative;
   display: grid;
   place-items: center;
-  flex: 0 0 clamp(44px, 5vw, 82px);
-  height: clamp(44px, 5vw, 82px);
+  width: clamp(42px, 4.2vw, 100px);
+  aspect-ratio: 1;
   overflow: hidden;
   border-radius: 50%;
-  background: #272a2e;
-  color: #c4c8ce;
-  font-size: clamp(22px, 2vw, 36px);
-  font-weight: bold;
+  background: var(--oled-raised);
+  color: var(--oled-text);
+  font-size: clamp(20px, 1.7vw, 46px);
+  font-weight: 700;
 }
 .stream-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.stream-details { min-width: 0; flex: 1; display: flex; flex-direction: column; align-items: flex-start; gap: clamp(3px, .55vh, 7px); }
+.stream-details { min-width: 0; display: grid; gap: clamp(4px, .6vh, 12px); }
 .stream-details h2 {
-  width: 100%;
   margin: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  font-size: clamp(22px, 1.8vw, 36px);
-  line-height: 1.12;
-}
-.stream-byline { display: flex; gap: clamp(8px, 1vw, 18px); max-width: 100%; font-size: clamp(17px, 1.28vw, 26px); line-height: 1.2; }
-.stream-byline span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.stream-byline [data-info="name"] { font-weight: bold; }
-.stream-byline [data-info="category"] { color: #a6ed91; }
-.stream-details p {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  overflow: hidden;
+  font-size: clamp(20px, 1.45vw, 46px);
+  line-height: 1.18;
   overflow-wrap: anywhere;
-  margin: 0;
-  color: #c4c8ce;
-  font-size: clamp(16px, 1.15vw, 23px);
-  line-height: 1.25;
-  max-height: 2.5em;
+  text-align: left;
 }
-.stream-metrics {
-  display: flex;
-  gap: clamp(8px, 1.2vw, 22px);
-  align-items: center;
-  max-width: 100%;
-  white-space: nowrap;
-  color: #c4c8ce;
-  font-size: clamp(15px, 1.05vw, 21px);
+.stream-byline {
+  font-size: clamp(15px, 1.04vw, 36px);
   line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.stream-byline [data-info="name"] { font-weight: 700; }
+.stream-byline [data-info="category"] { text-decoration: underline; }
+.stream-audience {
+  align-self: start;
+  justify-items: end;
+  display: grid;
+  gap: .12em;
+  text-align: right;
+  font-size: clamp(14px, 1.02vw, 34px);
+  line-height: 1.16;
+}
+.stream-audience-count {
+  display: flex;
+  align-items: center;
+  gap: .35em;
+  font-size: 1.16em;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
-.stream-metrics time { min-width: 9ch; }
-.stream-metrics [data-info="viewers"] { overflow: hidden; text-overflow: ellipsis; }
-.stream-live { font-weight: bold; color: #53fc18; }
+.stream-audience-count img { width: 1em; height: 1em; }

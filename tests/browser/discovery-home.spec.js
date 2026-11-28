@@ -13,13 +13,13 @@ const items=(start,count)=>Array.from({length:count},(_,index)=>{
 });
 const directory=(livestreams,next_cursor)=>({data:{livestreams,pagination:{next_cursor}}});
 const pixel=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a2FcAAAAASUVORK5CYII=','base64');
-async function configure(page,experimentalDiscovery=true) {
-  await page.addInitScript(experimentalDiscovery=>{
-    window.PalmSystem={launchParams:JSON.stringify({experimentalDiscovery})};
+async function configure(page,listingEnabled=true) {
+  await page.addInitScript(listingEnabled=>{
+    if (listingEnabled) localStorage.setItem('kickleaf.liveListingEnabled','true');
     HTMLMediaElement.prototype.load=function(){};
     HTMLMediaElement.prototype.pause=function(){};
     HTMLMediaElement.prototype.play=function(){queueMicrotask(()=>this.dispatchEvent(new Event('playing')));return Promise.resolve();};
-  },experimentalDiscovery);
+  },listingEnabled);
   await page.route('https://kick.com/api/v2/channels/**',r=>r.fulfill({headers,json:{data:{id:999,playback_url:playback,viewers:7}}}));
   await page.route('https://test.playback.live-video.net/**',r=>r.fulfill({headers,body:'#EXTM3U\n#EXTINF:5,\nchunk.ts\n'}));
   await page.route('https://images.kick.com/**',r=>r.fulfill({contentType:'image/png',body:pixel}));
@@ -109,10 +109,10 @@ test('cinco cards por grupo, tráfego sob demanda e restauração da live seleci
   await page.keyboard.press('Enter');
   await expect(page.locator('video')).toHaveAttribute('src',playback);
   await expect(page.locator('[data-info=name]')).toHaveText('Canal 25');
-  await expect(page.locator('[data-info=viewers]')).toHaveText('7 espectadores');
+  await expect(page.locator('[data-info=viewer-count]')).toHaveText('7');
   await expect(page.locator('#browse-grid img[src]')).toHaveCount(0);
   await page.evaluate(()=>{const now=Date.now(); Date.now=()=>now+61_000;});
-  await press(page,'Escape',2);
+  await page.keyboard.press('Escape');
   await expect(cards.last()).toBeFocused();
   await expect(cards.last()).toHaveAttribute('data-slug','canal25');
   await expect(page.locator('#browse-group')).toHaveText('Grupo 5');
@@ -194,7 +194,7 @@ test('entrada por slug cancela a listagem pendente e registra o canal acessado',
   release();
   await expect(page.locator('.browse-card')).toHaveCount(0);
   expect(await page.evaluate(()=>KickHomeDiagnostics.snapshot().busy)).toBe(false);
-  await press(page,'Escape',2);
+  await page.keyboard.press('Escape');
   await expect(page.locator('#watch')).toBeFocused();
   await expect(page.locator('.recent-card')).toHaveAttribute('data-slug','manual');
   await expect(page.locator('.browse-card')).toHaveCount(5);
@@ -258,4 +258,21 @@ test('estrutura de destaques oculta seções vazias e só permite abrir slugs v�
   await page.evaluate(()=>highlightTest.setHighlights());
   await expect(page.locator('#home-promotion')).toBeHidden();
   await expect(page.locator('#home-events')).toBeHidden();
+});
+
+test('Ao vivo habilita a listagem sem parâmetros e mantém a escolha após reabrir', async ({page})=>{
+  await configure(page,false);
+  let calls=0;
+  await page.route(listing+'**',r=>{calls++;return r.fulfill({headers,json:directory(items(1,5),null)});});
+  await page.goto('/');
+  await expect(page.locator('#browse')).toBeHidden();
+  expect(calls).toBe(0);
+  await page.keyboard.press('ArrowRight');
+  await expect(page.locator('#home-live')).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.browse-card')).toHaveCount(5);
+  expect(calls).toBe(1);
+  await page.goto('/');
+  await expect(page.locator('.browse-card')).toHaveCount(5);
+  expect(calls).toBe(2);
 });

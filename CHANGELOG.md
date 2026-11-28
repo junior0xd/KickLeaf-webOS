@@ -2,6 +2,17 @@
 
 Os resultados abaixo pertencem às versões, aos dispositivos e aos cenários descritos. Os [relatórios experimentais sanitizados](experiments/reports/README.md) guardam os hashes dos originais e incluem resultados negativos. Os pacotes experimentais 0.3.x citados nesses relatórios têm identidades próprias. Os documentos completos anteriores à consolidação permanecem disponíveis na árvore da tag `v0.2.8`.
 
+## v0.3.2
+
+- Consolida a tela inicial OLED Premium como entrada padrão, com abertura por slug ou URL no cabeçalho e retorno ao foco anterior. A opção **Ao vivo** habilita a listagem experimental e salva a escolha, sem parâmetro de lançamento.
+- Inicia a reprodução em Tela cheia e oferece Teatro com chat. Incorpora os controles OLED e o OSD superior que reaparece ao usar a barra e fecha após dois segundos de inatividade.
+- Oferece o player oficial como alternativa na mesma tela e mantém o diagnóstico Apple nos arquivos de desenvolvimento.
+
+### Release Notes
+
+- Made OLED Premium the default home screen, with direct channel entry and focus restoration when leaving playback. Select Live once to enable the experimental listing and keep it across launches.
+- Streams now start in fullscreen. Switch to Theater for chat or use the on-screen information overlay, which hides after two seconds of inactivity.
+
 ## v0.3.1
 
 - Redesenha a tela inicial OLED Premium com grupos de cinco lives, imagens sob demanda, retorno ao foco anterior e histórico da sessão. A descoberta permanece disponível com `experimentalDiscovery: true`. [Descoberta experimental](docs/DESCOBERTA.md)

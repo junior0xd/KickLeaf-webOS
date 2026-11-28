@@ -236,8 +236,7 @@ function enableChat() {
   const chat = window.KickChatUI;
   if (!chat) return false;
   if (chat.visible()) return true;
-  const fullscreen = window.KickNativeDiagnostics?.snapshot()?.view_mode === 'fullscreen';
-  const button = document.getElementById(fullscreen ? 'native-fullscreen' : 'native-theater');
+  const button = document.getElementById('native-theater');
   if (!button || button.disabled) return false;
   button.click();
   return chat.visible();

@@ -1,9 +1,9 @@
 {
   "id": "com.kickleaf.client",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "vendor": "KickLeaf independente",
   "type": "web",
-  "main": "index.html",
+  "main": "native-hls.html",
   "title": "KickLeaf",
   "icon": "icon.png",
   "largeIcon": "largeIcon.png",

@@ -9,7 +9,7 @@ test.beforeEach(async ({ page }) => {
 
 test('campo, setas, OK, tela inteira, Voltar e destruição do iframe', async ({ page }) => {
   await page.goto('/?iframe');
-  await expect(page.locator('#channel')).toBeFocused();
+  await page.locator('#channel').focus();
   await page.locator('#channel').fill('https://kick.com/XQC');
   await page.keyboard.press('ArrowDown');
   await expect(page.locator('#watch')).toBeFocused();
@@ -40,6 +40,7 @@ test('entrada inválida apresenta erro sem navegar', async ({ page }) => {
 
 test('teclado virtual mantém posse das setas e do primeiro Voltar', async ({ page }) => {
   await page.goto('/?iframe');
+  await page.locator('#channel').focus();
   await page.evaluate(() => {
     const event = new Event('keyboardStateChange');
     event.visibility = true;
@@ -50,6 +51,8 @@ test('teclado virtual mantém posse das setas e do primeiro Voltar', async ({ pa
   await page.keyboard.press('Escape');
   await expect(page.locator('#message')).toHaveText('');
   await page.evaluate(() => document.dispatchEvent(new CustomEvent('keyboardStateChange', { detail: { visibility: false } })));
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#home-start')).toBeFocused();
   await page.keyboard.press('Escape');
   await expect(page.locator('#message')).toContainText('novamente');
 });
@@ -62,7 +65,7 @@ test('load do iframe não é anunciado como live online ou reprodução confirma
   await page.keyboard.press('Enter');
   await expect.poll(() => logs.some(text => text.includes('iframe_load'))).toBe(true);
   expect(logs.some(text => text.includes('desconhecidos'))).toBe(true);
-  await expect(page.locator('#notice')).toBeHidden();
+  await expect(page.locator('#embed-notice')).toBeHidden();
 });
 
 test('falha observável do frame permite tentar novamente com backoff', async ({ page }) => {
@@ -71,7 +74,7 @@ test('falha observável do frame permite tentar novamente com backoff', async ({
   await page.locator('#channel').fill('xqc');
   await page.keyboard.press('Enter');
   await page.locator('iframe').evaluate(el => el.dispatchEvent(new Event('error')));
-  await expect(page.locator('#notice')).toContainText('Tentando novamente');
+  await expect(page.locator('#embed-notice')).toContainText('Tentando novamente');
   await page.clock.runFor(2000);
   await expect(page.locator('iframe')).toHaveCount(1);
   await expect(page.locator('#home')).toBeHidden();
@@ -86,19 +89,4 @@ test('erro nativo HLS mostra mensagem e libera a mídia; Voltar funciona', async
   await expect(page.locator('#start')).toBeFocused();
   await page.keyboard.press('Escape');
   await expect(page.locator('#channel')).toBeVisible();
-});
-
-test('parâmetro de abertura inicia diagnóstico HLS, sem opção extra na interface', async ({ page }) => {
-  await page.addInitScript(() => { window.PalmSystem = { launchParams: '{"mode":"hls-test"}' }; });
-  await page.goto('/');
-  await expect(page).toHaveURL(/hls-test.html$/);
-  await expect(page.locator('#start')).toBeFocused();
-  await page.keyboard.press('Escape');
-  await expect(page).toHaveURL(/index.html\?home$/);
-  await expect(page.locator('#channel')).toBeVisible();
-});
-
-test('captura da tela inicial', async ({ page }) => {
-  await page.goto('/?iframe');
-  await page.screenshot({ path: 'docs/evidence/tela-inicial.png' });
 });

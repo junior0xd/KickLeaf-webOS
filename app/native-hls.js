@@ -2,21 +2,29 @@
   'use strict';
   var params = {};
   try { params = JSON.parse((window.PalmSystem && window.PalmSystem.launchParams) || '{}'); } catch (error) { /* Configuração inválida será apresentada no formulário. */ }
-  var mode = params.mode === 'native-hls' ? 'native-hls' : 'direct-hls';
-  var provider = mode === 'direct-hls' ? window.KickDirectAPI : window.KickNativeAPI;
+  var launchQuery = new URLSearchParams(window.location.search);
+  var mode = params.mode === 'iframe' || launchQuery.has('iframe') ? 'iframe' :
+    params.mode === 'native-hls' ? 'native-hls' : 'direct-hls';
+  var provider = mode === 'native-hls' ? window.KickNativeAPI : window.KickDirectAPI;
   var home = document.getElementById('home');
   var input = document.getElementById('channel');
   var watch = document.getElementById('watch');
-  var discovery = params.experimentalDiscovery === true ? window.KickDiscovery.create() : null;
-  var homeUI = discovery ? window.KickDiscoveryHome.create({api: discovery, home: home, input: input, watch: watch, open: open}) : null;
+  var discovery = window.KickDiscovery.create();
+  var homeUI = window.KickDiscoveryHome.create({api: discovery, home: home, input: input, watch: watch, open: open});
+  var embed = window.createKickPlayer(showHome);
+  var exitPending = false;
+  if (mode === 'iframe' && launchQuery.has('channel')) {
+    try { input.value = window.KickChannel.normalizeChannel(launchQuery.get('channel')); }
+    catch (error) { /* Entrada inválida fica vazia. */ }
+  }
   var audienceAllowed = null;
   var message = document.getElementById('message');
   var screen = document.getElementById('native-playback');
   var host = document.getElementById('native-video-host');
-  var streamInfo = window.KickStreamInfo.create(document.getElementById('stream-info'));
-  var ViewMode = { COMPLETE: 'complete', THEATER: 'theater', FULLSCREEN: 'fullscreen' };
+  var infoButton = document.getElementById('native-info');
+  var streamInfo = window.KickStreamInfo.create(document.getElementById('stream-info'), infoButton);
+  var ViewMode = { THEATER: 'theater', FULLSCREEN: 'fullscreen' };
   var viewMode = null;
-  var previousViewMode = ViewMode.COMPLETE;
   var notice = document.getElementById('notice');
   var controls = document.getElementById('native-controls');
   var menu = document.getElementById('native-quality-menu');
@@ -52,17 +60,23 @@
   function syncLayout() {
     screen.hidden = !viewMode;
     if (viewMode) screen.dataset.viewMode = viewMode;
-    theaterButton.setAttribute('aria-pressed', String(viewMode === ViewMode.THEATER));
-    fullscreenButton.setAttribute('aria-pressed', String(viewMode === ViewMode.FULLSCREEN));
-    streamInfo.setVisible(!!metadata && viewMode === ViewMode.COMPLETE);
+    var theater = viewMode === ViewMode.THEATER;
+    var fullscreen = viewMode === ViewMode.FULLSCREEN;
+    syncModeButton(theaterButton, theater, theater ? 'chat-centered-text' : 'chat-centered-slash');
+    syncModeButton(fullscreenButton, fullscreen, fullscreen ? 'corners-in' : 'corners-out');
     if (window.KickChatUI) {
-      window.KickChatUI.setVisible(!!metadata && !!viewMode && viewMode !== ViewMode.FULLSCREEN);
+      window.KickChatUI.setVisible(!!metadata && theater);
     }
+  }
+  function syncModeButton(button, pressed, glyph) {
+    var icon = button.querySelector('img');
+    var src = 'phosphor-' + glyph + '.svg';
+    button.setAttribute('aria-pressed', String(pressed));
+    if (icon.getAttribute('src') !== src) icon.src = src;
   }
   function setViewMode(next, source) {
     if (next === viewMode) { syncLayout(); return; }
     var from = viewMode;
-    if (next === ViewMode.FULLSCREEN) previousViewMode = from;
     viewMode = next;
     syncLayout();
     var transition = { from: from, to: next, source: source };
@@ -72,17 +86,29 @@
   function syncPlayback(busy) {
     var paused = !video || video.paused;
     var label = paused ? 'Reproduzir' : 'Pausar';
-    playPauseButton.disabled = theaterButton.disabled = fullscreenButton.disabled = !video;
+    playPauseButton.disabled = theaterButton.disabled = fullscreenButton.disabled = infoButton.disabled = !video;
     playPauseButton.setAttribute('aria-label', label);
     playPauseButton.title = label;
     playPauseButton.setAttribute('aria-busy', String(!!busy));
     playPauseButton.querySelector('img').src = paused ? 'phosphor-play-fill.svg' : 'phosphor-pause-fill.svg';
   }
   function setSettingsVisible(visible) {
+    if (visible) streamInfo.hide();
     settingsPanel.hidden = !visible;
     settingsButton.setAttribute('aria-expanded', String(visible));
   }
-  function showControls() { controls.hidden = false; settingsButton.focus(); idleControls(); }
+  function showControls() {
+    controls.hidden = false; settingsButton.focus();
+    if (video) streamInfo.show();
+    idleControls();
+  }
+  controls.addEventListener('focusin', function (event) {
+    if (event.target.matches('.icon-control') && video) streamInfo.show();
+  });
+  controls.addEventListener('click', function (event) {
+    if (event.target.closest('.icon-control') && video && !controls.hidden &&
+        settingsPanel.hidden && menu.hidden) streamInfo.show();
+  });
   function closeSettings() { setSettingsVisible(false); settingsButton.focus(); idleControls(); }
   function hideControls() {
     clear('controls'); controls.hidden = true; menu.hidden = true; setSettingsVisible(false);
@@ -100,6 +126,7 @@
     log('media_released');
   }
   function stop() {
+    streamInfo.hide();
     document.getElementById('native-live').hidden = true;
     statisticsPanel.hide(); statisticsButton.setAttribute('aria-pressed', 'false');
     generation += 1;
@@ -109,24 +136,28 @@
   }
   function showHome(text) {
     window.dispatchEvent(new CustomEvent('kicktv-channel-left'));
-    stop(); metadata = null; setViewMode(null, 'leave'); streamInfo.reset('', false);
+    stop(); metadata = null; setViewMode(null, 'leave'); streamInfo.reset('');
     home.hidden = false; message.textContent = text || '';
-    if (homeUI) homeUI.resume(true); else watch.focus();
+    exitPending = false;
+    homeUI.resume(true);
   }
   function fail(text, stage) { log('failed', { stage: stage || 'playback', mode: mode }); showHome(text); }
   function fallback() {
-    var value = input.value;
+    var url;
+    try { url = window.KickChannel.playerURL(input.value); }
+    catch (error) { message.textContent = error.message; input.focus(); return; }
+    homeUI.suspend();
     window.dispatchEvent(new CustomEvent('kicktv-channel-left'));
-    stop(); metadata = null; setViewMode(null, 'leave'); streamInfo.reset('', false);
-    var suffix = '';
-    try { suffix = '&channel=' + encodeURIComponent(window.KickChannel.normalizeChannel(value)); } catch (error) { /* Entrada vazia não impede voltar ao iframe. */ }
-    window.location.replace('index.html?iframe' + suffix);
+    stop(); metadata = null; setViewMode(null, 'leave'); streamInfo.reset('');
+    home.hidden = true; document.body.focus();
+    embed.open(url);
   }
   function snapshot() {
     var sample = statistics.snapshot();
     return sample && Object.assign(sample, { view_mode: viewMode });
   }
-  function play(selection) {
+  function play(selection, showInitialInfo) {
+    streamInfo.hide();
     releaseVideo(); hideControls();
     var item = selection === 'auto' ? null : metadata.playback.qualities.find(function (q) { return q.id === selection && q.selectable; });
     if (selection !== 'auto' && !item) { fail('Qualidade indisponível.'); return; }
@@ -235,6 +266,7 @@
       clear('media'); if (!timers['resume-notice']) hideHint();
       syncPlayback(false);
       log('playing', firstPlay ? { initial_play_ms: Math.round(performance.now() - started) } : 'resumed');
+      if (firstPlay && showInitialInfo && settingsPanel.hidden && menu.hidden) streamInfo.show();
       firstPlay = false;
     });
     on('play', function () { syncPlayback(true); });
@@ -260,16 +292,17 @@
     } catch (error) { fail('Não foi possível iniciar o HLS neste dispositivo.'); }
   }
   async function open() {
+    if (mode === 'iframe') { fallback(); return; }
     var settings, next;
     try { next = window.KickChannel.normalizeChannel(input.value); settings = provider.config(params); }
     catch (error) { message.textContent = error.message; return; }
     var newSelection = !home.hidden || channel !== next;
     stop(); channel = next; selected = 'auto';
-    if (homeUI) homeUI.suspend();
+    homeUI.suspend();
     home.hidden = true; document.body.focus();
     if (newSelection) {
       metadata = null; audienceAllowed = null;
-      setViewMode(ViewMode.COMPLETE, 'start');
+      setViewMode(ViewMode.FULLSCREEN, 'start');
     }
     window.dispatchEvent(new CustomEvent('kicktv-channel-selected', { detail: { channel: channel } }));
     var ticket = generation;
@@ -283,14 +316,14 @@
       if (ticket !== generation) return;
       clear('request'); request = null;
       if (!data.online) { showHome('Canal offline ou sem transmissão disponível.'); return; }
-      if (!metadata) streamInfo.reset(channel, data.playback.live);
-      var seed = discovery && data.playback.live ? discovery.metadata(channel) : null;
+      if (!metadata) streamInfo.reset(channel);
+      var seed = data.playback.live ? discovery.metadata(channel) : null;
       var stream = window.KickDiscovery.merge(seed, data.stream);
       if (stream && stream.showViewerCount !== null) audienceAllowed = stream.showViewerCount;
       metadata = data;
       streamInfo.update(window.KickDiscovery.cardInfo(stream));
-      if (newSelection && homeUI) homeUI.recordChannel(channel, stream && stream.name);
-      play('auto');
+      if (newSelection) homeUI.recordChannel(channel, stream && stream.name);
+      play('auto', newSelection);
       if (video) syncLayout();
     } catch (error) {
       if (ticket === generation) fail(error.message, 'discovery');
@@ -298,7 +331,7 @@
   }
   document.getElementById('native-form').addEventListener('submit', function (event) {
     event.preventDefault();
-    if (homeUI) homeUI.clearSelection();
+    homeUI.clearSelection();
     open();
   });
   buttons[1].addEventListener('click', open);
@@ -336,6 +369,7 @@
   document.addEventListener('keyboardStateChange', function (event) { keyboardVisible = event.visibility === true || !!(event.detail && event.detail.visibility); });
   window.addEventListener('keydown', function (event) {
     if (keyboardVisible && !home.hidden) return;
+    if (embed.isActive()) { embed.handleKey(event); return; }
     var code = event.keyCode;
     if (home.hidden && [19, 179, 415, 463].indexOf(code) !== -1) {
       event.preventDefault();
@@ -349,21 +383,25 @@
       else if (!controls.hidden) hideControls();
       else if (video && viewMode !== ViewMode.FULLSCREEN) { setViewMode(ViewMode.FULLSCREEN, 'back'); document.body.focus(); }
       else if (home.hidden) showHome();
-      else if (homeUI && homeUI.back()) return;
-      else fallback();
+      else if (!homeUI.back()) {
+        if (exitPending) window.close();
+        else { exitPending = true; message.textContent = 'Pressione Voltar novamente para sair.'; }
+      }
       return;
     }
-    if (!home.hidden && homeUI && (homeUI.arrow(code) ||
-        (code === 13 && homeUI.activate(event.repeat)))) { event.preventDefault(); return; }
-    var targets = !home.hidden ? [input, watch] : (!menu.hidden ? Array.from(menu.querySelectorAll('button:not(:disabled)')) : (!settingsPanel.hidden ? buttons.concat([closeSettingsButton]) : (video ? [playPauseButton, theaterButton, settingsButton, fullscreenButton] : [settingsButton])));
-    if ([37, 38, 39, 40].indexOf(code) !== -1 || (code === 9 && home.hidden)) {
-      if (!home.hidden && (code === 37 || code === 39)) return;
+    if (!home.hidden) {
+      exitPending = false;
+      if (homeUI.arrow(code) || (code === 13 && homeUI.activate(event.repeat))) event.preventDefault();
+      return;
+    }
+    var targets = (!menu.hidden ? Array.from(menu.querySelectorAll('button:not(:disabled)')) : (!settingsPanel.hidden ? buttons.concat([closeSettingsButton]) : (video ? [playPauseButton, theaterButton, infoButton, settingsButton, fullscreenButton] : [settingsButton])));
+    if ([37, 38, 39, 40].indexOf(code) !== -1 || code === 9) {
       event.preventDefault();
-      if (home.hidden && controls.hidden) { showControls(); return; }
+      if (controls.hidden) { showControls(); return; }
       var index = targets.indexOf(document.activeElement), direction = code === 37 || code === 38 || (code === 9 && event.shiftKey) ? -1 : 1;
       targets[index === -1 ? 0 : (index + direction + targets.length) % targets.length].focus();
-      if (home.hidden) idleControls();
-    } else if (code === 13 && home.hidden) {
+      idleControls();
+    } else if (code === 13) {
       event.preventDefault();
       if (event.repeat) return;
       if (controls.hidden) showControls();
@@ -373,14 +411,15 @@
   });
   theaterButton.addEventListener('click', function () {
     if (!video) return;
-    setViewMode(viewMode === ViewMode.THEATER ? ViewMode.COMPLETE : ViewMode.THEATER, 'theater');
+    setViewMode(viewMode === ViewMode.THEATER ? ViewMode.FULLSCREEN : ViewMode.THEATER, 'theater');
     idleControls();
   });
   fullscreenButton.addEventListener('click', function () {
     if (!video) return;
-    setViewMode(viewMode === ViewMode.FULLSCREEN ? previousViewMode : ViewMode.FULLSCREEN, 'fullscreen');
+    setViewMode(viewMode === ViewMode.FULLSCREEN ? ViewMode.THEATER : ViewMode.FULLSCREEN, 'fullscreen');
     idleControls();
   });
+  infoButton.addEventListener('click', idleControls);
   window.addEventListener('kicktv-stream-info', function (event) {
     if (metadata && event.detail.channel === channel) {
       var info = event.detail.info;
@@ -388,20 +427,22 @@
     }
   });
   window.addEventListener('pagehide', function () {
-    streamInfo.setVisible(false);
-    if (homeUI) homeUI.suspend();
+    streamInfo.hide();
+    embed.close();
+    homeUI.suspend();
   });
   document.addEventListener('visibilitychange', function () {
     if (document.hidden) {
-      if (homeUI) homeUI.suspend();
-      if (!homeUI || home.hidden) showHome('Reprodução encerrada ao sair do aplicativo.');
-    } else if (homeUI) homeUI.resume(true);
+      homeUI.suspend();
+      if (home.hidden) {
+        embed.close();
+        showHome('Reprodução encerrada ao sair do aplicativo.');
+      }
+    } else homeUI.resume(true);
   });
   window.KickNativeDiagnostics = { snapshot: snapshot };
   log('mode_selected', { mode: mode, origin: window.location.origin, protocol: window.location.protocol });
-  if (homeUI) {
-    homeUI.start.focus();
-    window.KickHomeDiagnostics = {snapshot: homeUI.snapshot};
-    homeUI.resume();
-  } else input.focus();
+  homeUI.start.focus();
+  window.KickHomeDiagnostics = {snapshot: homeUI.snapshot};
+  homeUI.resume();
 }());

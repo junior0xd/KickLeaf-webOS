@@ -4,15 +4,16 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>KickLeaf — HLS e chat</title>
+  <link rel="stylesheet" href="oled-tokens.css">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="chat.css">
   <link rel="stylesheet" href="native-playback.css">
   <link rel="stylesheet" href="discovery-home.css">
 </head>
 <body tabindex="-1">
-  <main id="home" class="home">
-    <nav id="home-nav" aria-label="Navegação inicial" hidden>
-      <img id="home-brand" alt="KickLeaf" width="334" height="339">
+  <main id="home" class="home discovery-home">
+    <nav id="home-nav" aria-label="Navegação inicial">
+      <img id="home-brand" src="kickleaf-icon-transparent.png" alt="KickLeaf" width="334" height="339">
       <button id="home-start" type="button"><span class="home-symbol" aria-hidden="true"></span>Início</button>
       <button id="home-live" type="button"><img src="phosphor-broadcast-fill.svg" alt=""> Ao vivo</button>
     </nav>
@@ -46,9 +47,32 @@
       <div id="recent-grid"></div>
     </section>
   </main>
-  <main id="native-playback" data-view-mode="complete" aria-label="Reprodução da transmissão" hidden>
+  <svg class="player-filter-defs" width="0" height="0" aria-hidden="true">
+    <filter id="player-icon-focus" color-interpolation-filters="sRGB">
+      <feFlood class="player-focus-color" result="accent"></feFlood>
+      <feComposite in="accent" in2="SourceAlpha" operator="in"></feComposite>
+    </filter>
+  </svg>
+  <main id="native-playback" data-view-mode="fullscreen" aria-label="Reprodução da transmissão" hidden>
     <div class="native-stage">
       <div id="native-video-host"></div>
+      <section id="stream-info" aria-label="Informações da transmissão" aria-hidden="true" hidden>
+        <div class="stream-avatar">
+          <span data-info="initial" aria-hidden="true"></span>
+          <img data-info="avatar" alt="" referrerpolicy="no-referrer" hidden>
+        </div>
+        <div class="stream-details">
+          <div class="stream-byline">
+            <bdi data-info="name"></bdi>
+            <span data-info="category-line" hidden>em <bdi data-info="category"></bdi></span>
+          </div>
+          <h2 data-info="title" dir="auto" hidden></h2>
+        </div>
+        <div class="stream-audience" data-info="viewers" hidden>
+          <div class="stream-audience-count"><img src="phosphor-eye.svg" alt=""><span data-info="viewer-count"></span></div>
+          <span data-info="viewer-label"></span>
+        </div>
+      </section>
       <p id="notice" class="notice" role="status" hidden></p>
       <section id="native-controls" class="player-controls" tabindex="-1" aria-label="Controles HLS" hidden>
         <div class="control-group" role="group" aria-label="Reprodução">
@@ -56,7 +80,8 @@
           <span id="native-live" hidden class="live-indicator"><img src="phosphor-broadcast-fill.svg" alt="" aria-hidden="true">AO VIVO</span>
         </div>
         <div class="control-group" role="group" aria-label="Visualização e configurações">
-          <button id="native-theater" class="icon-control" type="button" aria-label="Modo teatro" title="Modo teatro" aria-pressed="false" disabled><img src="phosphor-rectangle.svg" alt="" aria-hidden="true"></button>
+          <button id="native-theater" class="icon-control" type="button" aria-label="Chat" title="Chat" aria-pressed="false" disabled><img src="phosphor-chat-centered-slash.svg" alt="" aria-hidden="true"></button>
+          <button id="native-info" class="icon-control" type="button" aria-label="Informações da transmissão" title="Informações da transmissão" aria-pressed="true" disabled><img src="phosphor-info.svg" alt="" aria-hidden="true"></button>
           <button id="native-settings" class="icon-control" type="button" aria-label="Configurações" title="Configurações" aria-haspopup="dialog" aria-controls="native-settings-panel" aria-expanded="false"><img src="phosphor-gear-six.svg" alt="" aria-hidden="true"></button>
           <button id="native-fullscreen" class="icon-control" type="button" aria-label="Tela cheia" title="Tela cheia" aria-pressed="false" disabled><img src="phosphor-corners-out.svg" alt="" aria-hidden="true"></button>
         </div>
@@ -95,31 +120,36 @@
         </dl>
       </aside>
     </div>
-    <section id="stream-info" aria-label="Informações da transmissão" hidden>
-      <div class="stream-avatar">
-        <span data-info="initial" aria-hidden="true"></span>
-        <img data-info="avatar" alt="" referrerpolicy="no-referrer" hidden>
-      </div>
-      <div class="stream-details">
-        <h2 data-info="title" hidden></h2>
-        <div class="stream-byline">
-          <span data-info="name"></span>
-          <span data-info="category" hidden></span>
-        </div>
-        <p data-info="description" hidden></p>
-        <div class="stream-metrics">
-          <span class="stream-live" data-info="live" hidden>Ao vivo</span>
-          <time data-info="elapsed" aria-label="Tempo de transmissão" hidden></time>
-          <span data-info="viewers" hidden></span>
-        </div>
-      </div>
-    </section>
   </main>
   <section id="native-quality-menu" class="quality-menu" role="dialog" aria-modal="true" aria-label="Qualidades disponíveis" hidden></section>
   <aside id="chat-panel" hidden aria-label="Chat público somente leitura">
     <header><h2 id="chat-channel">Chat</h2><span id="chat-state" role="status">Desabilitado</span></header>
     <div id="chat-messages" role="log" aria-label="Mensagens recentes" aria-live="off"></div>
   </aside>
+  <div id="player-container" hidden></div>
+  <p id="embed-notice" class="notice" role="status" hidden></p>
+  <section id="player-controls" class="player-controls" tabindex="-1" aria-label="Controles da transmissão" hidden>
+    <div class="control-group" role="group" aria-label="Reprodução">
+      <button class="icon-control" type="button" aria-label="Reproduzir ou pausar (em breve)" title="Reproduzir ou pausar (em breve)" disabled><img src="phosphor-play-fill.svg" alt="" aria-hidden="true"></button>
+      <span class="live-indicator"><img src="phosphor-broadcast-fill.svg" alt="" aria-hidden="true">KICK</span>
+    </div>
+    <div class="control-group" role="group" aria-label="Visualização e configurações">
+      <button class="icon-control" type="button" aria-label="Modo teatro (em breve)" title="Modo teatro (em breve)" disabled><img src="phosphor-rectangle.svg" alt="" aria-hidden="true"></button>
+      <button id="player-settings" class="icon-control" type="button" aria-label="Configurações" title="Configurações" aria-haspopup="dialog" aria-controls="player-settings-panel" aria-expanded="false"><img src="phosphor-gear-six.svg" alt="" aria-hidden="true"></button>
+      <button class="icon-control" type="button" aria-label="Tela cheia (em breve)" title="Tela cheia (em breve)" disabled><img src="phosphor-corners-out.svg" alt="" aria-hidden="true"></button>
+    </div>
+    <section id="player-settings-panel" class="player-settings" role="dialog" aria-modal="true" aria-labelledby="player-settings-title" hidden>
+      <h2 id="player-settings-title">Ações da transmissão</h2>
+      <button id="quality-button" type="button">Qualidade</button>
+      <button id="reload-button" type="button">Recarregar transmissão</button>
+      <button id="player-close-settings" type="button">Fechar</button>
+    </section>
+  </section>
+  <section id="quality-menu" class="quality-menu" role="dialog" aria-modal="true" aria-labelledby="quality-title" hidden>
+    <h2 id="quality-title">Qualidade gerenciada pela Kick</h2>
+    <p>O player oficial não disponibiliza a seleção de qualidade para este aplicativo.</p>
+    <button id="close-quality" type="button">Fechar</button>
+  </section>
   <script src="webOSTV.js"></script>
   <script src="cdn-badge-url.js"></script>
   <script src="chat-badges.js"></script>
@@ -139,6 +169,7 @@
   <script src="video-stats.js"></script>
   <script src="video-stats-panel.js"></script>
   <script src="stream-info.js"></script>
+  <script src="embed-player.js"></script>
   <script src="native-hls.js"></script>
 </body>
 </html>

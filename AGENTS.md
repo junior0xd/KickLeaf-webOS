@@ -1,13 +1,13 @@
 # KickLeaf for webOS — Agent Instructions
 
-These instructions apply to the repository unless a more specific `AGENTS.md` overrides them. KickLeaf is an independent Kick viewing app for LG webOS TVs. The functional baseline for these instructions is v0.3.0. Check the source and manifests before changing behavior.
+These instructions apply to the repository unless a more specific `AGENTS.md` overrides them. KickLeaf is an independent Kick viewing app for LG webOS TVs. The released baseline is v0.3.1. Check the source and manifests before changing behavior.
 
 ## Runtime architecture
 
 - `app/appinfo.json` defines the application ID `com.kickleaf.client`. The packaged JavaScript service is `com.kickleaf.client.service`. Target the LG OLED C3 with webOS 25 and verify API compatibility on the device when needed.
 - Direct HLS is the default. The web app discovers the stream and the native video element receives media from the CDN. The current discovery makes ordinary requests and has no JavaScript challenge handler. Preserve its origin, TLS, and request restrictions.
-- `native-hls` uses the optional Python discovery backend. The official iframe is an explicit fallback with its own limitations. Keep the HLS diagnostic independent of Kick playback. See the [player guide](docs/PLAYER.md).
-- Complete is the default HLS viewing layout. Complete and Theater share a public, read-only chat session through the packaged Luna service. Fullscreen stops and drains chat. Centrifugo transport and the local FIFO/DOM ACK are independent. Keep video playback independent of chat and preserve queue admission, credit, deduplication, draining, and cleanup. See the [chat guide](docs/CHAT.md).
+- `native-hls` uses the optional Python discovery backend. The official iframe is an explicit fallback with its own limitations. Keep the development HLS diagnostic independent of Kick playback and out of the main IPK. See the [player guide](docs/PLAYER.md).
+- The OLED Premium player starts in Fullscreen. Theater uses public, read-only chat through the packaged Luna service. Fullscreen stops and drains chat. The stream information overlay takes its data from the existing discovery and chat flows. Centrifugo transport and the local FIFO/DOM ACK are independent. Keep video playback independent of chat and preserve queue admission, credit, deduplication, draining, and cleanup. See the [chat guide](docs/CHAT.md).
 - Get explicit approval before adding a backend, proxy, runtime dependency, or external service. Treat external URLs, credentials, cookies, images, and message content as untrusted. Keep secrets, signed URLs, raw chat data, and private captures out of logs and commits.
 
 ## UI and performance

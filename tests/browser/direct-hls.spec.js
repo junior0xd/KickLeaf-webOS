@@ -88,7 +88,7 @@ test('troca canal/recarrega/libera vídeo, e pode retornar ao iframe sem loop',a
   await submit(page,'minerva');await expect(page.locator('video')).toHaveCount(1);
   await action(page,1);await expect(page.locator('video')).toHaveCount(1);
   await action(page,2);
-  await expect(page).toHaveURL(/index.html\?iframe&channel=minerva$/);await expect(page.locator('video')).toHaveCount(0);
+  await expect(page.locator('iframe')).toHaveAttribute('src',/player.kick.com\/minerva/);await expect(page.locator('video')).toHaveCount(0);
 });
 test('falha de reprodução é separada da descoberta e mensagem técnica não vaza URL',async({page})=>{
   const logs=[];page.on('console',m=>logs.push(m.text()));await ready(page);
@@ -135,8 +135,11 @@ async function timeline(page, seekable = [[80, 180]], buffered = [[95, 120]]) {
     const play = v.play;
     v.play = function(){this.playCalls++;return play.call(this);};
   }, {seekable, buffered});
+  await focusPlayback(page);
+}
+async function focusPlayback(page) {
   await page.keyboard.press('Enter');
-  await page.keyboard.press('ArrowLeft');await page.keyboard.press('ArrowLeft');
+  for (let i=0; i<3; i++) await page.keyboard.press('ArrowLeft');
   await expect(page.locator('#native-play-pause')).toBeFocused();
 }
 const toggle = page => page.keyboard.press('Enter');
@@ -150,8 +153,8 @@ for (const seconds of [5,30,120,300]) {
     await page.clock.fastForward(seconds*1000);
     // Native engines may move currentTime even while paused; saved position must survive.
     await page.locator('video').evaluate(v=>{v.testPosition=160;});
-    await page.keyboard.press('Enter'); // reveal controls
-    await page.keyboard.press('ArrowLeft');await page.keyboard.press('ArrowLeft');await toggle(page);
+    await focusPlayback(page);
+    await toggle(page);
     await expect(page.locator('#native-play-pause')).toHaveAttribute('aria-label','Pausar');
     expect(await page.locator('video').evaluate(v=>({same:v===originalVideo,time:v.currentTime,loads:v.loadCalls,plays:v.playCalls,seeks:v.seekCalls})))
       .toEqual({same:true,time:100,loads:0,plays:1,seeks:[100]});
@@ -203,7 +206,7 @@ test('conexão temporária: waiting/playing retoma mesmo ponto; timeout é limit
   await page.locator('video').evaluate(v=>v.dispatchEvent(new Event('playing')));
   await expect(page.locator('#notice')).toBeHidden();
   expect(await page.locator('video').evaluate(v=>v.currentTime)).toBe(100);
-  await page.keyboard.press('Enter');await page.keyboard.press('ArrowLeft');await page.keyboard.press('ArrowLeft');
+  await focusPlayback(page);
   await toggle(page);await toggle(page);
   await page.clock.fastForward(25000);
   await expect(page.locator('#notice')).toContainText('Verifique a conexão');

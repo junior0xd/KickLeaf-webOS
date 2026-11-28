@@ -11,7 +11,7 @@ Built for the big screen.
 
 <p align="center">Português | <a href="README.en.md">English</a></p>
 
-KickLeaf é um aplicativo independente para assistir a transmissões da Kick em TVs LG. A reprodução usa HLS nativo por padrão. Você pode assistir em tela cheia ou usar o modo teatro com chat público somente leitura. O alvo do projeto é a LG OLED C3 com webOS 25.
+KickLeaf é um aplicativo independente para assistir a transmissões da Kick em TVs LG. A tela inicial OLED Premium abre sem parâmetros. As transmissões iniciam em Tela cheia pelo HLS nativo. Ative Teatro na barra de controles para abrir o chat público somente leitura. O alvo do projeto é a LG OLED C3 com webOS 25.
 
 ## Aviso importante
 
@@ -56,11 +56,11 @@ npx ares-install --device lgc3 "dist/releases/${APP_ID}_${APP_VERSION}_all.ipk"
 npx ares-launch --device lgc3 "$APP_ID"
 ```
 
-No app, digite o nome ou a URL do canal e selecione **Assistir**. Durante a reprodução, pressione **OK** para abrir os controles.
+No cabeçalho da tela inicial, digite o slug ou a URL do canal e selecione **Assistir**. Durante a reprodução, pressione **OK** para abrir os controles.
 
 Se você já tem o KickTV Alpha instalado, o webOS instala o KickLeaf (`com.kickleaf.client`) como outro aplicativo. O KickLeaf começa com as configurações padrão.
 
-Para experimentar a tela inicial OLED Premium, use o parâmetro de abertura `experimentalDiscovery: true`. Veja [como habilitar e reverter o experimento](docs/DESCOBERTA.md).
+Selecione **Ao vivo** para habilitar a listagem experimental de transmissões. O app lembra a escolha nas próximas aberturas. [Condições de uso e roteiro de validação](docs/DESCOBERTA.md)
 
 ## Executar os testes
 

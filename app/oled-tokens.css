@@ -1,0 +1,31 @@
+:root {
+  --oled-bg: #080a09;
+  --oled-bg-secondary: #0e1110;
+  --oled-card: #151917;
+  --oled-raised: #202622;
+  --oled-border: #303a33;
+  --oled-accent: #53fc18;
+  --oled-accent-fade: rgba(83, 252, 24, .46);
+  --oled-text: #e8ede9;
+  --oled-muted: #929c95;
+  --oled-focus-glow: rgba(83, 252, 24, .32);
+  --oled-focus-fill: rgba(83, 252, 24, .09);
+  --oled-focus-width: clamp(2px, .16vw, 6px);
+  --oled-focus-offset: clamp(1px, .1vw, 4px);
+  --oled-focus-blur: clamp(9px, .9vw, 34px);
+  --oled-radius: clamp(9px, .8vw, 32px);
+  --oled-pill: 999px;
+  --oled-motion: 190ms;
+  --player-button-size: 72px;
+  --player-bar-inset: 32px;
+  --oled-panel-overlay: rgba(14, 17, 16, .96);
+  --oled-video-shade: rgba(8, 10, 9, .94);
+  --oled-player-shade: rgba(0, 0, 0, .60);
+  --oled-player-shade-height: 15vh;
+  --oled-player-focus-fill: rgba(83, 252, 24, .18);
+  --oled-player-focus-motion: 150ms;
+  --oled-control-shade: rgba(8, 10, 9, .86);
+}
+@media (prefers-reduced-motion: reduce) {
+  :root { --oled-motion: 0ms; --oled-player-focus-motion: 0ms; }
+}

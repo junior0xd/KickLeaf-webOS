@@ -1,6 +1,7 @@
 (function (root) {
   'use strict';
   const groupSize = 5;
+  const listingPreference = 'kickleaf.liveListingEnabled';
   const number = new Intl.NumberFormat('pt-BR');
   const compact = new Intl.NumberFormat('pt-BR',{notation:'compact',maximumFractionDigits:1});
 
@@ -24,18 +25,17 @@
 
   function create({api,home,input,watch,open}) {
     const byId = id => document.getElementById(id);
-    const nav = byId('home-nav'), start = byId('home-start'), live = byId('home-live');
+    const start = byId('home-start'), live = byId('home-live');
     const browse = byId('browse'), grid = byId('browse-grid'), status = byId('browse-status');
     const position = byId('browse-position'), counter = byId('browse-group'), retry = byId('browse-retry');
     const previous = byId('browse-prev'), next = byId('browse-next');
     const promotion = byId('home-promotion'), events = byId('home-events'), eventGrid = byId('events-grid');
     const recent = byId('home-recent'), recentGrid = byId('recent-grid');
-    home.classList.add('discovery-home');
-    const brand = byId('home-brand');
-    brand.src = 'kickleaf-icon-transparent.png';
-    nav.hidden = browse.hidden = false;
-
-    const query = api.query();
+    let query = null;
+    try {
+      if (root.localStorage.getItem(listingPreference) === 'true') query = api.query();
+    } catch (_) { /* Storage can be unavailable on this device. */ }
+    browse.hidden = !query;
     const catalogue = [];
     const history = [];
     const sources = new WeakMap();
@@ -163,7 +163,7 @@
     }
 
     async function goTo(target, anchor = document.activeElement, retrying = false) {
-      if (!active || target < 0) return;
+      if (!query || !active || target < 0) return;
       if (hasGroup(target)) {
         const direction = target < group ? -1 : 0;
         showGroup(target,anchor ? direction : null);
@@ -283,7 +283,7 @@
         home.scrollTop = scrollTop;
       }
       selected = null;
-      if (!cards.length && failedGroup === null && !query.done) void goTo(0,null);
+      if (query && !cards.length && failedGroup === null && !query.done) void goTo(0,null);
     }
 
     function select(event) {
@@ -296,7 +296,16 @@
     [grid,recentGrid,promotion,eventGrid].forEach(row=>row.addEventListener('click',select));
     grid.addEventListener('focusin',event=>{ lastLive = cards.indexOf(event.target); });
     start.addEventListener('click',()=>{ home.scrollTop = 0; start.focus({preventScroll:true}); });
-    live.addEventListener('click',()=>{ (cards[lastLive] || cards[0] || (!retry.hidden ? retry : live)).focus(); });
+    live.addEventListener('click',()=>{
+      if (!query) {
+        query = api.query();
+        browse.hidden = false;
+        try { root.localStorage.setItem(listingPreference,'true'); }
+        catch (_) { /* The list stays enabled for this session. */ }
+        void goTo(0,null);
+      }
+      (cards[lastLive] || cards[0] || (!retry.hidden ? retry : live)).focus();
+    });
     previous.addEventListener('click',()=>void goTo(group-1));
     next.addEventListener('click',()=>void goTo(group+1));
     retry.addEventListener('click',()=>{
@@ -322,7 +331,11 @@
         const destination = rows[rowIndex+step];
         const column = destination === liveRow ? Math.max(0,lastLive) : Math.max(0,index);
         const target = destination === header ? live : destination?.[Math.min(column,destination.length-1)];
-        target?.focus();
+        if (target) target.focus();
+        else if (row === header && !destination) {
+          if (focused === input && code === 40) watch.focus();
+          else if (focused === watch && code === 38) input.focus();
+        }
       } else if (row[index+step] && index >= 0) row[index+step].focus();
       else if (cards.includes(focused)) void goTo(group+step);
       else if (focused === next && step < 0) cards[cards.length-1]?.focus();

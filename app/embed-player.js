@@ -3,7 +3,7 @@
   'use strict';
   root.createKickPlayer = function (onExit) {
     var container = document.getElementById('player-container');
-    var notice = document.getElementById('notice');
+    var notice = document.getElementById('embed-notice');
     var controls = document.getElementById('player-controls');
     var quality = document.getElementById('quality-menu');
     var qualityButton = document.getElementById('quality-button');

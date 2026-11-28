@@ -28,6 +28,9 @@ test('valida a tag exata e calcula o nome do IPK pela versão do manifesto', t =
   const root = fixture(t);
   const manifest = JSON.parse(fs.readFileSync(path.join(root, 'app/appinfo.json')));
   const project = readProject(root, `v${manifest.version}`);
+  assert.equal(manifest.main, 'native-hls.html');
+  assert.ok(!project.files.includes('index.html'));
+  assert.ok(!project.files.includes('app.js'));
   assert.equal(project.filename, `${manifest.id}_${manifest.version}_all.ipk`);
 });
 
@@ -78,8 +81,8 @@ test('exclui credenciais, dependências, testes e arquivos temporários mesmo de
 
 test('recusa links simbólicos no lugar de um arquivo de execução', t => {
   const root = fixture(t);
-  fs.unlinkSync(path.join(root, 'app', 'app.js'));
-  fs.symlinkSync(path.join(source, 'app/app.js'), path.join(root, 'app', 'app.js'));
+  fs.unlinkSync(path.join(root, 'app', 'native-hls.js'));
+  fs.symlinkSync(path.join(source, 'app/native-hls.js'), path.join(root, 'app', 'native-hls.js'));
   assert.throws(() => readProject(root), /não regular/);
 });
 
@@ -88,7 +91,7 @@ test('recusa caminhos externos na lista e falha se um arquivo necessário faltar
   edit(root, 'packaging.json', data => { data.files.push('../credentials.json'); });
   assert.throws(() => readProject(root), /sem diretórios/);
   fs.copyFileSync(path.join(source, 'packaging.json'), path.join(root, 'packaging.json'));
-  fs.unlinkSync(path.join(root, 'app/index.html'));
+  fs.unlinkSync(path.join(root, 'app/native-hls.html'));
   assert.throws(() => readProject(root), /ENOENT/);
 });
 

@@ -1,6 +1,6 @@
 {
   "name": "kickleaf-webos",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "private": true,
   "description": "A lightweight, unofficial Kick client for webOS. Built for the big screen.",
   "scripts": {
